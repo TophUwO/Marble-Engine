@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Engine", "Marble Eng
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Wrappers", "Marble Wrappers\vcpp\Marble Wrappers.vcxproj", "{F1F9AC48-8E74-4205-8299-D879DE082744}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Sandbox", "Marble Sandbox\vcpp\Marble Sandbox.vcxproj", "{1701EB73-8865-4653-8EC2-9D565E5905B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{F1F9AC48-8E74-4205-8299-D879DE082744}.Release|x64.Build.0 = Release|x64
 		{F1F9AC48-8E74-4205-8299-D879DE082744}.Release|x86.ActiveCfg = Release|Win32
 		{F1F9AC48-8E74-4205-8299-D879DE082744}.Release|x86.Build.0 = Release|Win32
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Debug|x64.ActiveCfg = Debug|x64
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Debug|x64.Build.0 = Debug|x64
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Debug|x86.ActiveCfg = Debug|Win32
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Debug|x86.Build.0 = Debug|Win32
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Release|x64.ActiveCfg = Release|x64
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Release|x64.Build.0 = Release|x64
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Release|x86.ActiveCfg = Release|Win32
+		{1701EB73-8865-4653-8EC2-9D565E5905B6}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
