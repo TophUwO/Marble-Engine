@@ -19,12 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\wr_d2d.h" />
+    <ClInclude Include="..\include\mbwr_d2d.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\factory.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\rendertarget.cpp" />
+    <ClCompile Include="..\src\mbwr_factory.cpp" />
+    <ClCompile Include="..\src\mbwr_main.cpp" />
+    <ClCompile Include="..\src\mbwr_rendertarget.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -81,25 +81,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)$(ProjectName)\include\</IncludePath>
-    <OutDir>$(SolutionDir)Marble Wrappers\bin\</OutDir>
-    <TargetName>mb_wrappers_$(Configuration)_$(PlatformShortName)</TargetName>
+    <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
+    <TargetName>marblewr_$(PlatformShortName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Marble Wrappers\bin\</OutDir>
-    <TargetName>mb_wrappers_$(Configuration)_$(PlatformShortName)</TargetName>
+    <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
+    <TargetName>marblewr_$(PlatformShortName)r</TargetName>
     <IncludePath>$(SolutionDir)$(ProjectName)\include\</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)Marble Wrappers\bin\</OutDir>
-    <TargetName>mb_wrappers_$(Configuration)_$(PlatformShortName)</TargetName>
+    <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
+    <TargetName>marblewr_$(PlatformShortName)d</TargetName>
     <IncludePath>$(SolutionDir)$(ProjectName)\include\</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)Marble Wrappers\bin\</OutDir>
-    <TargetName>mb_wrappers_$(Configuration)_$(PlatformShortName)</TargetName>
+    <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
+    <TargetName>marblewr_$(PlatformShortName)r</TargetName>
     <IncludePath>$(SolutionDir)$(ProjectName)\include\</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -112,6 +112,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AssemblyDebug>true</AssemblyDebug>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -128,6 +129,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AssemblyDebug>true</AssemblyDebug>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -140,6 +142,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AssemblyDebug>true</AssemblyDebug>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -156,6 +159,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AssemblyDebug>true</AssemblyDebug>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

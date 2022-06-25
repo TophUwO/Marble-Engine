@@ -18,18 +18,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\wr_d2d.h">
+    <ClInclude Include="..\include\mbwr_d2d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\rendertarget.cpp">
+    <ClCompile Include="..\src\mbwr_rendertarget.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\main.cpp">
+    <ClCompile Include="..\src\mbwr_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\factory.cpp">
+    <ClCompile Include="..\src\mbwr_factory.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
   </ItemGroup>
