@@ -4,10 +4,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.32413.511
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Engine", "Marble Engine\vcpp\Marble Engine.vcxproj", "{0850A123-F3FC-40A5-8D72-2BB55503CA04}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F1F9AC48-8E74-4205-8299-D879DE082744} = {F1F9AC48-8E74-4205-8299-D879DE082744}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Wrappers", "Marble Wrappers\vcpp\Marble Wrappers.vcxproj", "{F1F9AC48-8E74-4205-8299-D879DE082744}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Sandbox", "Marble Sandbox\vcpp\Marble Sandbox.vcxproj", "{1701EB73-8865-4653-8EC2-9D565E5905B6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0850A123-F3FC-40A5-8D72-2BB55503CA04} = {0850A123-F3FC-40A5-8D72-2BB55503CA04}
+		{F1F9AC48-8E74-4205-8299-D879DE082744} = {F1F9AC48-8E74-4205-8299-D879DE082744}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

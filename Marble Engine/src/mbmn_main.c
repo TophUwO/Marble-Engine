@@ -1,4 +1,4 @@
-#include <mbmn_system.h>
+#include <mbmn_internal.h>
 
 
 BOOLEAN WINAPI DllMain(HINSTANCE hiDllHandle, DWORD dwReason, LPVOID lpvReserved) {

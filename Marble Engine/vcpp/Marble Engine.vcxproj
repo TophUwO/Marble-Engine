@@ -75,36 +75,37 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
     <TargetName>marblemn_$(PlatformShortName)d</TargetName>
-    <IncludePath>$(SolutionDir)\Marble Engine\include\;$(SolutionDir)\Marble Wrappers\include\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
     <TargetName>marblemn_$(PlatformShortName)r</TargetName>
-    <IncludePath>$(SolutionDir)\Marble Engine\include\;$(SolutionDir)\Marble Wrappers\include\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
     <TargetName>marblemn_$(PlatformShortName)d</TargetName>
-    <IncludePath>$(SolutionDir)\Marble Engine\include\;$(SolutionDir)\Marble Wrappers\include\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
     <TargetName>marblemn_$(PlatformShortName)r</TargetName>
-    <IncludePath>$(SolutionDir)\Marble Engine\include\;$(SolutionDir)\Marble Wrappers\include\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MARBLEMN_DLLEXP;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -119,8 +120,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MARBLEMN_DLLEXP;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,8 +137,9 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MARBLEMN_DLLEXP;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,8 +154,9 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MARBLEMN_DLLEXP;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -168,8 +172,9 @@
     <ClCompile Include="..\src\mbmn_system.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\mbmn.h" />
     <ClInclude Include="..\include\mbmn_error.h" />
-    <ClInclude Include="..\include\mbmn_system.h" />
+    <ClInclude Include="..\include\mbmn_internal.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

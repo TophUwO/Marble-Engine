@@ -23,10 +23,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\mbmn_system.h">
+    <ClInclude Include="..\include\mbmn_internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\mbmn_error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\mbmn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

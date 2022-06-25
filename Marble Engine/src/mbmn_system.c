@@ -1,4 +1,4 @@
-#include <mbmn_system.h>
+#include <mbmn_internal.h>
 
 
 int MarbleMain_System_CreateDebugConsole(void) {
