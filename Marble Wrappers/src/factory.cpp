@@ -50,7 +50,9 @@ HRESULT WINAPI WrD2D_Factory_CreateWicBitmapRenderTarget(ID2D1Factory *sFactory,
 }
 
 void WINAPI WrD2D_Factory_GetDesktopDPI(ID2D1Factory *sFactory, FLOAT *fpDpiX, FLOAT *fpDpiY) {
-	sFactory->GetDesktopDpi(fpDpiX, fpDpiY);
+	UINT udwDpi = GetDpiForWindow(GetDesktopWindow());
+
+	*fpDpiX = *fpDpiY = (FLOAT)udwDpi;
 }
 
 HRESULT WINAPI WrD2D_Factory_ReloadSystemMetrics(ID2D1Factory *sFactory) {
