@@ -168,11 +168,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\event.c" />
     <ClCompile Include="..\src\main.c" />
     <ClCompile Include="..\src\system.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\api.h" />
+    <ClInclude Include="..\include\event.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
     <ClInclude Include="..\include\internal.h" />

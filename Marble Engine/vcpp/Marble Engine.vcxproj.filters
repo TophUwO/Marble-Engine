@@ -21,6 +21,9 @@
     <ClCompile Include="..\src\system.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\event.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\internal.h">
@@ -33,6 +36,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\api.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\event.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

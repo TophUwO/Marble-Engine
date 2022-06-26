@@ -27,6 +27,10 @@ static int Marble_System_Internal_CreateDebugConsole(void) {
 }
 
 
+int Marble_System_Internal_OnEvent(void *ptrEvent) {
+
+}
+
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
 	Marble_System_Internal_CreateDebugConsole();
 	printf("init: application\n");

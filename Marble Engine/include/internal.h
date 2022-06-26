@@ -8,6 +8,7 @@
 
 #include <api.h>
 #include <error.h>
+#include <event.h>
 
 
 enum Marble_Internal_AppState {
@@ -23,5 +24,8 @@ extern struct Marble_Internal_Application {
 	PSTR      astrCommandLine;
 	int       dwAppState;
 } gl_sApplication;
+
+
+extern int Marble_System_Internal_OnEvent(void *ptrEvent);
 
 
