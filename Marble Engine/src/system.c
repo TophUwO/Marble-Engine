@@ -1,25 +1,20 @@
 #include <internal.h>
 
 
-struct MarbleMain_Internal_Application gl_sApplication = { NULL };
+struct Marble_Internal_Application gl_sApplication = { NULL };
 
 
-static int __MarbleMain_System_Internal_DummyOnInit__(void) { return Marble_ErrorCode_Ok; }
-static int __MarbleMain_System_Internal_DummyOnUpdate__(void) { return Marble_ErrorCode_Ok; }
-static int __MarbleMain_System_Internal_DummyOnCleanup__(void) { return Marble_ErrorCode_Ok; }
-
-static int MarbleMain_System_Internal_Cleanup(_Bool blIsForced) {
+static int Marble_System_Internal_Cleanup(_Bool blIsForced) {
 	gl_sApplication.dwAppState = 
 		blIsForced 
-			? MarbleMain_AppState_ForcedShutdown 
-			: MarbleMain_AppState_Shutdown
+			? Marble_AppState_ForcedShutdown 
+			: Marble_AppState_Shutdown
 		;
 
-	return gl_sApplication.onCleanup();
+	return Marble_ErrorCode_Ok;
 }
 
-
-int MarbleMain_System_CreateDebugConsole(void) {
+static int Marble_System_Internal_CreateDebugConsole(void) {
 	if (AllocConsole()) {
 		FILE *fpTmp = NULL;
 		freopen_s(&fpTmp, "CONOUT$", "w", stdout);
@@ -31,29 +26,20 @@ int MarbleMain_System_CreateDebugConsole(void) {
 	return Marble_ErrorCode_CreateDebugConsole;
 }
 
-int MarbleMain_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
+
+MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
+	Marble_System_Internal_CreateDebugConsole();
 	printf("init: application\n");
 
-	gl_sApplication.dwAppState      = MarbleMain_AppState_Init;
+	gl_sApplication.dwAppState      = Marble_AppState_Init;
 	gl_sApplication.hiInstance      = hiInstance;
 	gl_sApplication.astrCommandLine = astrCommandLine;
 
 	return Marble_ErrorCode_Ok;
 }
 
-int MarbleMain_System_RegisterHandlers(int (*onInit)(void), int (*onUpdate)(void), int (*onCleanup)(void)) {
-	gl_sApplication.onInit    = onInit   ? onInit   : &__MarbleMain_System_Internal_DummyOnInit__;
-	gl_sApplication.onUpdate  = onUpdate ? onUpdate : &__MarbleMain_System_Internal_DummyOnUpdate__;
-	gl_sApplication.onCleanup = onUpdate ? onCleanup : &__MarbleMain_System_Internal_DummyOnCleanup__;
-
-	return Marble_ErrorCode_Ok;
-}
-
-int MarbleMain_System_RunApplication(void) {
-	gl_sApplication.onInit();
-
-	gl_sApplication.dwAppState = MarbleMain_AppState_Running;
-
+MARBLE_API int Marble_System_RunApplication(void) {
+	gl_sApplication.dwAppState = Marble_AppState_Running;
 
 	MSG sMessage = { 0 };
 	while (TRUE) {
@@ -64,12 +50,10 @@ int MarbleMain_System_RunApplication(void) {
 			TranslateMessage(&sMessage);
 			DispatchMessage(&sMessage);
 		}
-
-		gl_sApplication.onUpdate();
 	}
 
 CLEANUP:
-	return MarbleMain_System_Internal_Cleanup(sMessage.message == WM_QUIT);
+	return Marble_System_Internal_Cleanup(sMessage.message == WM_QUIT);
 }
 
 

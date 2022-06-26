@@ -1,15 +1,16 @@
 #pragma once
 
-#ifdef MARBLEMN_DLLEXP 
-	#define MARBLEMN_API extern __declspec(dllexport)
-#else
-	#define MARBLEMN_API extern __declspec(dllexport)
-#endif
+#include <api.h>
 
 
-MARBLEMN_API int MarbleMain_System_CreateDebugConsole(void);
-MARBLEMN_API int MarbleMain_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine);
-MARBLEMN_API int MarbleMain_System_RegisterHandlers(int (*onInit)(void), int (*onUpdate)(void), int (*onCleanup)(void));
-MARBLEMN_API int MarbleMain_System_RunApplication(void);
+INT APIENTRY WinMain(_In_ HINSTANCE hiInstance, _In_opt_ HINSTANCE hiPrevInstance, _In_ PSTR astrCommandLine, _In_ int dwShowCommand) {
+	MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine);
+	MARBLE_API int Marble_System_RunApplication();
+
+	if (Marble_System_InitializeApplication(hiInstance, astrCommandLine))
+		return EXIT_FAILURE;
+
+	return Marble_System_RunApplication();
+}
 
 

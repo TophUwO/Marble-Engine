@@ -32,5 +32,8 @@
     <ClInclude Include="..\include\marble.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\api.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

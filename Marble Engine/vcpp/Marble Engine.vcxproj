@@ -172,6 +172,7 @@
     <ClCompile Include="..\src\system.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\api.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
     <ClInclude Include="..\include\internal.h" />
