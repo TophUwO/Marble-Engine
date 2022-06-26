@@ -71,6 +71,9 @@ MARBLE_API int Marble_System_RunApplication(void) {
 	}
 
 CLEANUP:
+#ifdef _DEBUG
+	_CrtDumpMemoryLeaks();
+#endif
 	return Marble_System_Internal_Cleanup(sMessage.message == WM_QUIT);
 }
 

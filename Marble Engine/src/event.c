@@ -17,8 +17,6 @@ static struct Marble_Internal_EventEntry { Marble_EventType eType; Marble_EventC
 
 int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData) {
 	switch (eEventType) {
-		case Marble_EventType_Keyboard_KeyRepeated:
-			((Marble_KeyRepeatedEvent *)ptrEvent)->dwRepeatCount = ((Marble_KeyRepeatedData *)ptrData)->dwRepeatCount;
 		case Marble_EventType_Keyboard_KeyReleased:
 		case Marble_EventType_Keyboard_KeyPressed:
 			*(Marble_KeyPressedEvent *)ptrEvent = (Marble_KeyPressedEvent){
