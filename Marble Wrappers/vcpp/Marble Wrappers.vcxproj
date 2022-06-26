@@ -19,12 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\mbwr_d2d.h" />
+    <ClInclude Include="..\include\d2dwr.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\mbwr_factory.cpp" />
-    <ClCompile Include="..\src\mbwr_main.cpp" />
-    <ClCompile Include="..\src\mbwr_rendertarget.cpp" />
+    <ClCompile Include="..\src\factory.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\rendertarget.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -15,21 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\mbmn_main.c">
+    <ClCompile Include="..\src\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\mbmn_system.c">
+    <ClCompile Include="..\src\system.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\mbmn_internal.h">
+    <ClInclude Include="..\include\internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\mbmn_error.h">
+    <ClInclude Include="..\include\error.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\mbmn.h">
+    <ClInclude Include="..\include\marble.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

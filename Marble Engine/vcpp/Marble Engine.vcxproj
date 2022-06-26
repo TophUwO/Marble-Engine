@@ -168,13 +168,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\mbmn_main.c" />
-    <ClCompile Include="..\src\mbmn_system.c" />
+    <ClCompile Include="..\src\main.c" />
+    <ClCompile Include="..\src\system.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\mbmn.h" />
-    <ClInclude Include="..\include\mbmn_error.h" />
-    <ClInclude Include="..\include\mbmn_internal.h" />
+    <ClInclude Include="..\include\marble.h" />
+    <ClInclude Include="..\include\error.h" />
+    <ClInclude Include="..\include\internal.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
