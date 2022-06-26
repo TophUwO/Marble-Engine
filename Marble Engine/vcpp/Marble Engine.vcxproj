@@ -171,6 +171,7 @@
     <ClCompile Include="..\src\event.c" />
     <ClCompile Include="..\src\main.c" />
     <ClCompile Include="..\src\system.c" />
+    <ClCompile Include="..\src\window.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\api.h" />
@@ -178,6 +179,7 @@
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
     <ClInclude Include="..\include\internal.h" />
+    <ClInclude Include="..\include\window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

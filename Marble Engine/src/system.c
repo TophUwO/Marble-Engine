@@ -28,16 +28,30 @@ static int Marble_System_Internal_CreateDebugConsole(void) {
 
 
 int Marble_System_Internal_OnEvent(void *ptrEvent) {
+	Marble_GenericEvent *sEvent = (Marble_GenericEvent *)ptrEvent;
 
+	printf("Event: %i\n", sEvent->eType);
+	return Marble_ErrorCode_Ok;
 }
 
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
+	int dwErrorCode = Marble_ErrorCode_Ok;
+#ifdef _DEBUG
 	Marble_System_Internal_CreateDebugConsole();
-	printf("init: application\n");
+#endif
 
+	printf("init: application\n");
 	gl_sApplication.dwAppState      = Marble_AppState_Init;
 	gl_sApplication.hiInstance      = hiInstance;
 	gl_sApplication.astrCommandLine = astrCommandLine;
+
+	printf("init: main window\n");
+	if (dwErrorCode = Marble_Window_Create(&gl_sApplication.sMainWindow, TEXT("Marble Engine Sandbox"), 512, 512, TRUE)) {
+		if (gl_sApplication.sMainWindow)
+			Marble_Window_Destroy(&gl_sApplication.sMainWindow);
+
+		return dwErrorCode;
+	}
 
 	return Marble_ErrorCode_Ok;
 }

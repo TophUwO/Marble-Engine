@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include <tchar.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,6 +10,7 @@
 #include <api.h>
 #include <error.h>
 #include <event.h>
+#include <window.h>
 
 
 enum Marble_Internal_AppState {
@@ -23,6 +25,8 @@ extern struct Marble_Internal_Application {
 	HINSTANCE hiInstance;
 	PSTR      astrCommandLine;
 	int       dwAppState;
+
+	struct Marble_Window *sMainWindow;
 } gl_sApplication;
 
 

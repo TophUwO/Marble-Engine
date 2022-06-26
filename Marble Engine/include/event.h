@@ -25,7 +25,6 @@ typedef enum Marble_EventType {
 
 typedef struct Marble_WindowResizedData { DWORD dwWidth, dwHeight; }                    Marble_WindowResizedData;
 typedef struct Marble_KeyPressedData    { DWORD dwKeyCode; _Bool blIsSysKey; }          Marble_KeyPressedData;
-typedef struct Marble_KeyRepeatedData   { Marble_KeyPressedData; DWORD dwRepeatCount; } Marble_KeyRepeatedData;
 
 
 typedef struct Marble_GenericEvent {
@@ -49,13 +48,7 @@ typedef struct Marble_KeyboardEvent {
 	Marble_KeyPressedData;
 } Marble_KeyboardEvent, Marble_KeyReleasedEvent, Marble_KeyPressedEvent;
 
-typedef struct Marble_KeyRepeatedEvent {
-	Marble_GenericEvent;
-	Marble_KeyRepeatedData;
-} Marble_KeyRepeatedEvent;
 
-
-MARBLE_API int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
-
+extern int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
 
 
