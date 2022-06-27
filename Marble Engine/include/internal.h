@@ -1,6 +1,7 @@
 #pragma once
 
 #include <windows.h>
+#include <windowsx.h>
 #include <tchar.h>
 #include <stdio.h>
 #ifdef _DEBUG
@@ -45,7 +46,8 @@ extern struct Marble_Application {
 
 extern int Marble_System_Internal_OnEvent(void *ptrEvent);
 
-extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
-extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);
+extern int                       Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
+extern TCHAR const *const        Marble_Event_GetEventTypeName(Marble_EventType eEventType);
+extern Marble_EventType   inline Marble_Event_GetMouseEventType(UINT udwMessage);
 
 

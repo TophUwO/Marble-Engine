@@ -37,24 +37,12 @@ static int Marble_System_Internal_CreateDebugConsole(void) {
 int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	Marble_GenericEvent *sEvent = (Marble_GenericEvent *)ptrEvent;
 
-	printf("Event: %i\n", sEvent->eType);
+	printf("[EVENT '%S']: %i\n", Marble_Event_GetEventTypeName(sEvent->eType), sEvent->eType);
 	return Marble_ErrorCode_Ok;
 }
 
-void destroy(int **x) {
-	free(*x);
-}
-void print(Marble_Util_Vector *sVector) {
-	printf("s: %i / c: %i\n", sVector->stSize, sVector->stCapacity);
-
-	for (int i = 0; i < sVector->stSize; i++)
-		printf("%i ", *(int *)sVector->ptrpData[i]);
-
-	printf("\n");
-}
-
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
-#ifdef _DEBUG
+#ifndef _DEBUG
 	Marble_System_Internal_CreateDebugConsole();
 #endif
 
@@ -96,7 +84,7 @@ MARBLE_API int Marble_System_RunApplication(void) {
 	}
 
 CLEANUP:
-	Marble_System_Internal_Cleanup(sMessage.message == WM_QUIT, 0);
+	Marble_System_Internal_Cleanup(FALSE, 0);
 }
 
 

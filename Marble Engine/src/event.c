@@ -13,7 +13,11 @@ static struct Marble_Internal_EventEntry { Marble_EventType eType; TCHAR const *
 
 	{ Marble_EventType_Keyboard_KeyPressed,  TEXT("Ev_KeyboardKeyPressed"),  Marble_EventCategory_Input | Marble_EventCategory_Keyboard    }, 
 	{ Marble_EventType_Keyboard_KeyReleased, TEXT("Ev_KeyboardKeyReleased"), Marble_EventCategory_Input | Marble_EventCategory_Keyboard    },
-	{ Marble_EventType_Keyboard_KeyRepeated, TEXT("Ev_KeyboardKeyRepeated"), Marble_EventCategory_Input | Marble_EventCategory_Keyboard    }
+	{ Marble_EventType_Keyboard_KeyRepeated, TEXT("Ev_KeyboardKeyRepeated"), Marble_EventCategory_Input | Marble_EventCategory_Keyboard    },
+
+	{ Marble_EventType_Mouse_ButtonPressed,  TEXT("Ev_MouseButtonPressed"),  Marble_EventCategory_Input | Marble_EventCategory_Mouse       },
+	{ Marble_EventType_Mouse_ButtonReleased, TEXT("Ev_MouseButtonReleased"), Marble_EventCategory_Input | Marble_EventCategory_Mouse       },
+	{ Marble_EventType_Mouse_MouseMoved,     TEXT("Ev_MouseButtonMoved"),    Marble_EventCategory_Input | Marble_EventCategory_Mouse       }
 };
 static const DWORD gl_dwNumberOfEventTypes = sizeof(gl_sEventTable) / sizeof(*gl_sEventTable);
 
@@ -22,17 +26,17 @@ int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, voi
 	switch (eEventType) {
 		case Marble_EventType_Keyboard_KeyReleased:
 		case Marble_EventType_Keyboard_KeyPressed:
-			*(Marble_KeyPressedEvent *)ptrEvent = (Marble_KeyPressedEvent){
-				.dwKeyCode  = ((Marble_KeyPressedData *)ptrData)->dwKeyCode,
-				.blIsSysKey = ((Marble_KeyPressedData *)ptrData)->blIsSysKey
-			};
+			*(Marble_KeyPressedEvent *)ptrEvent = *(Marble_KeyPressedEvent *)ptrData;
 
 			break;
 		case Marble_EventType_Window_Resized:
-			*(Marble_WindowResizedEvent *)ptrEvent = (Marble_WindowResizedEvent){
-				.dwWidth  = ((Marble_WindowResizedData *)ptrData)->dwWidth,
-				.dwHeight = ((Marble_WindowResizedData *)ptrData)->dwHeight
-			};
+			*(Marble_WindowResizedEvent *)ptrEvent = *(Marble_WindowResizedEvent *)ptrData;
+
+			break;
+		case Marble_EventType_Mouse_ButtonPressed:
+		case Marble_EventType_Mouse_ButtonReleased:
+		case Marble_EventType_Mouse_MouseMoved:
+			*(Marble_MouseEvent *)ptrEvent = *(Marble_MouseEvent *)ptrData;
 
 			break;
 	}
@@ -51,6 +55,20 @@ TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType) {
 		return Marble_Event_GetEventTypeName(Marble_EventType_Unknown);
 
 	return gl_sEventTable[eEventType].strName;
+}
+
+Marble_EventType Marble_Event_GetMouseEventType(UINT udwMessage) {
+	switch (udwMessage) {
+		case WM_LBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+		case WM_MBUTTONDOWN: return Marble_EventType_Mouse_ButtonPressed;
+		case WM_LBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_RBUTTONUP:   return Marble_EventType_Mouse_ButtonReleased;
+		case WM_MOUSEMOVE:   return Marble_EventType_Mouse_MouseMoved;
+	}
+
+	return Marble_EventType_Unknown;
 }
 
 

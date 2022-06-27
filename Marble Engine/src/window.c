@@ -29,11 +29,30 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 
 			return Marble_System_Internal_OnEvent(&sKeyReleasedEvent);
 		}
-		case WM_CLOSE: {
-			Marble_WindowEvent sWindowEvent;
-			Marble_Event_ConstructEvent(&sWindowEvent, Marble_EventType_Window_Closed, NULL);
+		case WM_LBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+		case WM_MBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_MBUTTONUP:
+		case WM_RBUTTONUP:
+		case WM_MOUSEMOVE: {
+			Marble_MouseEvent sMouseEvent;
+			Marble_MouseData sEventData = {
+				.dwButtonCode = (DWORD)wParam,
+				.sPos = { 
+					.x = GET_X_LPARAM(lParam), 
+					.y = GET_Y_LPARAM(lParam)
+				}
+			};
+			Marble_Event_ConstructEvent(&sMouseEvent, Marble_Event_GetMouseEventType(udwMessage), &sEventData);
 
-			Marble_System_Internal_OnEvent(&sWindowEvent);
+			return Marble_System_Internal_OnEvent(&sMouseEvent);
+		}
+		case WM_CLOSE: {
+			Marble_WindowClosedEvent sWindowClosedEvent;
+			Marble_Event_ConstructEvent(&sWindowClosedEvent, Marble_EventType_Window_Closed, NULL);
+
+			Marble_System_Internal_OnEvent(&sWindowClosedEvent);
 
 			DestroyWindow(hwWindow);
 			return Marble_ErrorCode_Ok;
@@ -105,8 +124,8 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 int Marble_Window_Destroy(Marble_Window **ptrpWindow) {
 	free((*ptrpWindow)->sWndData.strTitle);
 	free(*ptrpWindow);
-
 	*ptrpWindow = NULL;
+
 	return Marble_ErrorCode_Ok;
 }
 
