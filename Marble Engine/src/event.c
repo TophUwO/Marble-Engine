@@ -1,4 +1,5 @@
-#include <internal.h>
+#include <event.h>
+#include <error.h>
 
 
 static struct Marble_Internal_EventEntry { Marble_EventType eType; TCHAR const *const strName; Marble_EventCategory eCategory; } const gl_sEventTable[] = {

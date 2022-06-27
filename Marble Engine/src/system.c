@@ -1,4 +1,4 @@
-#include <internal.h>
+#include <application.h>
 
 
 struct Marble_Application gl_sApplication = { NULL };

@@ -1,4 +1,4 @@
-#include <internal.h>
+#include <application.h>
 
 
 static DWORD volatile gl_dwCurrentLayerId = 1;

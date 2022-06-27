@@ -38,9 +38,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\internal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\error.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -65,9 +62,15 @@
     <ClInclude Include="..\include\entrypoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\application.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\def.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\src\old_vec_test.txt">
+    <Text Include="..\..\Notes\old_vec_test.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
   </ItemGroup>

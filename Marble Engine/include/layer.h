@@ -3,6 +3,7 @@
 #include <api.h>
 #include <event.h>
 
+
 typedef struct Marble_Layer Marble_Layer;
 typedef struct Marble_Layer {
 	DWORD  dwLayerId;
@@ -17,9 +18,6 @@ typedef struct Marble_Layer {
 	} sCallbacks;
 } Marble_Layer;
 
-
-extern int  Marble_LayerStack_Initialize(void);
-extern void Marble_LayerStack_Destroy(void);
 
 MARBLE_API int           Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled, DWORD dwSizeOfUserdata);
 MARBLE_API int           Marble_Layer_Push(Marble_Layer *sLayer, _Bool blIsTopmost);

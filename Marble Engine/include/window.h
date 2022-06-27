@@ -1,6 +1,7 @@
 #pragma once
 
-#include <internal.h>
+#include <api.h>
+#include <error.h>
 
 
 typedef struct Marble_Window {

@@ -1,4 +1,5 @@
 #include <util.h>
+#include <error.h>
 
 
 static size_t const gl_stDefStartCapacity     = 32;

@@ -1,4 +1,4 @@
-#include <internal.h>
+#include <api.h>
 
 
 BOOLEAN WINAPI DllMain(HINSTANCE hiDllHandle, DWORD dwReason, LPVOID lpvReserved) {
