@@ -37,12 +37,23 @@ static int Marble_System_Internal_CreateDebugConsole(void) {
 int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	Marble_GenericEvent *sEvent = (Marble_GenericEvent *)ptrEvent;
 
-	printf("[EVENT '%S']: %i\n", Marble_Event_GetEventTypeName(sEvent->eType), sEvent->eType);
+	if (sEvent->eType == Marble_EventType_Mouse_MouseMoved) {
+		Marble_MouseMovedEvent *sMovedEvent = (Marble_MouseMovedEvent *)ptrEvent;
+
+		printf("[EVENT '%S']: %i (%i / %i)\n", 
+			Marble_Event_GetEventTypeName(sEvent->eType), 
+			sEvent->eType,
+			sMovedEvent->sPos.x,
+			sMovedEvent->sPos.y
+		);
+	} else
+		printf("[EVENT '%S']: %i\n", Marble_Event_GetEventTypeName(sEvent->eType), sEvent->eType);
+
 	return Marble_ErrorCode_Ok;
 }
 
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
-#ifndef _DEBUG
+#ifdef _DEBUG
 	Marble_System_Internal_CreateDebugConsole();
 #endif
 

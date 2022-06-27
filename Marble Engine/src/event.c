@@ -17,7 +17,7 @@ static struct Marble_Internal_EventEntry { Marble_EventType eType; TCHAR const *
 
 	{ Marble_EventType_Mouse_ButtonPressed,  TEXT("Ev_MouseButtonPressed"),  Marble_EventCategory_Input | Marble_EventCategory_Mouse       },
 	{ Marble_EventType_Mouse_ButtonReleased, TEXT("Ev_MouseButtonReleased"), Marble_EventCategory_Input | Marble_EventCategory_Mouse       },
-	{ Marble_EventType_Mouse_MouseMoved,     TEXT("Ev_MouseButtonMoved"),    Marble_EventCategory_Input | Marble_EventCategory_Mouse       }
+	{ Marble_EventType_Mouse_MouseMoved,     TEXT("Ev_MouseMoved"),          Marble_EventCategory_Input | Marble_EventCategory_Mouse       }
 };
 static const DWORD gl_dwNumberOfEventTypes = sizeof(gl_sEventTable) / sizeof(*gl_sEventTable);
 
@@ -26,17 +26,17 @@ int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, voi
 	switch (eEventType) {
 		case Marble_EventType_Keyboard_KeyReleased:
 		case Marble_EventType_Keyboard_KeyPressed:
-			*(Marble_KeyPressedEvent *)ptrEvent = *(Marble_KeyPressedEvent *)ptrData;
+			*(Marble_KeyPressedData *)(((char *)ptrEvent) + sizeof(Marble_GenericEvent)) = *(Marble_KeyPressedData *)ptrData;
 
 			break;
 		case Marble_EventType_Window_Resized:
-			*(Marble_WindowResizedEvent *)ptrEvent = *(Marble_WindowResizedEvent *)ptrData;
+			*(Marble_WindowResizedData *)(((char *)ptrEvent) + sizeof(Marble_GenericEvent)) = *(Marble_WindowResizedData *)ptrData;
 
 			break;
 		case Marble_EventType_Mouse_ButtonPressed:
 		case Marble_EventType_Mouse_ButtonReleased:
 		case Marble_EventType_Mouse_MouseMoved:
-			*(Marble_MouseEvent *)ptrEvent = *(Marble_MouseEvent *)ptrData;
+			*(Marble_MouseData *)(((char *)ptrEvent) + sizeof(Marble_GenericEvent)) = *(Marble_MouseData *)ptrData;
 
 			break;
 	}

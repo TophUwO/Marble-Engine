@@ -177,6 +177,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\api.h" />
+    <ClInclude Include="..\include\entrypoint.h" />
     <ClInclude Include="..\include\event.h" />
     <ClInclude Include="..\include\layer.h" />
     <ClInclude Include="..\include\marble.h" />
