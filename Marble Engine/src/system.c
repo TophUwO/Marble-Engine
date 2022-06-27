@@ -1,20 +1,24 @@
 #include <internal.h>
 
 
-struct Marble_Internal_Application gl_sApplication = { NULL };
+struct Marble_Application gl_sApplication = { NULL };
 
 
-static int Marble_System_Internal_Cleanup(_Bool blIsForced) {
+__declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced, int iRetCode) {
 	gl_sApplication.dwAppState = 
 		blIsForced 
 			? Marble_AppState_ForcedShutdown 
 			: Marble_AppState_Shutdown
 		;
 
+	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
+	Marble_LayerStack_Destroy();
+
 #ifdef _DEBUG
 	_CrtDumpMemoryLeaks();
 #endif
-	return Marble_ErrorCode_Ok;
+
+	exit(iRetCode);
 }
 
 static int Marble_System_Internal_CreateDebugConsole(void) {
@@ -37,8 +41,19 @@ int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	return Marble_ErrorCode_Ok;
 }
 
+void destroy(int **x) {
+	free(*x);
+}
+void print(Marble_Util_Vector *sVector) {
+	printf("s: %i / c: %i\n", sVector->stSize, sVector->stCapacity);
+
+	for (int i = 0; i < sVector->stSize; i++)
+		printf("%i ", *(int *)sVector->ptrpData[i]);
+
+	printf("\n");
+}
+
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
-	int dwErrorCode = Marble_ErrorCode_Ok;
 #ifdef _DEBUG
 	Marble_System_Internal_CreateDebugConsole();
 #endif
@@ -49,12 +64,19 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	gl_sApplication.astrCommandLine = astrCommandLine;
 
 	printf("init: main window\n");
-	if (dwErrorCode = Marble_Window_Create(&gl_sApplication.sMainWindow, TEXT("Marble Engine Sandbox"), 512, 512, TRUE)) {
+	int iErrorCode = Marble_ErrorCode_Ok;
+	if (iErrorCode = Marble_Window_Create(&gl_sApplication.sMainWindow, TEXT("Marble Engine Sandbox"), 512, 512, TRUE)) {
 		if (gl_sApplication.sMainWindow)
 			Marble_Window_Destroy(&gl_sApplication.sMainWindow);
 
-		return dwErrorCode;
+		MessageBox(NULL, TEXT("Could not create main window.\n"), TEXT("Fatal Error"), MB_ICONERROR | MB_OK);
+
+		exit(iErrorCode);
 	}
+
+	printf("init: layer stack\n");
+	if (iErrorCode = Marble_LayerStack_Initialize())
+		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
 
 	return Marble_ErrorCode_Ok;
 }
@@ -74,7 +96,7 @@ MARBLE_API int Marble_System_RunApplication(void) {
 	}
 
 CLEANUP:
-	return Marble_System_Internal_Cleanup(sMessage.message == WM_QUIT);
+	Marble_System_Internal_Cleanup(sMessage.message == WM_QUIT, 0);
 }
 
 

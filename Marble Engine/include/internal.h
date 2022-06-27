@@ -17,6 +17,8 @@
 #include <error.h>
 #include <event.h>
 #include <window.h>
+#include <layer.h>
+#include <util.h>
 
 
 enum Marble_Internal_AppState {
@@ -27,15 +29,23 @@ enum Marble_Internal_AppState {
 };
 
 
-extern struct Marble_Internal_Application {
+extern struct Marble_Application {
 	HINSTANCE hiInstance;
 	PSTR      astrCommandLine;
 	int       dwAppState;
 
 	struct Marble_Window *sMainWindow;
+	struct Marble_LayerStack {
+		struct Marble_Util_Vector *sLayerStack;
+
+		size_t stLastLayer;
+	} sLayers;
 } gl_sApplication;
 
 
 extern int Marble_System_Internal_OnEvent(void *ptrEvent);
+
+extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
+extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);
 
 

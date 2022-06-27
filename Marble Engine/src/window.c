@@ -39,7 +39,6 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 			return Marble_ErrorCode_Ok;
 		}
 		case WM_DESTROY:
-			Marble_Window_Destroy(&gl_sApplication.sMainWindow);
 			PostQuitMessage(0);
 
 			return Marble_ErrorCode_Ok;
@@ -93,7 +92,11 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 			NULL, 
 			gl_sApplication.hiInstance, 
 			(LPVOID)*ptrpWindow
-		))) return Marble_ErrorCode_CreateWindow;
+		))) {
+		UnregisterClass(gl_sWindowClassName, gl_sApplication.hiInstance);
+
+		return Marble_ErrorCode_CreateWindow;
+	}
 
 	UpdateWindow((*ptrpWindow)->hwWindow);
 	return Marble_ErrorCode_Ok;
