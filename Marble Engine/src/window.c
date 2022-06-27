@@ -73,9 +73,9 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 	if (*ptrpWindow = malloc(sizeof(**ptrpWindow))) {
 		(*ptrpWindow)->hwWindow = NULL;
 
-		DWORD dwTitleLen = _tcslen(strTitle);
-		if ((*ptrpWindow)->sWndData.strTitle = calloc(1, sizeof(*strTitle) * (dwTitleLen + 1)))
-			_tcscpy_s((*ptrpWindow)->sWndData.strTitle, dwTitleLen + 1, strTitle);
+		size_t stTitleLen = _tcslen(strTitle);
+		if ((*ptrpWindow)->sWndData.strTitle = calloc(1, sizeof(*strTitle) * (stTitleLen + 1)))
+			_tcscpy_s((*ptrpWindow)->sWndData.strTitle, stTitleLen + 1, strTitle);
 		else 
 			return Marble_ErrorCode_MemoryAllocation;
 
