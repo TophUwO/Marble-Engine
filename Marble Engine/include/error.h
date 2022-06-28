@@ -11,6 +11,7 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_RegisterWindowClass,
 	Marble_ErrorCode_CreateWindow,
 	Marble_ErrorCode_CreateLayer,
+	Marble_ErrorCode_InitHighPrecClock,
 	Marble_ErrorCode_ArraySubscript
 } Marble_ErrorCode;
 

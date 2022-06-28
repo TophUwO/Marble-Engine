@@ -56,6 +56,12 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 #ifdef _DEBUG
 	Marble_System_Internal_CreateDebugConsole();
 #endif
+	printf("init: high-precision clock\n");
+	if (!QueryPerformanceFrequency(&gl_sApplication.uPerfFreq)) {
+		MessageBox(NULL, TEXT("Could not initialize high-precision clock.\n"), TEXT("Fatal Error"), MB_ICONERROR | MB_OK);
+
+		Marble_System_Internal_Cleanup(TRUE, Marble_ErrorCode_InitHighPrecClock);
+	}
 
 	printf("init: application\n");
 	gl_sApplication.dwAppState      = Marble_AppState_Init;

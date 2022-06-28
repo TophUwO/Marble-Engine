@@ -1,7 +1,7 @@
-#include <util.h>
-#include <error.h>
+#include <application.h>
 
 
+#pragma region Marble_Util_Vector
 static size_t const gl_stDefStartCapacity     = 32;
 static float const  gl_fDefCapacityMultiplier = 4.0f / 3.0f;
 
@@ -121,5 +121,40 @@ size_t Marble_Util_Vector_Find(Marble_Util_Vector *sVector, void *ptrObject, siz
 ON_NOT_FOUND:
 	return (size_t)(-1);
 }
+#pragma endregion
+
+
+#pragma region Marble_Util_Clock
+static void inline Marble_Util_Clock_Internal_Reset(Marble_Util_Clock *sClock) {
+	memset(sClock, 0, sizeof(*sClock));
+}
+
+
+void Marble_Util_Clock_Start(Marble_Util_Clock *sClock) {
+	Marble_Util_Clock_Internal_Reset(sClock);
+
+	QueryPerformanceCounter(&sClock->uStartTime);
+}
+
+void Marble_Util_Clock_Stop(Marble_Util_Clock *sClock) {
+	QueryPerformanceCounter(&sClock->uStopTime);
+}
+
+double Marble_Util_Clock_AsSeconds(Marble_Util_Clock *sClock) {
+	return (double)(sClock->uStopTime.QuadPart - sClock->uStartTime.QuadPart) / (double)gl_sApplication.uPerfFreq.QuadPart;
+}
+
+double Marble_Util_Clock_AsMilliseconds(Marble_Util_Clock *sClock) {
+	return (double)(sClock->uStopTime.QuadPart - sClock->uStartTime.QuadPart) / ((double)gl_sApplication.uPerfFreq.QuadPart / 1e+3);
+}
+
+double Marble_Util_Clock_AsMicroseconds(Marble_Util_Clock *sClock) {
+	return (double)(sClock->uStopTime.QuadPart - sClock->uStartTime.QuadPart) / ((double)gl_sApplication.uPerfFreq.QuadPart / 1e+6);
+}
+
+double Marble_Util_Clock_AsNanoseconds(Marble_Util_Clock *sClock) {
+	return (double)(sClock->uStopTime.QuadPart - sClock->uStartTime.QuadPart) / ((double)gl_sApplication.uPerfFreq.QuadPart / 1e+9);
+}
+#pragma endregion
 
 
