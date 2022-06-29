@@ -122,12 +122,12 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 	return Marble_ErrorCode_Ok;
 }
 
-int Marble_Window_Destroy(Marble_Window **ptrpWindow) {
-	free((*ptrpWindow)->sWndData.strTitle);
-	free(*ptrpWindow);
-	*ptrpWindow = NULL;
-
-	return Marble_ErrorCode_Ok;
+void Marble_Window_Destroy(Marble_Window **ptrpWindow) {
+	if (ptrpWindow && *ptrpWindow) {
+		free((*ptrpWindow)->sWndData.strTitle);
+		free(*ptrpWindow);
+		*ptrpWindow = NULL;
+	}
 }
 
 int Marble_Window_OnUpdate(Marble_Window *sWindow) {

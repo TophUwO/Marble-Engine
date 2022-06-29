@@ -5,27 +5,40 @@ struct Marble_Application gl_sApplication = { NULL };
 
 
 __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced, int iRetCode) {
-	gl_sApplication.dwAppState = 
+	gl_sApplication.iAppState =  
 		blIsForced 
 			? Marble_AppState_ForcedShutdown 
 			: Marble_AppState_Shutdown
-		;
+	;
 
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
-	Marble_Renderer_Uninitialize();
 	Marble_LayerStack_Destroy();
+	Marble_Renderer_Uninitialize();
 
 #ifdef _DEBUG
 	_CrtDumpMemoryLeaks();
 #endif
 
-	exit(iRetCode);
+	ExitProcess(iRetCode);
+}
+
+static BOOL WINAPI Marble_System_Console_CtrlHandler(DWORD dwCtrlType) {
+	switch (dwCtrlType) {
+		case CTRL_CLOSE_EVENT:
+			PostMessage(gl_sApplication.sMainWindow->hwWindow, WM_CLOSE, 0, 0);
+
+			break;
+	}
+
+	return TRUE;
 }
 
 static int Marble_System_Internal_CreateDebugConsole(void) {
 	if (AllocConsole()) {
 		FILE *fpTmp = NULL;
 		freopen_s(&fpTmp, "CONOUT$", "w", stdout);
+
+		SetConsoleCtrlHandler((PHANDLER_ROUTINE)&Marble_System_Console_CtrlHandler, TRUE);
 
 		printf("init: debug console\n");
 		return Marble_ErrorCode_Ok;
@@ -65,7 +78,7 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	}
 
 	printf("init: application\n");
-	gl_sApplication.dwAppState      = Marble_AppState_Init;
+	gl_sApplication.iAppState       = Marble_AppState_Init;
 	gl_sApplication.hiInstance      = hiInstance;
 	gl_sApplication.astrCommandLine = astrCommandLine;
 
@@ -95,7 +108,7 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 }
 
 MARBLE_API int Marble_System_RunApplication(void) {
-	gl_sApplication.dwAppState = Marble_AppState_Running;
+	gl_sApplication.iAppState = Marble_AppState_Running;
 
 	MSG sMessage = { 0 };
 	while (TRUE) {
@@ -122,7 +135,7 @@ MARBLE_API int Marble_System_RunApplication(void) {
 	}
 
 CLEANUP:
-	Marble_System_Internal_Cleanup(FALSE, 0);
+	Marble_System_Internal_Cleanup(FALSE, Marble_ErrorCode_Ok);
 }
 
 

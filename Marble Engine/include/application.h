@@ -17,7 +17,7 @@ enum Marble_Internal_AppState {
 extern struct Marble_Application {
 	HINSTANCE     hiInstance;
 	PSTR          astrCommandLine;
-	int           dwAppState;
+	int           iAppState;
 	LARGE_INTEGER uPerfFreq;
 
 	Marble_Window   *sMainWindow;

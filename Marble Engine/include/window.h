@@ -16,9 +16,9 @@ typedef struct Marble_Window {
 } Marble_Window;
 
 
-extern int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWidth, DWORD dwHeight, _Bool blIsVSync);
-extern int Marble_Window_Destroy(Marble_Window **ptrpWindow);
+extern int  Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWidth, DWORD dwHeight, _Bool blIsVSync);
+extern void Marble_Window_Destroy(Marble_Window **ptrpWindow);
 
-extern int Marble_Window_OnUpdate(Marble_Window *sWindow);
+extern int  Marble_Window_OnUpdate(Marble_Window *sWindow);
 
 
