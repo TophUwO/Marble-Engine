@@ -123,11 +123,11 @@ MARBLE_API int Marble_System_RunApplication(void) {
 			DispatchMessage(&sMessage);
 		}
 
-		D2DWr_DeviceContext_BeginDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext);
-		D2D1_COLOR_F sCol = { 1.0f, 0.3f, 0.3f, 1.0f };
-		D2DWr_DeviceContext_Clear(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sCol);
+		Marble_Renderer_BeginDraw();
 
-		D2DWr_DeviceContext_EndDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
+		Marble_Renderer_Clear(1.0f, 0.5f, 0.23f, 1.0f);
+
+		Marble_Renderer_EndDraw();
 		Marble_Renderer_Present();
 
 		Marble_Util_Clock_Stop(&sTimer);

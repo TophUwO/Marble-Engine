@@ -183,8 +183,29 @@ ON_ERROR:
 	return Marble_Renderer_Internal_Direct2DCleanup(iErrorCode);
 }
 
-static void Marble_Renderer_Internal_UninitializeDirect2DRenderer(void) {
+static void inline Marble_Renderer_Internal_UninitializeDirect2DRenderer(void) {
 	Marble_Renderer_Internal_Direct2DCleanup(Marble_ErrorCode_Unknown);
+}
+
+static void inline Marble_Renderer_Internal_Direct2DRenderer_Clear(float fRed, float fGreen, float fBlue, float fAlpha) {
+	D2D1_COLOR_F const sColor = {
+		.r = fRed,
+		.g = fGreen,
+		.b = fBlue,
+		.a = fAlpha
+	};
+
+	D2DWr_DeviceContext_Clear(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sColor);
+}
+
+static void inline Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(void) {
+	D2DWr_DeviceContext_BeginDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext);
+}
+
+static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(void) {
+	if (D2DWr_DeviceContext_EndDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL) == D2DERR_RECREATE_TARGET) {
+		// TODO: Recreate all needed resources
+	}
 }
 #pragma endregion
 
@@ -211,6 +232,22 @@ void Marble_Renderer_Uninitialize(void) {
 	}
 }
 
+void Marble_Renderer_BeginDraw(void) {
+	if (gl_sApplication.sRenderer) {
+		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_BeginDraw();
+		}
+	}
+}
+
+void Marble_Renderer_EndDraw(void) {
+	if (gl_sApplication.sRenderer) {
+		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_EndDraw();
+		}
+	}
+}
+
 int Marble_Renderer_Present(void) {
 	if (gl_sApplication.sRenderer) {
 		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
@@ -226,6 +263,14 @@ int Marble_Renderer_Present(void) {
 	}
 
 	return Marble_ErrorCode_RendererInit;
+}
+
+void Marble_Renderer_Clear(float fRed, float fGreen, float fBlue, float fAlpha) {
+	if (gl_sApplication.sRenderer) {
+		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Clear(fRed, fGreen, fBlue, fAlpha);
+		}
+	}
 }
 
 
