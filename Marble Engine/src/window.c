@@ -130,6 +130,13 @@ void Marble_Window_Destroy(Marble_Window **ptrpWindow) {
 	}
 }
 
+void Marble_Window_SetVsyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled) {
+	if (sWindow) {
+		sWindow->sWndData.blIsVSync = blIsEnabled;
+	}
+}
+
+
 int Marble_Window_OnUpdate(Marble_Window *sWindow) {
 	return Marble_ErrorCode_Ok;
 }

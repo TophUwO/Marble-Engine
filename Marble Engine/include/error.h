@@ -24,8 +24,7 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_GetDXGIFactory,
 	Marble_ErrorCode_CreateDXGISwapchain,
 	Marble_ErrorCode_GetDXGIBackbuffer,
-	Marble_ErrorCode_CreateBitmapFromDxgiSurface,
-	Marble_ErrorCode_COMRelease
+	Marble_ErrorCode_CreateBitmapFromDxgiSurface
 } Marble_ErrorCode;
 
 
