@@ -22,6 +22,9 @@
     <ClInclude Include="..\include\d2dwr.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\bitmap.cpp" />
+    <ClCompile Include="..\src\device.cpp" />
+    <ClCompile Include="..\src\devicecontext.cpp" />
     <ClCompile Include="..\src\factory.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\rendertarget.cpp" />

@@ -3,6 +3,7 @@
 #include <layer.h>
 #include <util.h>
 #include <window.h>
+#include <renderer.h>
 
 
 enum Marble_Internal_AppState {
@@ -19,7 +20,8 @@ extern struct Marble_Application {
 	int           dwAppState;
 	LARGE_INTEGER uPerfFreq;
 
-	Marble_Window *sMainWindow;
+	Marble_Window   *sMainWindow;
+	Marble_Renderer *sRenderer;
 	struct Marble_LayerStack {
 		Marble_Util_Vector *sLayerStack;
 

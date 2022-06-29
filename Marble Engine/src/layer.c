@@ -31,7 +31,8 @@ int Marble_LayerStack_Initialize(void) {
 }
 
 void Marble_LayerStack_Destroy(void) {
-	Marble_Util_Vector_Destroy(&gl_sApplication.sLayers.sLayerStack);
+	if (gl_sApplication.sLayers.sLayerStack)
+		Marble_Util_Vector_Destroy(&gl_sApplication.sLayers.sLayerStack);
 }
 
 

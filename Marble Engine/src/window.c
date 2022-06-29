@@ -92,7 +92,8 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 		.lpfnWndProc   = (WNDPROC)&Marble_Window_Internal_WindowProcedure,
 		.hCursor       = LoadCursor(NULL, IDC_ARROW),
 		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
-		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION)
+		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
+		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1)
 	};
 	if (!RegisterClassEx(&sWindowClass))
 		return Marble_ErrorCode_RegisterWindowClass;

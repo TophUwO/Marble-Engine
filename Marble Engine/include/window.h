@@ -11,7 +11,6 @@ typedef struct Marble_Window {
 		TCHAR *strTitle;
 		DWORD  dwWidth;
 		DWORD  dwHeight;
-		DWORD  dwDPI;
 		_Bool  blIsVSync;
 	} sWndData;
 } Marble_Window;

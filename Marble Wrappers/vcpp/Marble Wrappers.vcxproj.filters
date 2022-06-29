@@ -32,5 +32,14 @@
     <ClCompile Include="..\src\factory.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\devicecontext.cpp">
+      <Filter>Source Files\Direct2D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\device.cpp">
+      <Filter>Source Files\Direct2D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\bitmap.cpp">
+      <Filter>Source Files\Direct2D</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

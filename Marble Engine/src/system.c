@@ -12,6 +12,7 @@ __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced
 		;
 
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
+	Marble_Renderer_Uninitialize();
 	Marble_LayerStack_Destroy();
 
 #ifdef _DEBUG
@@ -79,6 +80,13 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 		exit(iErrorCode);
 	}
 
+	printf("init: renderer\n");
+	if (iErrorCode = Marble_Renderer_Initialize(Marble_RendererAPI_Direct2D, gl_sApplication.sMainWindow->hwWindow)) {
+		MessageBox(NULL, TEXT("Could not initialize renderer."), TEXT("Fatal Error"), MB_ICONERROR | MB_OK);
+
+		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
+	}
+
 	printf("init: layer stack\n");
 	if (iErrorCode = Marble_LayerStack_Initialize())
 		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
@@ -91,6 +99,9 @@ MARBLE_API int Marble_System_RunApplication(void) {
 
 	MSG sMessage = { 0 };
 	while (TRUE) {
+		Marble_Util_Clock sTimer;
+		Marble_Util_Clock_Start(&sTimer);
+
 		while (PeekMessage(&sMessage, NULL, 0, 0, PM_REMOVE)) {
 			if (sMessage.message == WM_QUIT)
 				goto CLEANUP;
@@ -98,6 +109,16 @@ MARBLE_API int Marble_System_RunApplication(void) {
 			TranslateMessage(&sMessage);
 			DispatchMessage(&sMessage);
 		}
+
+		D2DWr_DeviceContext_BeginDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext);
+		D2D1_COLOR_F sCol = { 1.0f, 0.3f, 0.3f, 1.0f };
+		D2DWr_DeviceContext_Clear(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sCol);
+
+		D2DWr_DeviceContext_EndDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
+		Marble_Renderer_Present();
+
+		Marble_Util_Clock_Stop(&sTimer);
+		printf("Time: %g ms\n", Marble_Util_Clock_AsMilliseconds(&sTimer));
 	}
 
 CLEANUP:

@@ -6,7 +6,7 @@
 	#define _WR_EXTERN_C_ extern __declspec(dllimport)
 #endif
 
-#include <d2d1.h>
+#include <d2d1_1.h>
 
 
 typedef D2D1_ANTIALIAS_MODE      D2D_AAMode;
@@ -28,6 +28,8 @@ _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateTransformedGeometry(ID2D1Factor
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateWicBitmapRenderTarget(ID2D1Factory *sFactory, IWICBitmap *sTarget, D2D1_RENDER_TARGET_PROPERTIES const *sProps, ID2D1RenderTarget **ptrpWicBitmapRenderTarget);
 _WR_EXTERN_C_ void    WINAPI D2DWr_Factory_GetDesktopDPI(ID2D1Factory *sFactory, FLOAT *fpDpiX, FLOAT *fpDpiY);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_ReloadSystemMetrics(ID2D1Factory *sFactory);
+_WR_EXTERN_C_ ULONG   WINAPI D2DWr_Factory_Release(ID2D1Factory *sFactory);
+_WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory1_CreateDevice(ID2D1Factory1 *sFactory, IDXGIDevice *sDXGIDevice, ID2D1Device **sD2DDevice);
 
 _WR_EXTERN_C_ void          WINAPI D2DWr_RenderTarget_BeginDraw(ID2D1RenderTarget *sRenderTarget);
 _WR_EXTERN_C_ void          WINAPI D2DWr_RenderTarget_Clear(ID2D1RenderTarget *sRenderTarget, D2D1_COLOR_F const *sClearColor);
@@ -82,5 +84,17 @@ _WR_EXTERN_C_ void          WINAPI D2DWr_RenderTarget_SetTags(ID2D1RenderTarget 
 _WR_EXTERN_C_ void          WINAPI D2DWr_RenderTarget_SetTextAntialiasMode(ID2D1RenderTarget *sRenderTarget, D2D_TxtAAMode eTextAntialiasingMode);
 _WR_EXTERN_C_ void          WINAPI D2DWr_RenderTarget_SetTextRenderingParams(ID2D1RenderTarget *sRenderTarget, IDWriteRenderingParams *sTextRenderingParams);
 _WR_EXTERN_C_ void          WINAPI D2DWr_RenderTarget_SetTransform(ID2D1RenderTarget *sRenderTarget, D2D1_MATRIX_3X2_F *sTransform);
+
+_WR_EXTERN_C_ HRESULT WINAPI D2DWr_Device_CreateDeviceContext(ID2D1Device *sDevice, D2D1_DEVICE_CONTEXT_OPTIONS eOptions, ID2D1DeviceContext **ptrpDeviceContext);
+_WR_EXTERN_C_ ULONG   WINAPI D2DWr_Device_Release(ID2D1Device *sDevice);
+
+_WR_EXTERN_C_ HRESULT WINAPI D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(ID2D1DeviceContext *sDeviceContext, IDXGISurface *sDXGISurface, D2D1_BITMAP_PROPERTIES1 const *sBitmapProps, ID2D1Bitmap1 **ptrpBitmap);
+_WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_SetTarget(ID2D1DeviceContext *sDeviceContext, ID2D1Image *sImage);
+_WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_Clear(ID2D1DeviceContext *sDeviceContext, D2D1_COLOR_F const *sClearColor);
+_WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_BeginDraw(ID2D1DeviceContext *sDeviceContext);
+_WR_EXTERN_C_ HRESULT WINAPI D2DWr_DeviceContext_EndDraw(ID2D1DeviceContext *sDeviceContext, D2D1_TAG *uqwpTag1, D2D1_TAG *uqwpTag2);
+_WR_EXTERN_C_ ULONG   WINAPI D2DWr_DeviceContext_Release(ID2D1DeviceContext *sDeviceContext);
+
+_WR_EXTERN_C_ ULONG WINAPI D2DWr_Bitmap_Release(ID2D1Bitmap *sBitmap);
 
 

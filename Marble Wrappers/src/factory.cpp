@@ -59,4 +59,13 @@ HRESULT WINAPI D2DWr_Factory_ReloadSystemMetrics(ID2D1Factory *sFactory) {
 	return sFactory->ReloadSystemMetrics();
 }
 
+ULONG WINAPI D2DWr_Factory_Release(ID2D1Factory *sFactory) {
+	return sFactory->Release();
+}
+
+
+HRESULT WINAPI D2DWr_Factory1_CreateDevice(ID2D1Factory1 *sFactory, IDXGIDevice *sDXGIDevice, ID2D1Device **sD2DDevice) {
+	return sFactory->CreateDevice(sDXGIDevice, sD2DDevice);
+}
+
 
