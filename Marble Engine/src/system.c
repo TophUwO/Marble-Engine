@@ -58,9 +58,9 @@ int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	for (size_t stIndex = gl_sApplication.sLayers.sLayerStack->stSize - 1; stIndex && stIndex ^ (size_t)(-1) && !sEvent->blIsHandled; stIndex--) {
 		Marble_Layer *sLayer = gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
 
-		sLayer->sCallbacks.onEvent(sLayer, sEvent);
+		if (sLayer->blIsEnabled)
+			sLayer->sCallbacks.onEvent(sLayer, sEvent);
 	}
-
 
 	return Marble_ErrorCode_Ok;
 }
@@ -72,7 +72,8 @@ int Marble_System_Internal_OnRender(void) {
 	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers.sLayerStack->stSize; stIndex++) {
 		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
 		
-		sLayer->sCallbacks.onUpdate(sLayer);
+		if (sLayer->blIsEnabled)
+			sLayer->sCallbacks.onUpdate(sLayer);
 	}
 
 	Marble_Renderer_EndDraw();

@@ -15,4 +15,3 @@ INT APIENTRY WinMain(_In_ HINSTANCE hiInstance, _In_opt_ HINSTANCE hiPrevInstanc
 }
 
 
-
