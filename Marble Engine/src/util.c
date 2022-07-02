@@ -2,11 +2,11 @@
 
 
 #pragma region Marble_Util_Vector
-static size_t const gl_stDefStartCapacity     = 32;
-static float const  gl_fDefCapacityMultiplier = 4.0f / 3.0f;
+static size_t const gl_stDefStartCapacity       = 32;
+static double const gl_dblDefCapacityMultiplier = 4.0f / 3.0f;
 
 static int Marble_Util_Vector_Internal_Reallocate(Marble_Util_Vector *sVector) {
-	size_t const stNewCap = sVector->stCapacity + (size_t)(gl_fDefCapacityMultiplier * sVector->stCapacity);
+	size_t const stNewCap = sVector->stCapacity + (size_t)(gl_dblDefCapacityMultiplier * sVector->stCapacity);
 
 	void *ptrNew = NULL;
 	if (ptrNew = realloc(sVector->ptrpData, stNewCap * sizeof(*sVector->ptrpData))) {
@@ -154,6 +154,85 @@ double Marble_Util_Clock_AsMicroseconds(Marble_Util_Clock *sClock) {
 
 double Marble_Util_Clock_AsNanoseconds(Marble_Util_Clock *sClock) {
 	return (double)(sClock->uStopTime.QuadPart - sClock->uStartTime.QuadPart) / ((double)gl_sApplication.uPerfFreq.QuadPart / 1e+9);
+}
+#pragma endregion
+
+
+#pragma region Marble_Util_FileStream
+static TCHAR const *const inline Marble_Util_Stream_Internal_GetStringFromPermissions(int iPermissions) {
+	_Bool blIsCreateFlag = iPermissions & Marble_Util_StreamPerm_Create;
+	_Bool blIsAppendFlag = iPermissions & Marble_Util_StreamPerm_Append;
+
+	switch (iPermissions & 0xFF) {
+		case Marble_Util_StreamPerm_Read:  return blIsAppendFlag ? TEXT("a+") : TEXT("r");
+		case Marble_Util_StreamPerm_Write: return TEXT("w");
+		case Marble_Util_StreamPerm_Read | Marble_Util_StreamPerm_Write: 
+			return blIsCreateFlag ? TEXT("w+") : TEXT("r+");
+		case 0:
+			if (blIsAppendFlag)
+				return TEXT("a");
+	}
+
+	return TEXT("");
+}
+
+
+int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_Util_FileStream **ptrpFileStream) {
+	if (strPath && ptrpFileStream) {
+		if (!(*ptrpFileStream = malloc(sizeof(**ptrpFileStream))))
+			return Marble_ErrorCode_MemoryAllocation;
+
+		_tfopen_s(&(*ptrpFileStream)->flpFilePointer, strPath, Marble_Util_Stream_Internal_GetStringFromPermissions((*ptrpFileStream)->iPermissions = iPermissions));
+		if (!(*ptrpFileStream)->flpFilePointer)
+			return Marble_ErrorCode_OpenFile;
+
+		if (fstat(fileno((*ptrpFileStream)->flpFilePointer), &(*ptrpFileStream)->sInfo))
+			return Marble_ErrorCode_GetFileInfo;
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_Parameter;
+}
+
+void Marble_Util_FileStream_Destroy(Marble_Util_FileStream **ptrpFileStream) {
+	if (ptrpFileStream && *ptrpFileStream) {
+		Marble_Util_FileStream_Close(*ptrpFileStream);
+
+		free(*ptrpFileStream);
+		*ptrpFileStream = NULL;
+	}
+}
+
+void Marble_Util_FileStream_Close(Marble_Util_FileStream *sFileStream) {
+	if (sFileStream)
+		fclose(sFileStream->flpFilePointer);
+}
+
+int Marble_Util_FileStream_ReadSize(Marble_Util_FileStream *sFileStream, size_t stSizeInBytes, void *ptrDest) {
+	if (!sFileStream || !ptrDest || !stSizeInBytes)
+		return Marble_ErrorCode_Parameter;
+
+	if (fread(ptrDest, stSizeInBytes, 1, sFileStream->flpFilePointer) ^ stSizeInBytes)
+		return Marble_ErrorCode_ReadFromFile;
+
+	return Marble_ErrorCode_Ok;
+}
+
+int Marble_Util_FileStream_ReadBYTE(Marble_Util_FileStream *sFileStream, uint8_t *bpDest) {
+	return Marble_Util_FileStream_ReadSize(sFileStream, sizeof(uint8_t), bpDest);
+}
+
+int Marble_Util_FileStream_ReadWORD(Marble_Util_FileStream *sFileStream, uint16_t *wpDest) {
+	return Marble_Util_FileStream_ReadSize(sFileStream, sizeof(uint16_t), wpDest);
+}
+
+int Marble_Util_FileStream_ReadDWORD(Marble_Util_FileStream *sFileStream, uint32_t *dwpDest) {
+	return Marble_Util_FileStream_ReadSize(sFileStream, sizeof(uint32_t), dwpDest);
+}
+
+int Marble_Util_FileStream_ReadQWORD(Marble_Util_FileStream *sFileStream, uint64_t *qwpDest) {
+	return Marble_Util_FileStream_ReadSize(sFileStream, sizeof(uint64_t), qwpDest);
 }
 #pragma endregion
 

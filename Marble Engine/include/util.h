@@ -36,3 +36,25 @@ extern double inline Marble_Util_Clock_AsMicroseconds(Marble_Util_Clock *sClock)
 extern double inline Marble_Util_Clock_AsNanoseconds(Marble_Util_Clock *sClock);
 
 
+enum Marble_Util_StreamPerms {
+	Marble_Util_StreamPerm_Read   = 1 << 0,
+	Marble_Util_StreamPerm_Write  = 1 << 1,
+	Marble_Util_StreamPerm_Append = 1 << 8,
+	Marble_Util_StreamPerm_Create = 1 << 9
+};
+
+typedef struct Marble_Util_FileStream {
+	FILE        *flpFilePointer;
+	struct stat  sInfo;
+	int          iPermissions;
+} Marble_Util_FileStream;
+
+extern int         Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_Util_FileStream **ptrpFileStream);
+extern void        Marble_Util_FileStream_Destroy(Marble_Util_FileStream **ptrpFileStream);
+extern void        Marble_Util_FileStream_Close(Marble_Util_FileStream *sFileStream);
+extern int         Marble_Util_FileStream_ReadSize(Marble_Util_FileStream *sFileStream, size_t stSizeInBytes, void *ptrDest);
+extern int  inline Marble_Util_FileStream_ReadBYTE(Marble_Util_FileStream *sFileStream, uint8_t *bpDest);
+extern int  inline Marble_Util_FileStream_ReadWORD(Marble_Util_FileStream *sFileStream, uint16_t *wpDest);
+extern int  inline Marble_Util_FileStream_ReadDWORD(Marble_Util_FileStream *sFileStream, uint32_t *dwpDest);
+extern int  inline Marble_Util_FileStream_ReadQWORD(Marble_Util_FileStream *sFileStream, uint64_t *qwpDest);
+
