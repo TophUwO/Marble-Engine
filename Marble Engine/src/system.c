@@ -120,9 +120,8 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	printf("init: asset manager\n");
 	Marble_IfError(
 		iErrorCode = Marble_AssetManager_Create(),
-		Marble_ErrorCode_Ok, {
-			
-		}
+		Marble_ErrorCode_Ok,
+		Marble_System_Internal_Cleanup(TRUE, iErrorCode)
 	);
 
 	printf("init: layer stack\n");

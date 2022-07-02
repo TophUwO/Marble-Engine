@@ -5,6 +5,7 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_Ok = 0,
 	Marble_ErrorCode_Unknown,
 
+	Marble_ErrorCode_UnimplementedFeature,
 	Marble_ErrorCode_CreateDebugConsole,
 	Marble_ErrorCode_MemoryAllocation,
 	Marble_ErrorCode_MemoryReallocation,

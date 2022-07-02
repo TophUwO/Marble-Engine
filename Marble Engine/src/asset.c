@@ -78,11 +78,14 @@ void Marble_AssetManager_Destroy(void) {
 }
 
 int Marble_AssetManager_RegisterAsset(Marble_Asset *sAsset) {
+	if (sAsset && gl_sApplication.sAssets)
+		return Marble_Util_Vector_PushBack(gl_sApplication.sAssets->sAtlases, sAsset);
 
+	return Marble_ErrorCode_Parameter;
 }
 
-int Marble_AssetManager_UnregisterAsset(Marble_Asset *sAsset) {
-
+int Marble_AssetManager_UnregisterAsset(Marble_Asset *sAsset, _Bool blDoFree) {
+	return Marble_ErrorCode_UnimplementedFeature;
 }
 #pragma endregion
 
