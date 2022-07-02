@@ -108,8 +108,55 @@ Marble_Layer *Marble_Layer_Pop(Marble_Layer *sLayer, _Bool blIsTopmost) {
 	return NULL;
 }
 
+void *Marble_Layer_GetUserdata(Marble_Layer *sLayer) {
+	if (sLayer)
+		return sLayer->ptrUserdata;
+
+	return NULL;
+}
+
+void *Marble_Layer_GetHandler(Marble_Layer *sLayer, int iHandlerType) {
+	if (sLayer) {
+		switch (iHandlerType) {
+			case Marble_LayerHandlerType_OnPush:   return sLayer->sCallbacks.onPush;
+			case Marble_LayerHandlerType_OnPop:    return sLayer->sCallbacks.onPop;
+			case Marble_LayerHandlerType_OnUpdate: return sLayer->sCallbacks.onUpdate;
+			case Marble_LayerHandlerType_OnEvent:  return sLayer->sCallbacks.onEvent;
+		}
+	}
+
+	return NULL;
+}
+
 void Marble_Layer_SetEnabled(Marble_Layer *sLayer, _Bool blIsEnabled) {
-	sLayer->blIsEnabled = blIsEnabled;
+	if (sLayer)
+		sLayer->blIsEnabled = blIsEnabled;
+}
+
+void *Marble_Layer_SetHandler(Marble_Layer *sLayer, int iHandlerType, void *fnptrHandler) {
+	if (sLayer) {
+		void *fnptrRet = NULL;
+
+		switch (iHandlerType) {
+			case Marble_LayerHandlerType_OnPush:   fnptrRet = sLayer->sCallbacks.onPush; sLayer->sCallbacks.onPush = fnptrHandler; break;
+			case Marble_LayerHandlerType_OnPop:    fnptrRet = sLayer->sCallbacks.onPop; sLayer->sCallbacks.onPop = fnptrHandler; break;
+			case Marble_LayerHandlerType_OnUpdate: fnptrRet = sLayer->sCallbacks.onUpdate; sLayer->sCallbacks.onUpdate = fnptrHandler; break;
+			case Marble_LayerHandlerType_OnEvent:  fnptrRet = sLayer->sCallbacks.onEvent; sLayer->sCallbacks.onEvent = fnptrHandler; break;
+		}
+
+		return fnptrRet;
+	}
+
+	return NULL;
+}
+
+void *Marble_Layer_SetUserdata(Marble_Layer *sLayer, void *ptrUserdata) {
+	if (sLayer) {
+		void *ptrOldUserdata = sLayer->ptrUserdata;
+
+		sLayer->ptrUserdata = ptrUserdata;
+		return ptrOldUserdata;
+	}
 }
 
 
