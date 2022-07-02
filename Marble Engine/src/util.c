@@ -159,7 +159,7 @@ double Marble_Util_Clock_AsNanoseconds(Marble_Util_Clock *sClock) {
 
 
 #pragma region Marble_Util_FileStream
-static TCHAR const *const inline Marble_Util_Stream_Internal_GetStringFromPermissions(int iPermissions) {
+static TCHAR inline const *const Marble_Util_Stream_Internal_GetStringFromPermissions(int iPermissions) {
 	_Bool blIsCreateFlag = iPermissions & Marble_Util_StreamPerm_Create;
 	_Bool blIsAppendFlag = iPermissions & Marble_Util_StreamPerm_Append;
 
@@ -186,7 +186,7 @@ int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_U
 		if (!(*ptrpFileStream)->flpFilePointer)
 			return Marble_ErrorCode_OpenFile;
 
-		if (fstat(fileno((*ptrpFileStream)->flpFilePointer), &(*ptrpFileStream)->sInfo))
+		if (fstat(_fileno((*ptrpFileStream)->flpFilePointer), &(*ptrpFileStream)->sInfo))
 			return Marble_ErrorCode_GetFileInfo;
 
 		return Marble_ErrorCode_Ok;

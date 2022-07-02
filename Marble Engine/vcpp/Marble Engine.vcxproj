@@ -81,7 +81,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
-    <TargetName>marblemn_$(PlatformShortName)r</TargetName>
+    <TargetName>marblemn32</TargetName>
     <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -95,7 +95,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
-    <TargetName>marblemn_$(PlatformShortName)r</TargetName>
+    <TargetName>marblemn64</TargetName>
     <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
