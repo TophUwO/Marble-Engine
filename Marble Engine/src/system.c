@@ -5,6 +5,9 @@ struct Marble_Application gl_sApplication = { NULL };
 
 
 __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced, int iRetCode) {
+	extern void Marble_LayerStack_Destroy(void);
+	extern void Marble_AssetManager_Destroy(void);
+
 	gl_sApplication.iAppState =  
 		blIsForced 
 			? Marble_AppState_ForcedShutdown 
@@ -12,6 +15,7 @@ __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced
 	;
 
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
+	Marble_AssetManager_Destroy();
 	Marble_LayerStack_Destroy();
 	Marble_Renderer_Uninitialize();
 
@@ -77,6 +81,9 @@ int Marble_System_Internal_OnRender(void) {
 
 
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
+	extern int Marble_LayerStack_Initialize(void);
+	extern int Marble_AssetManager_Create(void);
+
 #ifdef _DEBUG
 	Marble_System_Internal_CreateDebugConsole();
 #endif
@@ -109,6 +116,14 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 
 		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
 	}
+
+	printf("init: asset manager\n");
+	Marble_IfError(
+		iErrorCode = Marble_AssetManager_Create(),
+		Marble_ErrorCode_Ok, {
+			
+		}
+	);
 
 	printf("init: layer stack\n");
 	if (iErrorCode = Marble_LayerStack_Initialize())

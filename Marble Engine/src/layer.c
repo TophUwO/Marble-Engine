@@ -73,6 +73,9 @@ int Marble_Layer_Push(Marble_Layer *sLayer, _Bool blIsTopmost) {
 			++gl_sApplication.sLayers.stLastLayer;
 	}
 
+	if (!iErrorCode)
+		iErrorCode = sLayer->sCallbacks.onPush(sLayer);
+
 	return iErrorCode;
 }
 

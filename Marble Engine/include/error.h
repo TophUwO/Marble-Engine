@@ -31,7 +31,8 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_GetDXGIBackbuffer,
 	Marble_ErrorCode_CreateBitmapFromDxgiSurface,
 	Marble_ErrorCode_AtlasType,
-	Marble_ErrorCode_HeadValidation
+	Marble_ErrorCode_HeadValidation,
+	Marble_ErrorCode_AssetType
 } Marble_ErrorCode;
 
 

@@ -13,6 +13,7 @@ enum Marble_ColorFormat {
 };
 
 
-extern size_t Marble_Color_GetColorSizeByFormat(enum Marble_ColorFormat eFormat);
+extern size_t        Marble_Color_GetColorSizeByFormat(int iColorFormat);
+extern _Bool  inline Marble_Color_IsValidColorFormat(int iColorFormat);
 
 

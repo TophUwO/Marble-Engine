@@ -2,6 +2,8 @@
 
 
 static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UINT udwMessage, WPARAM wParam, LPARAM lParam) {
+	extern int Marble_System_Internal_OnEvent(void *ptrEvent);
+
 	switch (udwMessage) {
 		case WM_CREATE:
 			SetWindowLongPtr(hwWindow, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT *)lParam)->lpCreateParams);

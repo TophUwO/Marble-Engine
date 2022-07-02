@@ -45,6 +45,9 @@
     <ClCompile Include="..\src\color.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\asset.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\error.h">
@@ -86,9 +89,18 @@
     <ClInclude Include="..\include\color.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\..\Notes\old_vec_test.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
+    <Text Include="..\..\Notes\asset_types.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
   </ItemGroup>

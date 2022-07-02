@@ -1,7 +1,7 @@
 #include <color.h>
 
 
-size_t Marble_Color_GetColorSizeByFormat(enum Marble_ColorFormat eFormat) {
+size_t Marble_Color_GetColorSizeByFormat(int iColorFormat) {
 	static struct Marble_Internal_ColorFormatEntry { int iFormat; size_t stSizeInBytes; } const gl_saColorFormatTable[] = {
 		{ Marble_ColorFormat_Unknown,   0                 },
 
@@ -9,10 +9,14 @@ size_t Marble_Color_GetColorSizeByFormat(enum Marble_ColorFormat eFormat) {
 		{ Marble_ColorFormat_RGBAbyte,  4 * sizeof(BYTE)  }
 	};
 
-	if (eFormat < 0 || eFormat >= __NUMCOLORFORMATS__)
+	if (iColorFormat < 0 || iColorFormat >= __NUMCOLORFORMATS__)
 		return Marble_Color_GetColorSizeByFormat(Marble_ColorFormat_Unknown);
 
-	return gl_saColorFormatTable[eFormat].stSizeInBytes;
+	return gl_saColorFormatTable[iColorFormat].stSizeInBytes;
+}
+
+_Bool Marble_Color_IsValidColorFormat(int iColorFormat) {
+	return iColorFormat > Marble_ColorFormat_Unknown && iColorFormat < __NUMCOLORFORMATS__;
 }
 
 

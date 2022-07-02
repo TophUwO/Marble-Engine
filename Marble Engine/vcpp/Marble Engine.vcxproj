@@ -168,6 +168,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\asset.c" />
     <ClCompile Include="..\src\atlas.c" />
     <ClCompile Include="..\src\color.c" />
     <ClCompile Include="..\src\event.c" />
@@ -181,11 +182,13 @@
   <ItemGroup>
     <ClInclude Include="..\include\api.h" />
     <ClInclude Include="..\include\application.h" />
+    <ClInclude Include="..\include\asset.h" />
     <ClInclude Include="..\include\atlas.h" />
     <ClInclude Include="..\include\color.h" />
     <ClInclude Include="..\include\def.h" />
     <ClInclude Include="..\include\entrypoint.h" />
     <ClInclude Include="..\include\event.h" />
+    <ClInclude Include="..\include\internal.h" />
     <ClInclude Include="..\include\layer.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
@@ -194,6 +197,7 @@
     <ClInclude Include="..\include\window.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\..\Notes\asset_types.txt" />
     <Text Include="..\..\Notes\old_vec_test.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
