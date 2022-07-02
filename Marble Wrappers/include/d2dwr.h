@@ -93,6 +93,9 @@ _WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_SetTarget(ID2D1DeviceContext *s
 _WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_Clear(ID2D1DeviceContext *sDeviceContext, D2D1_COLOR_F const *sClearColor);
 _WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_BeginDraw(ID2D1DeviceContext *sDeviceContext);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_DeviceContext_EndDraw(ID2D1DeviceContext *sDeviceContext, D2D1_TAG *uqwpTag1, D2D1_TAG *uqwpTag2);
+_WR_EXTERN_C_ HRESULT WINAPI D2DWr_DeviceContext_CreateSolidColorBrush(ID2D1DeviceContext *sDeviceContext, D2D1_COLOR_F const *sColor, D2D1_BRUSH_PROPERTIES const *sBrushProps, ID2D1SolidColorBrush **ptrpBrush);
+_WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_DrawRectangle(ID2D1DeviceContext *sDeviceContext, D2D1_RECT_F const *sRect, ID2D1Brush *sBrush, FLOAT fStrokeWith, ID2D1StrokeStyle *sStrokeStyle);
+_WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_FillRectangle(ID2D1DeviceContext *sDeviceContext, D2D1_RECT_F const *sRect, ID2D1Brush *sBrush);
 _WR_EXTERN_C_ ULONG   WINAPI D2DWr_DeviceContext_Release(ID2D1DeviceContext *sDeviceContext);
 
 _WR_EXTERN_C_ ULONG WINAPI D2DWr_Bitmap_Release(ID2D1Bitmap *sBitmap);

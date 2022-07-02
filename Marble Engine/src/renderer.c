@@ -42,17 +42,17 @@ static int Marble_Renderer_Internal_InitializeDirect2DRenderer(HWND hwRenderWind
 		D3D_FEATURE_LEVEL_10_0
 	};
 	DXGI_SWAP_CHAIN_DESC1 sDXGISwapChainDesc = {
-		.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED,
-		.Width = 0,
-		.Height = 0,
-		.Flags = 0,
+		.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED,
+		.Width       = 0,
+		.Height      = 0,
+		.Flags       = 0,
 		.BufferCount = 2,
 		.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-		.Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-		.Scaling = DXGI_SCALING_STRETCH,
-		.Stereo = FALSE,
-		.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
-		.SampleDesc = {
+		.Format      = DXGI_FORMAT_B8G8R8A8_UNORM,
+		.Scaling     = DXGI_SCALING_STRETCH,
+		.Stereo      = FALSE,
+		.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+		.SampleDesc  = {
 			.Count   = 1,
 			.Quality = 0
 		}
@@ -203,9 +203,7 @@ static void inline Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(void) {
 }
 
 static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(void) {
-	if (D2DWr_DeviceContext_EndDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL) == D2DERR_RECREATE_TARGET) {
-		// TODO: Recreate all needed resources
-	}
+	D2DWr_DeviceContext_EndDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
 }
 #pragma endregion
 
@@ -250,13 +248,21 @@ void Marble_Renderer_EndDraw(void) {
 
 int Marble_Renderer_Present(void) {
 	if (gl_sApplication.sRenderer) {
+		HRESULT hrRes = S_OK;
+
 		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
 			case Marble_RendererAPI_Direct2D: 
-				return (int)gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->Present(
+				hrRes = gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->Present(
 					gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain, 
 					(UINT)gl_sApplication.sMainWindow->sWndData.blIsVSync, 
 					0
 				);
+
+				if (hrRes == DXGI_ERROR_DEVICE_REMOVED || hrRes == DXGI_ERROR_DEVICE_RESET) {
+					// TODO: recreate device and resources
+				}
+
+				break;
 		}
 
 		return Marble_ErrorCode_RendererAPI;

@@ -43,8 +43,9 @@ int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, voi
 	}
 
 	*(Marble_GenericEvent *)ptrEvent = (Marble_GenericEvent){
-		.eType = eEventType,
-		.eCategory = gl_sEventTable[eEventType].eCategory
+		.eType       = eEventType,
+		.eCategory   = gl_sEventTable[eEventType].eCategory,
+		.blIsHandled = FALSE
 	};
 	QueryPerformanceCounter(&((Marble_GenericEvent *)ptrEvent)->uqwTime);
 

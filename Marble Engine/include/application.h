@@ -31,6 +31,7 @@ extern struct Marble_Application {
 
 
 extern int Marble_System_Internal_OnEvent(void *ptrEvent);
+extern int Marble_System_Internal_OnRender(void);
 
 extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
 extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);

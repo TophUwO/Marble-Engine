@@ -40,7 +40,8 @@ typedef struct Marble_MouseData         { DWORD dwButtonCode; POINT sPos; }     
 typedef struct Marble_GenericEvent {
 	Marble_EventCategory eCategory;
 	Marble_EventType     eType;
-
+	
+	_Bool                blIsHandled;
 	LARGE_INTEGER        uqwTime;
 } Marble_GenericEvent, Marble_Event;
 

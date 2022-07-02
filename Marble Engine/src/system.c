@@ -51,20 +51,30 @@ static int Marble_System_Internal_CreateDebugConsole(void) {
 int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	Marble_GenericEvent *sEvent = (Marble_GenericEvent *)ptrEvent;
 
-	if (sEvent->eType == Marble_EventType_Mouse_MouseMoved) {
-		Marble_MouseMovedEvent *sMovedEvent = (Marble_MouseMovedEvent *)ptrEvent;
+	for (size_t stIndex = gl_sApplication.sLayers.sLayerStack->stSize - 1; stIndex && stIndex ^ (size_t)(-1) && !sEvent->blIsHandled; stIndex--) {
+		Marble_Layer *sLayer = gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
 
-		printf("[EVENT '%S']: %i (%i / %i)\n", 
-			Marble_Event_GetEventTypeName(sEvent->eType), 
-			sEvent->eType,
-			sMovedEvent->sPos.x,
-			sMovedEvent->sPos.y
-		);
-	} else
-		printf("[EVENT '%S']: %i\n", Marble_Event_GetEventTypeName(sEvent->eType), sEvent->eType);
+		sLayer->sCallbacks.onEvent(sLayer, sEvent);
+	}
+
 
 	return Marble_ErrorCode_Ok;
 }
+
+int Marble_System_Internal_OnRender(void) {
+	Marble_Renderer_BeginDraw();
+
+	Marble_Renderer_Clear(0.0f, 0.0f, 0.0f, 1.0f);
+	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers.sLayerStack->stSize; stIndex++) {
+		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
+		
+		sLayer->sCallbacks.onUpdate(sLayer);
+	}
+
+	Marble_Renderer_EndDraw();
+	return Marble_Renderer_Present();
+}
+
 
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
 #ifdef _DEBUG
@@ -123,12 +133,7 @@ MARBLE_API int Marble_System_RunApplication(void) {
 			DispatchMessage(&sMessage);
 		}
 
-		Marble_Renderer_BeginDraw();
-
-		Marble_Renderer_Clear(1.0f, 0.5f, 0.23f, 1.0f);
-
-		Marble_Renderer_EndDraw();
-		Marble_Renderer_Present();
+		Marble_System_Internal_OnRender();
 
 		Marble_Util_Clock_Stop(&sTimer);
 		printf("Time: %g ms\n", Marble_Util_Clock_AsMilliseconds(&sTimer));
