@@ -168,6 +168,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\atlas.c" />
+    <ClCompile Include="..\src\color.c" />
     <ClCompile Include="..\src\event.c" />
     <ClCompile Include="..\src\layer.c" />
     <ClCompile Include="..\src\main.c" />
@@ -179,6 +181,8 @@
   <ItemGroup>
     <ClInclude Include="..\include\api.h" />
     <ClInclude Include="..\include\application.h" />
+    <ClInclude Include="..\include\atlas.h" />
+    <ClInclude Include="..\include\color.h" />
     <ClInclude Include="..\include\def.h" />
     <ClInclude Include="..\include\entrypoint.h" />
     <ClInclude Include="..\include\event.h" />

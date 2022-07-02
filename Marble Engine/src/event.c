@@ -2,7 +2,7 @@
 #include <error.h>
 
 
-static struct Marble_Internal_EventEntry { Marble_EventType eType; TCHAR const *const strName; Marble_EventCategory eCategory; } const gl_sEventTable[] = {
+static struct Marble_Internal_EventEntry { Marble_EventType eType; TCHAR const *const strName; Marble_EventCategory eCategory; } const gl_saEventTable[] = {
 	{ Marble_EventType_Unknown,              TEXT("Ev_Unknown"),             Marble_EventCategory_None,                                    },
 
 	{ Marble_EventType_Window_Closed,        TEXT("Ev_WindowClosed"),        Marble_EventCategory_Application                              },
@@ -20,7 +20,7 @@ static struct Marble_Internal_EventEntry { Marble_EventType eType; TCHAR const *
 	{ Marble_EventType_Mouse_ButtonReleased, TEXT("Ev_MouseButtonReleased"), Marble_EventCategory_Input | Marble_EventCategory_Mouse       },
 	{ Marble_EventType_Mouse_MouseMoved,     TEXT("Ev_MouseMoved"),          Marble_EventCategory_Input | Marble_EventCategory_Mouse       }
 };
-static const DWORD gl_dwNumberOfEventTypes = sizeof(gl_sEventTable) / sizeof(*gl_sEventTable);
+static const DWORD gl_dwNumberOfEventTypes = sizeof(gl_saEventTable) / sizeof(*gl_saEventTable);
 
 
 int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData) {
@@ -44,7 +44,7 @@ int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, voi
 
 	*(Marble_GenericEvent *)ptrEvent = (Marble_GenericEvent){
 		.eType       = eEventType,
-		.eCategory   = gl_sEventTable[eEventType].eCategory,
+		.eCategory   = gl_saEventTable[eEventType].eCategory,
 		.blIsHandled = FALSE
 	};
 	QueryPerformanceCounter(&((Marble_GenericEvent *)ptrEvent)->uqwTime);
@@ -56,7 +56,7 @@ TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType) {
 	if ((DWORD)eEventType >= gl_dwNumberOfEventTypes || eEventType < 0)
 		return Marble_Event_GetEventTypeName(Marble_EventType_Unknown);
 
-	return gl_sEventTable[eEventType].strName;
+	return gl_saEventTable[eEventType].strName;
 }
 
 Marble_EventType Marble_Event_GetMouseEventType(UINT udwMessage) {

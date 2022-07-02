@@ -16,14 +16,14 @@ static void inline Marble_Layer_Internal_FixLayerCallbacks(Marble_Layer *sLayer)
 	sLayer->sCallbacks.onEvent  = sLayer->sCallbacks.onEvent  ? sLayer->sCallbacks.onEvent  : &__Marble_Layer_Internal_DummyOnEvent__;
 }
 
-static int Marble_LayerStack_Internal_DestroyLayer(Marble_Layer **ptrpLayer) {
-	return (*ptrpLayer)->sCallbacks.onPop(*ptrpLayer);
+static void Marble_LayerStack_Internal_DestroyLayer(Marble_Layer **ptrpLayer) {
+	(*ptrpLayer)->sCallbacks.onPop(*ptrpLayer);
 }
 
 
 int Marble_LayerStack_Initialize(void) {
 	int iErrorCode = Marble_ErrorCode_Ok;
-	if (iErrorCode = Marble_Util_Vector_Create(&gl_sApplication.sLayers.sLayerStack, 32, (int (*)(void **))&Marble_LayerStack_Internal_DestroyLayer))
+	if (iErrorCode = Marble_Util_Vector_Create(&gl_sApplication.sLayers.sLayerStack, 32, (void (*)(void **))&Marble_LayerStack_Internal_DestroyLayer))
 		return iErrorCode;
 
 	gl_sApplication.sLayers.stLastLayer = 0;

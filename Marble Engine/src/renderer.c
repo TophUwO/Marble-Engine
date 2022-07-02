@@ -177,7 +177,7 @@ static int Marble_Renderer_Internal_InitializeDirect2DRenderer(HWND hwRenderWind
 		(ID2D1Image *)gl_sApplication.sRenderer->sD2DRenderer.sBitmap
 	);
 
-	gl_sApplication.sRenderer->dwActiveRendererAPI = Marble_RendererAPI_Direct2D;
+	gl_sApplication.sRenderer->iActiveRendererAPI = Marble_RendererAPI_Direct2D;
 
 ON_ERROR:
 	return Marble_Renderer_Internal_Direct2DCleanup(iErrorCode);
@@ -222,7 +222,7 @@ int Marble_Renderer_Initialize(DWORD dwActiveAPI, HWND hwRenderWindow) {
 
 void Marble_Renderer_Uninitialize(void) {
 	if (gl_sApplication.sRenderer) {
-		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
 			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_UninitializeDirect2DRenderer();
 		}
 
@@ -232,7 +232,7 @@ void Marble_Renderer_Uninitialize(void) {
 
 void Marble_Renderer_BeginDraw(void) {
 	if (gl_sApplication.sRenderer) {
-		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
 			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_BeginDraw();
 		}
 	}
@@ -240,7 +240,7 @@ void Marble_Renderer_BeginDraw(void) {
 
 void Marble_Renderer_EndDraw(void) {
 	if (gl_sApplication.sRenderer) {
-		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
 			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_EndDraw();
 		}
 	}
@@ -250,7 +250,7 @@ int Marble_Renderer_Present(void) {
 	if (gl_sApplication.sRenderer) {
 		HRESULT hrRes = S_OK;
 
-		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
 			case Marble_RendererAPI_Direct2D: 
 				hrRes = gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->Present(
 					gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain, 
@@ -273,7 +273,7 @@ int Marble_Renderer_Present(void) {
 
 void Marble_Renderer_Clear(float fRed, float fGreen, float fBlue, float fAlpha) {
 	if (gl_sApplication.sRenderer) {
-		switch (gl_sApplication.sRenderer->dwActiveRendererAPI) {
+		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
 			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Clear(fRed, fGreen, fBlue, fAlpha);
 		}
 	}

@@ -7,3 +7,8 @@
 #endif
 
 
+#define MARBLE_VERSION ((DWORD)(0)) /* 0 = indev */
+
+#define Marble_IfError(expr, equal, body) if ((expr) != equal) { body; }
+
+

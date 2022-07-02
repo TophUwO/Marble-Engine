@@ -9,9 +9,9 @@
 #include <d3d11_1.h>
 
 
-typedef enum Marble_RendererAPI {
+enum Marble_RendererAPI {
 	Marble_RendererAPI_Direct2D = 1
-} Marble_RendererAPI;
+};
 
 
 typedef struct Marble_Direct2DRenderer {
@@ -28,7 +28,7 @@ typedef struct Marble_Direct2DRenderer {
 } Marble_Direct2DRenderer;
 
 typedef struct Marble_Renderer {
-	DWORD dwActiveRendererAPI;
+	int iActiveRendererAPI;
 
 	union {
 		Marble_Direct2DRenderer sD2DRenderer;
