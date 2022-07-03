@@ -53,7 +53,7 @@ static int Marble_System_Internal_CreateDebugConsole(void) {
 
 
 int Marble_System_Internal_OnEvent(void *ptrEvent) {
-	Marble_GenericEvent *sEvent = (Marble_GenericEvent *)ptrEvent;
+	Marble_Event *sEvent = (Marble_Event *)ptrEvent;
 
 	for (size_t stIndex = gl_sApplication.sLayers.sLayerStack->stSize - 1; stIndex && stIndex ^ (size_t)(-1) && !sEvent->blIsHandled; stIndex--) {
 		Marble_Layer *sLayer = gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
@@ -76,7 +76,27 @@ int Marble_System_Internal_OnRender(void) {
 			sLayer->sCallbacks.OnUpdate(sLayer);
 	}
 
+	D2D1_RECT_F sRect = {
+		100.5,100.5,
+		300.5,300.5
+	};
+	D2D1_BRUSH_PROPERTIES sProps = {
+		.opacity = 1.0f
+	};
+	D2D1_COLOR_F sColor = { 0.5f, 0.5f, 0.3f, 1.0f };
+	ID2D1SolidColorBrush *sBrush = NULL;
+	D2DWr_DeviceContext_CreateSolidColorBrush(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sColor, &sProps, &sBrush);
+	D2DWr_DeviceContext_FillRectangle(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sRect, sBrush);
+
 	Marble_Renderer_EndDraw();
+
+	//if (gl_sApplication.sMainWindow->sWndData.blIsFullscreen) {
+	//	IDXGIOutput *sOutput = NULL;
+	//	gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->GetContainingOutput(gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain, &sOutput);
+
+	//	sOutput->lpVtbl->WaitForVBlank(sOutput);
+	//	sOutput->lpVtbl->Release(sOutput);
+	//}
 	return Marble_Renderer_Present();
 }
 
@@ -156,7 +176,7 @@ MARBLE_API int Marble_System_RunApplication(void) {
 		Marble_System_Internal_OnRender();
 
 		Marble_Util_Clock_Stop(&sTimer);
-		//printf("Time: %g ms\n", Marble_Util_Clock_AsMilliseconds(&sTimer));
+		printf("Time: %g ms\n", Marble_Util_Clock_AsMilliseconds(&sTimer));
 	}
 
 CLEANUP:

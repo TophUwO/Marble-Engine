@@ -205,6 +205,25 @@ static void inline Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(void) {
 static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(void) {
 	D2DWr_DeviceContext_EndDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
 }
+
+static void inline Marble_Renderer_Internal_Direct2DRenderer_Resize(UINT uiNewWidth, UINT uiNewHeight) {
+	gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->ResizeBuffers(
+		gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain,
+		2,
+		uiNewWidth,
+		uiNewHeight,
+		DXGI_FORMAT_UNKNOWN,
+		0
+	);
+}
+
+static void inline Marble_Renderer_Internal_Direct2DRenderer_SetFullscreen(_Bool blIsFullscreen) {
+	gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->SetFullscreenState(
+		gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain,
+		blIsFullscreen,
+		NULL
+	);
+}
 #pragma endregion
 
 
@@ -254,7 +273,7 @@ int Marble_Renderer_Present(void) {
 			case Marble_RendererAPI_Direct2D: 
 				hrRes = gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->Present(
 					gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain, 
-					(UINT)gl_sApplication.sMainWindow->sWndData.blIsVSync, 
+					(UINT)gl_sApplication.sMainWindow->sWndData.blIsVSync,
 					0
 				);
 
@@ -262,7 +281,7 @@ int Marble_Renderer_Present(void) {
 					// TODO: recreate device and resources
 				}
 
-				break;
+				return Marble_ErrorCode_Ok;
 		}
 
 		return Marble_ErrorCode_RendererAPI;
@@ -272,11 +291,24 @@ int Marble_Renderer_Present(void) {
 }
 
 void Marble_Renderer_Clear(float fRed, float fGreen, float fBlue, float fAlpha) {
-	if (gl_sApplication.sRenderer) {
+	if (gl_sApplication.sRenderer)
 		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Clear(fRed, fGreen, fBlue, fAlpha);
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Clear(fRed, fGreen, fBlue, fAlpha); break;
 		}
-	}
+}
+
+void Marble_Renderer_Resize(UINT uiNewWidth, UINT uiNewHeight) {
+	if (gl_sApplication.sRenderer)
+		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Resize(uiNewWidth, uiNewHeight); break;
+		}
+}
+
+void Marble_Renderer_SetFullscreen(_Bool blIsFullscreen) {
+	if (gl_sApplication.sRenderer)
+		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_SetFullscreen(blIsFullscreen); break;
+		}
 }
 
 

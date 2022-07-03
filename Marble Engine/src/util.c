@@ -207,11 +207,17 @@ int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_U
 			return Marble_ErrorCode_MemoryAllocation;
 
 		_tfopen_s(&(*ptrpFileStream)->flpFilePointer, strPath, Marble_Util_Stream_Internal_GetStringFromPermissions((*ptrpFileStream)->iPermissions = iPermissions));
-		if (!(*ptrpFileStream)->flpFilePointer)
-			return Marble_ErrorCode_OpenFile;
+		if (!(*ptrpFileStream)->flpFilePointer) {
+			Marble_Util_FileStream_Destroy(ptrpFileStream);
 
-		if (fstat(_fileno((*ptrpFileStream)->flpFilePointer), &(*ptrpFileStream)->sInfo))
+			return Marble_ErrorCode_OpenFile;
+		}
+
+		if (fstat(_fileno((*ptrpFileStream)->flpFilePointer), &(*ptrpFileStream)->sInfo)) {
+			Marble_Util_FileStream_Destroy(ptrpFileStream);
+
 			return Marble_ErrorCode_GetFileInfo;
+		}
 
 		return Marble_ErrorCode_Ok;
 	}
@@ -229,7 +235,7 @@ void Marble_Util_FileStream_Destroy(Marble_Util_FileStream **ptrpFileStream) {
 }
 
 void Marble_Util_FileStream_Close(Marble_Util_FileStream *sFileStream) {
-	if (sFileStream)
+	if (sFileStream && sFileStream->flpFilePointer)
 		fclose(sFileStream->flpFilePointer);
 }
 

@@ -9,6 +9,10 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 			SetWindowLongPtr(hwWindow, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT *)lParam)->lpCreateParams);
 
 			return Marble_ErrorCode_Ok;
+		case WM_SIZE:
+			Marble_Renderer_Resize((UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
+			
+			return Marble_ErrorCode_Ok;
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN: {
 			Marble_KeyPressedEvent sKeyDownEvent;
@@ -22,6 +26,14 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 		}
 		case WM_KEYUP:
 		case WM_SYSKEYUP: {
+			if (wParam == VK_F11) {
+				gl_sApplication.sMainWindow->sWndData.blIsFullscreen = !gl_sApplication.sMainWindow->sWndData.blIsFullscreen;
+				Marble_Renderer_SetFullscreen(gl_sApplication.sMainWindow->sWndData.blIsFullscreen);
+
+				printf("Application set to %s-mode.\n", gl_sApplication.sMainWindow->sWndData.blIsFullscreen ? "fullscreen" : "windowed");
+				return Marble_ErrorCode_Ok;
+			}
+
 			Marble_KeyReleasedEvent sKeyReleasedEvent;
 			Marble_KeyPressedData sEventData = {
 				.dwKeyCode  = (DWORD)wParam,
@@ -81,9 +93,10 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 		else 
 			return Marble_ErrorCode_MemoryAllocation;
 
-		(*ptrpWindow)->sWndData.dwWidth   = dwWidth;
-		(*ptrpWindow)->sWndData.dwHeight  = dwHeight;
-		(*ptrpWindow)->sWndData.blIsVSync = blIsVSync;
+		(*ptrpWindow)->sWndData.dwWidth        = dwWidth;
+		(*ptrpWindow)->sWndData.dwHeight       = dwHeight;
+		(*ptrpWindow)->sWndData.blIsVSync      = blIsVSync;
+		(*ptrpWindow)->sWndData.blIsFullscreen = FALSE;
 	} else 
 		return Marble_ErrorCode_MemoryAllocation;
 
@@ -126,6 +139,9 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 
 void Marble_Window_Destroy(Marble_Window **ptrpWindow) {
 	if (ptrpWindow && *ptrpWindow) {
+		if ((*ptrpWindow)->sWndData.blIsFullscreen)
+			Marble_Renderer_SetFullscreen(FALSE);
+
 		free((*ptrpWindow)->sWndData.strTitle);
 		free(*ptrpWindow);
 		*ptrpWindow = NULL;
@@ -138,9 +154,12 @@ void Marble_Window_SetVsyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled) {
 	}
 }
 
+void Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsFullscreen) {
+	if (sWindow) {
+		sWindow->sWndData.blIsFullscreen = blIsFullscreen;
 
-int Marble_Window_OnUpdate(Marble_Window *sWindow) {
-	return Marble_ErrorCode_Ok;
+		PostMessage(sWindow->hwWindow, WM_KEYDOWN, (WPARAM)VK_F11, 0);
+	}
 }
 
 
