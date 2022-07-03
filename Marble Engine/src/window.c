@@ -1,24 +1,31 @@
 #include <application.h>
 
 
-static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UINT udwMessage, WPARAM wParam, LPARAM lParam) {
+static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UINT uiMessage, WPARAM wParam, LPARAM lParam) {
 	extern int Marble_System_Internal_OnEvent(void *ptrEvent);
 
-	switch (udwMessage) {
+	struct Marble_Window *sWindowData = NULL;
+
+	switch (uiMessage) {
 		case WM_CREATE:
 			SetWindowLongPtr(hwWindow, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT *)lParam)->lpCreateParams);
 
 			return Marble_ErrorCode_Ok;
-		case WM_SIZE:
-			Marble_Renderer_Resize((UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
+		case WM_SIZE: {
+			sWindowData = (Marble_Window *)GetWindowLongPtr(hwWindow, GWLP_USERDATA);
+
+			/* Ignore message if window initialization is not complete yet. */
+			if (sWindowData && sWindowData->hwWindow && sWindowData->sRefRenderer)
+				Marble_Renderer_Resize(sWindowData->sRefRenderer, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
 			
 			return Marble_ErrorCode_Ok;
+		}
 		case WM_KEYDOWN:
 		case WM_SYSKEYDOWN: {
 			Marble_KeyPressedEvent sKeyDownEvent;
 			Marble_KeyPressedData  sEventData = {
 				.dwKeyCode     = (DWORD)wParam,
-				.blIsSysKey    = udwMessage == WM_SYSKEYDOWN
+				.blIsSysKey    = uiMessage == WM_SYSKEYDOWN
 			};
 			Marble_Event_ConstructEvent(&sKeyDownEvent, lParam >> 30 & 1 ? Marble_EventType_Keyboard_KeyRepeated : Marble_EventType_Keyboard_KeyPressed, &sEventData);
 
@@ -27,7 +34,9 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 		case WM_KEYUP:
 		case WM_SYSKEYUP: {
 			if (wParam == VK_F11) {
-				if (gl_sApplication.sMainWindow->sWndData.blIsFullscreen = !gl_sApplication.sMainWindow->sWndData.blIsFullscreen) {
+				sWindowData = (Marble_Window *)GetWindowLongPtr(hwWindow, GWLP_USERDATA);
+
+				if (sWindowData->sWndData.blIsFullscreen = !sWindowData->sWndData.blIsFullscreen) {
 					SetWindowLongPtr(hwWindow, GWL_STYLE, 0);
 					SetWindowLongPtr(hwWindow, GWL_EXSTYLE, 0);
 
@@ -41,14 +50,13 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 					SetWindowPos(hwWindow, HWND_TOP, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
 				}
 
-				//printf("Application set to %s mode.\n", gl_sApplication.sMainWindow->sWndData.blIsFullscreen ? "fullscreen" : "windowed");
 				return Marble_ErrorCode_Ok;
 			}
 
 			Marble_KeyReleasedEvent sKeyReleasedEvent;
 			Marble_KeyPressedData sEventData = {
 				.dwKeyCode  = (DWORD)wParam,
-				.blIsSysKey = udwMessage == WM_SYSKEYUP
+				.blIsSysKey = uiMessage == WM_SYSKEYUP
 			};
 			Marble_Event_ConstructEvent(&sKeyReleasedEvent, Marble_EventType_Keyboard_KeyReleased, &sEventData);
 
@@ -69,7 +77,7 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 					.y = GET_Y_LPARAM(lParam)
 				}
 			};
-			Marble_Event_ConstructEvent(&sMouseEvent, Marble_Event_GetMouseEventType(udwMessage), &sEventData);
+			Marble_Event_ConstructEvent(&sMouseEvent, Marble_Event_GetMouseEventType(uiMessage), &sEventData);
 
 			return Marble_System_Internal_OnEvent(&sMouseEvent);
 		}
@@ -83,12 +91,13 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 			return Marble_ErrorCode_Ok;
 		}
 		case WM_DESTROY:
-			PostQuitMessage(0);
+			if (hwWindow == gl_sApplication.sMainWindow->hwWindow)
+				PostQuitMessage(0);
 
 			return Marble_ErrorCode_Ok;
 	}
 
-	return DefWindowProc(hwWindow, udwMessage, wParam, lParam);
+	return DefWindowProc(hwWindow, uiMessage, wParam, lParam);
 }
 
 
@@ -156,7 +165,7 @@ void Marble_Window_Destroy(Marble_Window **ptrpWindow) {
 	}
 }
 
-void Marble_Window_SetVsyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled) {
+void Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled) {
 	if (sWindow) {
 		sWindow->sWndData.blIsVSync = blIsEnabled;
 	}
@@ -170,17 +179,17 @@ void Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsFullscreen) {
 	}
 }
 
-void Marble_Window_Update(float fFrameTime) {
+void Marble_Window_Update(Marble_Window *sWindow, float fFrameTime) {
 	LARGE_INTEGER uTime;
 	QueryPerformanceCounter(&uTime);
 
-	if (uTime.QuadPart - gl_sApplication.sMainWindow->sWndData.uqwLastTitleUpdate > 0.5f * gl_sApplication.uPerfFreq.QuadPart) {
-		gl_sApplication.sMainWindow->sWndData.uqwLastTitleUpdate = uTime.QuadPart;
+	if (uTime.QuadPart - sWindow->sWndData.uqwLastTitleUpdate > 0.5f * gl_sApplication.uPerfFreq.QuadPart) {
+		sWindow->sWndData.uqwLastTitleUpdate = uTime.QuadPart;
 
 		TCHAR caBuffer[256] = { 0 };
 		_stprintf_s(caBuffer, 255, TEXT("Marble Engine Sandbox - %i FPS"), (int)(1.0f / fFrameTime));
 
-		SetWindowText(gl_sApplication.sMainWindow->hwWindow, caBuffer);
+		SetWindowText(sWindow->hwWindow, caBuffer);
 	}
 }
 

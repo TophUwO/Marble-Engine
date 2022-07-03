@@ -11,27 +11,30 @@ static void Marble_Renderer_Internal_GetDesktopDPI(float *fpDpiX, float *fpDpiY)
 
 
 #pragma region Direct2D Renderer
-static int Marble_Renderer_Internal_Direct2DCleanup(int iErrorCode) {
+static int Marble_Renderer_Internal_Direct2DCleanup(Marble_Renderer **ptrpRenderer, int iErrorCode) {
 #define Marble_Direct2DRenderer_SafeRelease(fn, inst)  if (inst) fn(inst)
 #define Marble_Direct2DRenderer_SafeRelease_Vtbl(inst) if (inst) (inst)->lpVtbl->Release(inst)
 
 	if (iErrorCode) {
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_Factory_Release, (ID2D1Factory *)gl_sApplication.sRenderer->sD2DRenderer.sD2DFactory);
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_DeviceContext_Release, gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext);
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_Device_Release, gl_sApplication.sRenderer->sD2DRenderer.sD2DDevice);
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)gl_sApplication.sRenderer->sD2DRenderer.sBitmap);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl(gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl(gl_sApplication.sRenderer->sD2DRenderer.sD3D11Device);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl(gl_sApplication.sRenderer->sD2DRenderer.sDXGIDevice);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl(gl_sApplication.sRenderer->sD2DRenderer.sDXGIAdapter);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl(gl_sApplication.sRenderer->sD2DRenderer.sDXGIFactory);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl(gl_sApplication.sRenderer->sD2DRenderer.sDXGIBackbuffer);
+		Marble_Direct2DRenderer_SafeRelease(D2DWr_Factory_Release, (ID2D1Factory *)(*ptrpRenderer)->sD2DRenderer.sD2DFactory);
+		Marble_Direct2DRenderer_SafeRelease(D2DWr_DeviceContext_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevContext);
+		Marble_Direct2DRenderer_SafeRelease(D2DWr_Device_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevice);
+		Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)(*ptrpRenderer)->sD2DRenderer.sBitmap);
+		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGISwapchain);
+		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sD3D11Device);
+		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIDevice);
+		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIAdapter);
+		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIFactory);
+		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIBackbuffer);
+
+		free(*ptrpRenderer);
+		*ptrpRenderer = NULL;
 	}
 
 	return iErrorCode;
 }
 
-static int Marble_Renderer_Internal_InitializeDirect2DRenderer(HWND hwRenderWindow) {
+static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **ptrpRenderer, HWND hwRenderWindow) {
 #define Marble_Direct2DRenderer_Action(act, ret) if (act != S_OK) { iErrorCode = ret; goto ON_ERROR; }
 #pragma region Static Init Data
 	static D2D1_FACTORY_OPTIONS const sD2DFactoryOptions = { .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION };
@@ -68,15 +71,13 @@ static int Marble_Renderer_Internal_InitializeDirect2DRenderer(HWND hwRenderWind
 #pragma endregion
 
 	int iErrorCode = Marble_ErrorCode_Ok;
-	if (!(gl_sApplication.sRenderer = calloc(1, sizeof(*gl_sApplication.sRenderer))))
-		return Marble_ErrorCode_MemoryAllocation;
 	
 	Marble_Direct2DRenderer_Action(
 		D2D1CreateFactory(
 			D2D1_FACTORY_TYPE_SINGLE_THREADED, 
 			&IID_ID2D1Factory1, 
 			&sD2DFactoryOptions, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sD2DFactory
+			&(*ptrpRenderer)->sD2DRenderer.sD2DFactory
 		), 
 		Marble_ErrorCode_CreateD2DFactory
 	);
@@ -89,7 +90,7 @@ static int Marble_Renderer_Internal_InitializeDirect2DRenderer(HWND hwRenderWind
 			eaD3DFeatureLevels, 
 			ARRAYSIZE(eaD3DFeatureLevels), 
 			D3D11_SDK_VERSION, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sD3D11Device, 
+			&(*ptrpRenderer)->sD2DRenderer.sD3D11Device, 
 			NULL, 
 			NULL
 		), 
@@ -97,97 +98,97 @@ static int Marble_Renderer_Internal_InitializeDirect2DRenderer(HWND hwRenderWind
 	);
 
 	Marble_Direct2DRenderer_Action(
-		gl_sApplication.sRenderer->sD2DRenderer.sD3D11Device->lpVtbl->QueryInterface(
-			gl_sApplication.sRenderer->sD2DRenderer.sD3D11Device, 
+		(*ptrpRenderer)->sD2DRenderer.sD3D11Device->lpVtbl->QueryInterface(
+			(*ptrpRenderer)->sD2DRenderer.sD3D11Device, 
 			&IID_IDXGIDevice, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sDXGIDevice
+			&(*ptrpRenderer)->sD2DRenderer.sDXGIDevice
 		), 
 		Marble_ErrorCode_GetDXGIDevice
 	);
 
 	Marble_Direct2DRenderer_Action(
 		D2DWr_Factory1_CreateDevice(
-			gl_sApplication.sRenderer->sD2DRenderer.sD2DFactory, 
-			gl_sApplication.sRenderer->sD2DRenderer.sDXGIDevice, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sD2DDevice
+			(*ptrpRenderer)->sD2DRenderer.sD2DFactory, 
+			(*ptrpRenderer)->sD2DRenderer.sDXGIDevice, 
+			&(*ptrpRenderer)->sD2DRenderer.sD2DDevice
 		), 
 		Marble_ErrorCode_CreateD2DDevice
 	);
 
 	Marble_Direct2DRenderer_Action(
 		D2DWr_Device_CreateDeviceContext(
-			gl_sApplication.sRenderer->sD2DRenderer.sD2DDevice, 
+			(*ptrpRenderer)->sD2DRenderer.sD2DDevice, 
 			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-			&gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext
+			&(*ptrpRenderer)->sD2DRenderer.sD2DDevContext
 		), 
 		Marble_ErrorCode_CreateD2DDeviceContext
 	);
 
 	Marble_Direct2DRenderer_Action(
-		gl_sApplication.sRenderer->sD2DRenderer.sDXGIDevice->lpVtbl->GetAdapter(
-			gl_sApplication.sRenderer->sD2DRenderer.sDXGIDevice, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sDXGIAdapter
+		(*ptrpRenderer)->sD2DRenderer.sDXGIDevice->lpVtbl->GetAdapter(
+			(*ptrpRenderer)->sD2DRenderer.sDXGIDevice, 
+			&(*ptrpRenderer)->sD2DRenderer.sDXGIAdapter
 		), 
 		Marble_ErrorCode_GetDXGIAdapter
 	);
 
 	Marble_Direct2DRenderer_Action(
-		gl_sApplication.sRenderer->sD2DRenderer.sDXGIAdapter->lpVtbl->GetParent(
-			gl_sApplication.sRenderer->sD2DRenderer.sDXGIAdapter, 
+		(*ptrpRenderer)->sD2DRenderer.sDXGIAdapter->lpVtbl->GetParent(
+			(*ptrpRenderer)->sD2DRenderer.sDXGIAdapter, 
 			&IID_IDXGIFactory2, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sDXGIFactory
+			&(*ptrpRenderer)->sD2DRenderer.sDXGIFactory
 		), 
 		Marble_ErrorCode_GetDXGIFactory
 	);
 	
 	Marble_Direct2DRenderer_Action(
-		gl_sApplication.sRenderer->sD2DRenderer.sDXGIFactory->lpVtbl->CreateSwapChainForHwnd(
-			gl_sApplication.sRenderer->sD2DRenderer.sDXGIFactory, 
-			(IUnknown *)gl_sApplication.sRenderer->sD2DRenderer.sD3D11Device, 
+		(*ptrpRenderer)->sD2DRenderer.sDXGIFactory->lpVtbl->CreateSwapChainForHwnd(
+			(*ptrpRenderer)->sD2DRenderer.sDXGIFactory, 
+			(IUnknown *)(*ptrpRenderer)->sD2DRenderer.sD3D11Device, 
 			hwRenderWindow, 
 			&sDXGISwapChainDesc,
 			NULL, 
 			NULL, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain
+			&(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain
 		), 
 		Marble_ErrorCode_CreateDXGISwapchain
 	);
 	
 	Marble_Direct2DRenderer_Action(
-		gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->GetBuffer(
-			gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain, 
+		(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->GetBuffer(
+			(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain, 
 			0,
 			&IID_IDXGISurface, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sDXGIBackbuffer
+			&(*ptrpRenderer)->sD2DRenderer.sDXGIBackbuffer
 		), 
 		Marble_ErrorCode_GetDXGIBackbuffer
 	);
 	
 	Marble_Direct2DRenderer_Action(
 		D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(
-			gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, 
-			gl_sApplication.sRenderer->sD2DRenderer.sDXGIBackbuffer, 
+			(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
+			(*ptrpRenderer)->sD2DRenderer.sDXGIBackbuffer, 
 			&sD2DBitmapProps, 
-			&gl_sApplication.sRenderer->sD2DRenderer.sBitmap
+			&(*ptrpRenderer)->sD2DRenderer.sBitmap
 		), 
 		Marble_ErrorCode_CreateBitmapFromDxgiSurface
 	);
 	D2DWr_DeviceContext_SetTarget(
-		gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, 
-		(ID2D1Image *)gl_sApplication.sRenderer->sD2DRenderer.sBitmap
+		(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
+		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sBitmap
 	);
 
-	gl_sApplication.sRenderer->iActiveRendererAPI = Marble_RendererAPI_Direct2D;
+	(*ptrpRenderer)->iActiveRendererAPI = Marble_RendererAPI_Direct2D;
 
 ON_ERROR:
-	return Marble_Renderer_Internal_Direct2DCleanup(iErrorCode);
+	return Marble_Renderer_Internal_Direct2DCleanup(ptrpRenderer, iErrorCode);
 }
 
-static void inline Marble_Renderer_Internal_UninitializeDirect2DRenderer(void) {
-	Marble_Renderer_Internal_Direct2DCleanup(Marble_ErrorCode_Unknown);
+static void inline Marble_Renderer_Internal_Direct2DRenderer_Destroy(Marble_Renderer **ptrpRenderer) {
+	Marble_Renderer_Internal_Direct2DCleanup(ptrpRenderer, Marble_ErrorCode_Unknown);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_Clear(float fRed, float fGreen, float fBlue, float fAlpha) {
+static void inline Marble_Renderer_Internal_Direct2DRenderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha) {
 	D2D1_COLOR_F const sColor = {
 		.r = fRed,
 		.g = fGreen,
@@ -195,19 +196,19 @@ static void inline Marble_Renderer_Internal_Direct2DRenderer_Clear(float fRed, f
 		.a = fAlpha
 	};
 
-	D2DWr_DeviceContext_Clear(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sColor);
+	D2DWr_DeviceContext_Clear(sRenderer->sD2DRenderer.sD2DDevContext, &sColor);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(void) {
-	D2DWr_DeviceContext_BeginDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext);
+static void inline Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(Marble_Renderer *sRenderer) {
+	D2DWr_DeviceContext_BeginDraw(sRenderer->sD2DRenderer.sD2DDevContext);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(void) {
-	D2DWr_DeviceContext_EndDraw(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
+static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(Marble_Renderer *sRenderer) {
+	D2DWr_DeviceContext_EndDraw(sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_Resize(UINT uiNewWidth, UINT uiNewHeight) {
-	gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->ResizeBuffers(
+static void inline Marble_Renderer_Internal_Direct2DRenderer_Resize(Marble_Renderer *sRenderer, UINT uiNewWidth, UINT uiNewHeight) {
+	sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->ResizeBuffers(
 		gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain,
 		2,
 		uiNewWidth,
@@ -219,10 +220,13 @@ static void inline Marble_Renderer_Internal_Direct2DRenderer_Resize(UINT uiNewWi
 #pragma endregion
 
 
-int Marble_Renderer_Initialize(DWORD dwActiveAPI, HWND hwRenderWindow) {
-	if (!gl_sApplication.sRenderer) {
+int Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiveAPI, HWND hwRenderWindow) {
+	if (ptrpRenderer) {
+		if (!(*ptrpRenderer = calloc(1, sizeof(**ptrpRenderer))))
+			return Marble_ErrorCode_MemoryAllocation;
+
 		switch (dwActiveAPI) {
-			case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_InitializeDirect2DRenderer(hwRenderWindow);
+			case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_Direct2DRenderer_Create(ptrpRenderer, hwRenderWindow);
 		}
 
 		return Marble_ErrorCode_RendererAPI;
@@ -231,33 +235,33 @@ int Marble_Renderer_Initialize(DWORD dwActiveAPI, HWND hwRenderWindow) {
 	return Marble_ErrorCode_RendererInit;
 }
 
-void Marble_Renderer_Uninitialize(void) {
-	if (gl_sApplication.sRenderer) {
-		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_UninitializeDirect2DRenderer();
+void Marble_Renderer_Destroy(Marble_Renderer **ptrpRenderer) {
+	if (ptrpRenderer && *ptrpRenderer) {
+		switch ((*ptrpRenderer)->iActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Destroy(ptrpRenderer);
 		}
 
 		free(gl_sApplication.sRenderer);
 	}
 }
 
-void Marble_Renderer_BeginDraw(void) {
+void Marble_Renderer_BeginDraw(Marble_Renderer *sRenderer) {
 	if (gl_sApplication.sRenderer) {
 		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_BeginDraw();
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(sRenderer);
 		}
 	}
 }
 
-void Marble_Renderer_EndDraw(void) {
+void Marble_Renderer_EndDraw(Marble_Renderer *sRenderer) {
 	if (gl_sApplication.sRenderer) {
 		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_EndDraw();
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_EndDraw(sRenderer);
 		}
 	}
 }
 
-int Marble_Renderer_Present(void) {
+int Marble_Renderer_Present(Marble_Renderer *sRenderer) {
 	if (gl_sApplication.sRenderer) {
 		HRESULT hrRes = S_OK;
 
@@ -282,17 +286,17 @@ int Marble_Renderer_Present(void) {
 	return Marble_ErrorCode_RendererInit;
 }
 
-void Marble_Renderer_Clear(float fRed, float fGreen, float fBlue, float fAlpha) {
+void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha) {
 	if (gl_sApplication.sRenderer)
 		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Clear(fRed, fGreen, fBlue, fAlpha); break;
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Clear(sRenderer, fRed, fGreen, fBlue, fAlpha); break;
 		}
 }
 
-void Marble_Renderer_Resize(UINT uiNewWidth, UINT uiNewHeight) {
-	if (gl_sApplication.sRenderer)
-		switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Resize(uiNewWidth, uiNewHeight); break;
+void Marble_Renderer_Resize(Marble_Renderer *sRenderer, UINT uiNewWidth, UINT uiNewHeight) {
+	if (sRenderer)
+		switch (sRenderer->iActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Resize(sRenderer, uiNewWidth, uiNewHeight); break;
 		}
 }
 

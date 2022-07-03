@@ -17,7 +17,7 @@ __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
 	Marble_AssetManager_Destroy();
 	Marble_LayerStack_Destroy();
-	Marble_Renderer_Uninitialize();
+	Marble_Renderer_Destroy(&gl_sApplication.sRenderer);
 
 #ifdef _DEBUG
 	_CrtDumpMemoryLeaks();
@@ -65,10 +65,10 @@ int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	return Marble_ErrorCode_Ok;
 }
 
-int Marble_System_Internal_Render(float fFrameTime) {
-	Marble_Renderer_BeginDraw();
+int Marble_System_Internal_UpdateAndRender(float fFrameTime) {
+	Marble_Renderer_BeginDraw(gl_sApplication.sRenderer);
 
-	Marble_Renderer_Clear(0.0f, 0.0f, 0.0f, 1.0f);
+	Marble_Renderer_Clear(gl_sApplication.sRenderer, 0.0f, 0.0f, 0.0f, 1.0f);
 	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers.sLayerStack->stSize; stIndex++) {
 		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
 		
@@ -76,10 +76,10 @@ int Marble_System_Internal_Render(float fFrameTime) {
 			sLayer->sCallbacks.OnUpdate(sLayer, fFrameTime);
 	}
 
-	Marble_Renderer_EndDraw();
-	Marble_Window_Update(fFrameTime);
+	Marble_Renderer_EndDraw(gl_sApplication.sRenderer);
+	Marble_Window_Update(gl_sApplication.sMainWindow, fFrameTime);
 
-	return Marble_Renderer_Present();
+	return Marble_Renderer_Present(gl_sApplication.sRenderer);
 }
 
 
@@ -114,11 +114,16 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	}
 
 	printf("init: renderer\n");
-	if (iErrorCode = Marble_Renderer_Initialize(Marble_RendererAPI_Direct2D, gl_sApplication.sMainWindow->hwWindow)) {
+	if (iErrorCode = Marble_Renderer_Create(&gl_sApplication.sRenderer, Marble_RendererAPI_Direct2D, gl_sApplication.sMainWindow->hwWindow)) {
 		MessageBox(NULL, TEXT("Could not initialize renderer."), TEXT("Fatal Error"), MB_ICONERROR | MB_OK);
 
 		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
 	}
+	gl_sApplication.sMainWindow->sRefRenderer = gl_sApplication.sRenderer;
+
+	printf("init: layer stack\n");
+	if (iErrorCode = Marble_LayerStack_Initialize())
+		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
 
 	printf("init: asset manager\n");
 	Marble_IfError(
@@ -127,12 +132,8 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 		Marble_System_Internal_Cleanup(TRUE, iErrorCode)
 	);
 
-	printf("init: layer stack\n");
-	if (iErrorCode = Marble_LayerStack_Initialize())
-		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
-
-
 	/* init user application */
+	printf("init: user application\n");
 	if (OnUserInit)
 		OnUserInit();
 
@@ -157,12 +158,32 @@ MARBLE_API int Marble_System_RunApplication(void) {
 			DispatchMessage(&sMessage);
 		}
 
-		Marble_System_Internal_Render(fFrameTime);
-		printf("FPS: %g\n", 1.0f / fFrameTime);
+		Marble_System_Internal_UpdateAndRender(fFrameTime);
 	}
 
 CLEANUP:
 	Marble_System_Internal_Cleanup(FALSE, Marble_ErrorCode_Ok);
+}
+
+
+int Marble_Application_GetRenderer(Marble_Renderer **ptrpRenderer) {
+	if (gl_sApplication.sRenderer) {
+		*ptrpRenderer = gl_sApplication.sRenderer;
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_InitState;
+}
+
+int Marble_Application_GetMainWindow(Marble_Window **ptrpWindow) {
+	if (gl_sApplication.sMainWindow) {
+		*ptrpWindow = gl_sApplication.sMainWindow;
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_InitState;
 }
 
 

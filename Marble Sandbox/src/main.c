@@ -1,7 +1,8 @@
 #include <entrypoint.h>
 
 
-Marble_Layer *sGameLayer;
+Marble_Layer    *sGameLayer;
+Marble_Renderer *sRenderer;
 struct GameLayerUserdata {
 	int unused;
 } sUserdata;
@@ -26,7 +27,7 @@ static int GameLayer_OnPop(Marble_Layer *sLayer) {
 }
 
 static int GameLayer_OnUpdate(Marble_Layer *sLayer, float fFrameTime) {
-	Marble_Renderer_Clear(1.0f, 0.0f, 1.0f, 1.0f);
+	Marble_Renderer_Clear(sRenderer, 1.0f, 0.0f, 1.0f, 1.0f);
 
 	return Marble_ErrorCode_Ok;
 }
@@ -48,6 +49,8 @@ int Marble_System_OnUserInit(void) {
 	};
 	Marble_Layer_SetCallbacks(sGameLayer, &sCallbacks);
 	Marble_Layer_Push(sGameLayer, FALSE);
+
+	Marble_Application_GetRenderer(&sRenderer);
 
 	return Marble_ErrorCode_Ok;
 }

@@ -21,6 +21,8 @@ typedef struct Marble_Layer      Marble_Layer;
 typedef struct Marble_Asset      Marble_Asset;
 typedef struct Marble_Atlas      Marble_Atlas;
 typedef struct Marble_ColorAtlas Marble_ColorAtlas;
+typedef struct Marble_Renderer   Marble_Renderer;
+typedef struct Marble_Window     Marble_Window;
 
 
 struct Marble_Layer_Callbacks {
@@ -32,7 +34,13 @@ struct Marble_Layer_Callbacks {
 struct Marble_Atlas_CreateParams { int iAtlasType; };
 
 
-MARBLE_API void Marble_Renderer_Clear(float fRed, float fGreen, float fBlue, float fAlpha);
+MARBLE_API void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha);
+
+MARBLE_API int  Marble_Application_GetRenderer(Marble_Renderer **ptrpRenderer);
+MARBLE_API int  Marble_Application_GetMainWindow(Marble_Window **ptrpWindow);
+
+MARBLE_API void Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsEnabled);
+MARBLE_API void Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled);
 
 MARBLE_API int        Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPath);
 MARBLE_API int inline Marble_ColorAtlas_GetColorByIndex(Marble_ColorAtlas *sAtlas, size_t stIndex, void *ptrColor);

@@ -32,11 +32,11 @@ typedef struct Marble_Renderer {
 } Marble_Renderer;
 
 
-extern int  Marble_Renderer_Initialize(DWORD dwActiveAPI, HWND hwRenderWindow);
-extern void Marble_Renderer_Uninitialize(void);
-extern void Marble_Renderer_BeginDraw(void);
-extern void Marble_Renderer_EndDraw(void);
-extern int  Marble_Renderer_Present(void);
-extern void Marble_Renderer_Resize(UINT uiNewWidth, UINT uiNewHeight);
+extern int  Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiveAPI, HWND hwRenderWindow);
+extern void Marble_Renderer_Destroy(Marble_Renderer **ptrpRenderer);
+extern void Marble_Renderer_BeginDraw(Marble_Renderer *sRenderer);
+extern void Marble_Renderer_EndDraw(Marble_Renderer *sRenderer);
+extern int  Marble_Renderer_Present(Marble_Renderer *sRenderer);
+extern void Marble_Renderer_Resize(Marble_Renderer *sRenderer, UINT uiNewWidth, UINT uiNewHeight);
 
 
