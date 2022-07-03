@@ -29,7 +29,7 @@ extern struct Marble_Application {
 	PSTR          astrCommandLine;
 	int           iAppState;
 	LARGE_INTEGER uPerfFreq;
-	float         fFrameTime;
+	LARGE_INTEGER uFTLast;
 
 	Marble_Window       *sMainWindow;
 	Marble_Renderer     *sRenderer;

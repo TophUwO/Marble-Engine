@@ -38,6 +38,5 @@ extern void Marble_Renderer_BeginDraw(void);
 extern void Marble_Renderer_EndDraw(void);
 extern int  Marble_Renderer_Present(void);
 extern void Marble_Renderer_Resize(UINT uiNewWidth, UINT uiNewHeight);
-extern void Marble_Renderer_SetFullscreen(_Bool blIsFullscreen);
 
 

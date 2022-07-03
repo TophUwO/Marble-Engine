@@ -27,10 +27,21 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 		case WM_KEYUP:
 		case WM_SYSKEYUP: {
 			if (wParam == VK_F11) {
-				gl_sApplication.sMainWindow->sWndData.blIsFullscreen = !gl_sApplication.sMainWindow->sWndData.blIsFullscreen;
-				Marble_Renderer_SetFullscreen(gl_sApplication.sMainWindow->sWndData.blIsFullscreen);
+				if (gl_sApplication.sMainWindow->sWndData.blIsFullscreen = !gl_sApplication.sMainWindow->sWndData.blIsFullscreen) {
+					SetWindowLongPtr(hwWindow, GWL_STYLE, 0);
+					SetWindowLongPtr(hwWindow, GWL_EXSTYLE, 0);
 
-				printf("Application set to %s-mode.\n", gl_sApplication.sMainWindow->sWndData.blIsFullscreen ? "fullscreen" : "windowed");
+					SetWindowPos(hwWindow, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+					ShowWindow(hwWindow, SW_SHOWMAXIMIZED);
+				} else {
+					SetWindowLongPtr(hwWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+					SetWindowLongPtr(hwWindow, GWL_EXSTYLE, WS_EX_CLIENTEDGE);
+
+					ShowWindow(hwWindow, SW_SHOWNORMAL);
+					SetWindowPos(hwWindow, HWND_TOP, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+				}
+
+				//printf("Application set to %s mode.\n", gl_sApplication.sMainWindow->sWndData.blIsFullscreen ? "fullscreen" : "windowed");
 				return Marble_ErrorCode_Ok;
 			}
 
@@ -95,7 +106,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 
 		(*ptrpWindow)->sWndData.dwWidth        = dwWidth;
 		(*ptrpWindow)->sWndData.dwHeight       = dwHeight;
-		(*ptrpWindow)->sWndData.blIsVSync      = blIsVSync;
+		(*ptrpWindow)->sWndData.blIsVSync      = TRUE;
 		(*ptrpWindow)->sWndData.blIsFullscreen = FALSE;
 	} else 
 		return Marble_ErrorCode_MemoryAllocation;
@@ -115,7 +126,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 
 	if (!((*ptrpWindow)->hwWindow = 
 		CreateWindowEx(
-			WS_EX_CLIENTEDGE, 
+			0, 
 			gl_sWindowClassName, 
 			strTitle, 
 			WS_VISIBLE | WS_OVERLAPPEDWINDOW, 
@@ -139,9 +150,6 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 
 void Marble_Window_Destroy(Marble_Window **ptrpWindow) {
 	if (ptrpWindow && *ptrpWindow) {
-		if ((*ptrpWindow)->sWndData.blIsFullscreen)
-			Marble_Renderer_SetFullscreen(FALSE);
-
 		free((*ptrpWindow)->sWndData.strTitle);
 		free(*ptrpWindow);
 		*ptrpWindow = NULL;

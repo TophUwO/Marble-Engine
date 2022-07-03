@@ -26,7 +26,7 @@ static int GameLayer_OnPop(Marble_Layer *sLayer) {
 }
 
 static int GameLayer_OnUpdate(Marble_Layer *sLayer, float fFrameTime) {
-	//Marble_Renderer_Clear(1.0f, 0.0f, 1.0f, 1.0f);
+	Marble_Renderer_Clear(1.0f, 0.0f, 1.0f, 1.0f);
 
 	return Marble_ErrorCode_Ok;
 }

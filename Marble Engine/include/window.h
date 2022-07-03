@@ -13,7 +13,7 @@ typedef struct Marble_Window {
 		DWORD    dwHeight;
 		_Bool    blIsVSync;
 		_Bool    blIsFullscreen;
-		uint64_t uqwLastTitleUpdate; 
+		uint64_t uqwLastTitleUpdate;
 	} sWndData;
 } Marble_Window;
 

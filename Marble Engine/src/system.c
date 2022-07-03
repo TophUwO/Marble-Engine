@@ -87,7 +87,7 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	extern int Marble_LayerStack_Initialize(void);
 	extern int Marble_AssetManager_Create(void);
 
-#ifdef _DEBUG
+#if (defined _DEBUG) && (defined MARBLE_DEVBUILD)
 	Marble_System_Internal_CreateDebugConsole();
 #endif
 	printf("init: high-precision clock\n");
@@ -144,8 +144,10 @@ MARBLE_API int Marble_System_RunApplication(void) {
 
 	MSG sMessage = { 0 };
 	while (TRUE) {
-		Marble_Util_Clock sClock;
-		Marble_Util_Clock_Start(&sClock);
+		LARGE_INTEGER uTime;
+		QueryPerformanceCounter(&uTime);
+		float fFrameTime = (uTime.QuadPart - gl_sApplication.uFTLast.QuadPart) / (float)gl_sApplication.uPerfFreq.QuadPart;
+		gl_sApplication.uFTLast = uTime;
 
 		while (PeekMessage(&sMessage, NULL, 0, 0, PM_REMOVE)) {
 			if (sMessage.message == WM_QUIT)
@@ -155,11 +157,8 @@ MARBLE_API int Marble_System_RunApplication(void) {
 			DispatchMessage(&sMessage);
 		}
 
-		Marble_System_Internal_Render(gl_sApplication.fFrameTime);
-
-		Marble_Util_Clock_Stop(&sClock);
-		gl_sApplication.fFrameTime = (float)Marble_Util_Clock_AsSeconds(&sClock);
-		printf("FPS: %g\n", 1.0f / gl_sApplication.fFrameTime);
+		Marble_System_Internal_Render(fFrameTime);
+		printf("FPS: %g\n", 1.0f / fFrameTime);
 	}
 
 CLEANUP:
