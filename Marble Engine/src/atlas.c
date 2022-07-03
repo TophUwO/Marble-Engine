@@ -1,25 +1,9 @@
 #pragma once
 
-#include <atlas.h>
-#include <color.h>
-#include <error.h>
-#include <internal.h>
+#include <application.h>
 
 
 #pragma region Marble_ColorAtlas
-typedef struct Marble_Internal_ColorAtlasImpl {
-	Marble_ColorAtlas;
-	struct Marble_Internal_ColorAtlasHead {
-		DWORD  dwMagic;
-		DWORD  dwMinVersion;
-		CHAR   astrIdent[64];
-		size_t stNumOfEntries;
-		int    iColorFormat;
-		size_t stBeginOfData;
-	} sHead;
-} Marble_Internal_ColorAtlasImpl;
-
-
 static void Marble_ColorAtlas_Internal_DestroyColorEntry(void **ptrpColorEntry) {
 	free(*ptrpColorEntry);
 	*ptrpColorEntry = NULL;
@@ -28,15 +12,18 @@ static void Marble_ColorAtlas_Internal_DestroyColorEntry(void **ptrpColorEntry) 
 static int Marble_ColorAtlas_Internal_Create(Marble_ColorAtlas **ptrpColorAtlas) {
 	void Marble_Atlas_Destroy(void **ptrpAtlas);
 
+	if (!(*ptrpColorAtlas = malloc(sizeof(**ptrpColorAtlas))))
+		return Marble_ErrorCode_MemoryAllocation;
+
 	int iErrorCode = Marble_ErrorCode_Ok;
 	if (iErrorCode = Marble_Util_Vector_Create(&(*ptrpColorAtlas)->sColorTable, 32, (void (*)(void **))&Marble_ColorAtlas_Internal_DestroyColorEntry)) {
 		Marble_Atlas_Destroy(ptrpColorAtlas);
 
 		return iErrorCode;
 	}
+	memset(&(*ptrpColorAtlas)->sHead, 0, sizeof(struct Marble_Internal_ColorAtlasHead));
 
-	memset(&((Marble_Internal_ColorAtlasImpl *)(*ptrpColorAtlas))->sHead, 0, sizeof(struct Marble_Internal_ColorAtlasHead));
-
+	(*ptrpColorAtlas)->iAtlasType = Marble_AtlasType_ColorAtlas;
 	return iErrorCode;
 }
 
@@ -45,13 +32,10 @@ static void Marble_ColorAtlas_Internal_Destroy(Marble_ColorAtlas **ptrpColorAtla
 }
 
 static _Bool Marble_ColorAtlas_Internal_ValidateHead(struct Marble_Internal_ColorAtlasHead *sHead) {
-	static union { 
-		DWORD dwDWORD; 
-		CHAR const acaString[sizeof(DWORD)]; 
-	} const gl_uColorAtlasMagic = { .acaString = { 'm', 'b', 'c', 'a' } };
+	static CHAR   const gl_acaString[sizeof(DWORD)] = { 'm', 'b', 'c', 'a' };
 	static size_t const gl_stColorAtlasDataBegin = 128;
 
-	if (memcmp(&sHead->dwMagic, &gl_uColorAtlasMagic.dwDWORD, sizeof(DWORD)))
+	if (memcmp(&sHead->dwMagic, gl_acaString, sizeof(DWORD)))
 		return FALSE;
 	if (sHead->dwMinVersion > MARBLE_VERSION)                  return FALSE;
 	if (sHead->stBeginOfData < gl_stColorAtlasDataBegin)       return FALSE;
@@ -68,14 +52,13 @@ int Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPa
 	if (iErrorCode = Marble_Util_FileStream_Open(TEXT("__test__.mbca"), Marble_Util_StreamPerm_Read, &sFile))
 		return iErrorCode;
 
-	Marble_Internal_ColorAtlasImpl *sAtlasImpl = (Marble_Internal_ColorAtlasImpl *)sAtlas;
 	Marble_IfError(
-		iErrorCode = Marble_Util_FileStream_ReadSize(sFile, sizeof(struct Marble_Internal_ColorAtlasHead), &sAtlasImpl->sHead),
+		iErrorCode = Marble_Util_FileStream_ReadSize(sFile, sizeof(struct Marble_Internal_ColorAtlasHead), &sAtlas->sHead),
 		Marble_ErrorCode_Ok, 
 		goto ON_ERROR
 	);
 	Marble_IfError(
-		Marble_ColorAtlas_Internal_ValidateHead(&sAtlasImpl->sHead), 
+		Marble_ColorAtlas_Internal_ValidateHead(&sAtlas->sHead), 
 		TRUE, {
 			iErrorCode = Marble_ErrorCode_HeadValidation; 
 
@@ -83,13 +66,13 @@ int Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPa
 		}
 	);
 	Marble_IfError(
-		iErrorCode = Marble_Util_FileStream_Goto(sFile, sAtlasImpl->sHead.stBeginOfData),
+		iErrorCode = Marble_Util_FileStream_Goto(sFile, sAtlas->sHead.stBeginOfData),
 		Marble_ErrorCode_Ok, 
 		goto ON_ERROR
 	);
 
-	size_t const stEntrySize = Marble_Color_GetColorSizeByFormat(sAtlasImpl->sHead.iColorFormat);
-	for (size_t stIndex = 0; stIndex < sAtlasImpl->sHead.stNumOfEntries; stIndex++) {
+	size_t const stEntrySize = Marble_Color_GetColorSizeByFormat(sAtlas->sHead.iColorFormat);
+	for (size_t stIndex = 0; stIndex < sAtlas->sHead.stNumOfEntries; stIndex++) {
 		void *ptrColorEntry = NULL;
 		if (!(ptrColorEntry = malloc(stEntrySize))) {
 			iErrorCode = Marble_ErrorCode_MemoryAllocation;
@@ -133,21 +116,21 @@ int Marble_ColorAtlas_GetColorByIndex(Marble_ColorAtlas *sAtlas, size_t stIndex,
 
 
 int Marble_Atlas_Create(int iType, void **ptrpAtlas) {
-	static struct Marble_Internal_AtlasTypeTable { int iType; size_t stSize; } const gl_saAtlasTypeTable[] = {
-		{ Marble_AtlasType_Unknown,    sizeof(Marble_Atlas)                   },
+	int iErrorCode = Marble_ErrorCode_Ok;
 
-		{ Marble_AtlasType_ColorAtlas, sizeof(Marble_Internal_ColorAtlasImpl) }
-	};
+	switch (iType) {		
+		case Marble_AtlasType_ColorAtlas: 
+			Marble_IfError(
+				Marble_ColorAtlas_Internal_Create((Marble_ColorAtlas **)ptrpAtlas),
+				Marble_ErrorCode_Ok,
+				return iErrorCode
+			);
 
-	if (*ptrpAtlas = malloc(gl_saAtlasTypeTable[iType].stSize)) {
-		switch (((Marble_Atlas *)*ptrpAtlas)->iAtlasType = iType) {		
-			case Marble_AtlasType_ColorAtlas: return Marble_ColorAtlas_Internal_Create((Marble_ColorAtlas **)ptrpAtlas);
-		}
-
-		return Marble_ErrorCode_AtlasType;
+			break;
+		default: iErrorCode = Marble_ErrorCode_AtlasType;
 	}
 
-	return Marble_ErrorCode_MemoryAllocation;
+	return iErrorCode;
 }
 
 void Marble_Atlas_Destroy(void **ptrpAtlas) {

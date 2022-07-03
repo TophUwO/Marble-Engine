@@ -5,7 +5,10 @@
 #include <window.h>
 #include <renderer.h>
 #include <asset.h>
-#include <internal.h>
+#include <atlas.h>
+#include <color.h>
+
+#define Marble_IfError(expr, equal, body) if ((expr) != equal) { body; }
 
 
 enum Marble_Internal_AppState {
@@ -14,6 +17,11 @@ enum Marble_Internal_AppState {
 	Marble_AppState_Shutdown,
 	Marble_AppState_ForcedShutdown
 };
+
+
+typedef struct Marble_AssetManager {
+	Marble_Util_Vector *sAtlases;
+} Marble_AssetManager;
 
 
 extern struct Marble_Application {
@@ -31,5 +39,10 @@ extern struct Marble_Application {
 		size_t stLastLayer;
 	} sLayers;
 } gl_sApplication;
+
+
+extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
+extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);
+extern Marble_EventType   Marble_Event_GetMouseEventType(UINT udwMessage);
 
 

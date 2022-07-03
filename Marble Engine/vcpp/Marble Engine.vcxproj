@@ -188,7 +188,6 @@
     <ClInclude Include="..\include\def.h" />
     <ClInclude Include="..\include\entrypoint.h" />
     <ClInclude Include="..\include\event.h" />
-    <ClInclude Include="..\include\internal.h" />
     <ClInclude Include="..\include\layer.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />

@@ -4,16 +4,22 @@
 #include <asset.h>
 
 
-enum Marble_AtlasType {
-	Marble_AtlasType_Unknown,
+typedef struct Marble_Atlas {
+	Marble_Asset;
+	int iAtlasType;
+} Marble_Atlas;
 
-	Marble_AtlasType_ColorAtlas
-};
-
-
-typedef struct Marble_ColorAtlas Marble_ColorAtlas;
-
-MARBLE_API int        Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPath);
-MARBLE_API int inline Marble_ColorAtlas_GetColorByIndex(Marble_ColorAtlas *sAtlas, size_t stIndex, void *ptrColor);
+typedef struct Marble_ColorAtlas {
+	Marble_Atlas;
+	struct Marble_Internal_ColorAtlasHead {
+		DWORD  dwMagic;
+		DWORD  dwMinVersion;
+		CHAR   astrIdent[64];
+		size_t stNumOfEntries;
+		int    iColorFormat;
+		size_t stBeginOfData;
+	} sHead;
+	Marble_Util_Vector *sColorTable;
+} Marble_ColorAtlas;
 
 

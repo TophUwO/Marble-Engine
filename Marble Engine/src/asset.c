@@ -1,22 +1,28 @@
 #include <application.h>
+#include <marble.h>
 
 
 #pragma region Marble_Asset
-struct Marble_Internal_AtlasCP { int iAtlasType; };
-
-
-int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void *ptrCreateParams) {
+int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *ptrCreateParams) {
 	extern int Marble_Atlas_Create(int iAtlasType, Marble_Atlas **ptrpAtlas);
 
 	if (ptrpAsset) {
 		switch (iAssetType) {
 			case Marble_AssetType_Atlas: {
-				struct Marble_Internal_AtlasCP *sCreateParams = (struct Marble_Internal_AtlasCP *)ptrCreateParams;
-
-				return Marble_Atlas_Create(
-					sCreateParams->iAtlasType, 
+				struct Marble_Atlas_CreateParams *sCreateParams = (struct Marble_Atlas_CreateParams *)ptrCreateParams;
+				int iErrorCode = Marble_Atlas_Create(
+					sCreateParams->iAtlasType,
 					(Marble_Atlas **)ptrpAsset
 				);
+
+				if (!iErrorCode) {
+					static ULONGLONG gl_uqwGlobalAssetId = 1; // TODO: interlocked
+
+					((Marble_Asset *)*ptrpAsset)->iAssetType       = iAssetType;
+					((Marble_Asset *)*ptrpAsset)->uqwGlobalAssetId = gl_uqwGlobalAssetId++;
+				}
+
+				return iErrorCode;
 			}
 		}
 

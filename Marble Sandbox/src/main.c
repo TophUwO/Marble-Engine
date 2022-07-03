@@ -8,7 +8,15 @@ struct GameLayerUserdata {
 
 
 static int GameLayer_OnPush(Marble_Layer *sLayer) {
-	
+	struct Marble_Atlas_CreateParams const sAtlasCP = {
+		.iAtlasType = Marble_AtlasType_ColorAtlas
+	};
+	Marble_Asset *sAtlas = NULL;
+
+	Marble_Asset_Create(Marble_AssetType_Atlas, &sAtlas, &sAtlasCP);
+	Marble_ColorAtlas_LoadFromFile((Marble_ColorAtlas *)sAtlas, TEXT("..\\res\\test.mbasset"));
+	Marble_AssetManager_RegisterAsset(sAtlas);
+
 	return Marble_ErrorCode_Ok;
 }
 

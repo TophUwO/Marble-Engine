@@ -3,7 +3,14 @@
 #include <api.h>
 
 
-typedef struct Marble_Util_Vector Marble_Util_Vector;
+typedef struct Marble_Util_Vector {
+	void   **ptrpData;
+	size_t   stSize;
+	size_t   stCapacity;
+	size_t   stStartCapacity;
+
+	void (*onDestroy)(void **ptrObject);
+} Marble_Util_Vector;
 
 MARBLE_API int            Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCapacity, void (*onDestroy)(void **ptrpObject));
 MARBLE_API void           Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector);
@@ -18,7 +25,10 @@ MARBLE_API void          *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, 
 MARBLE_API size_t         Marble_Util_Vector_Find(Marble_Util_Vector *sVector, void *ptrObject, size_t stStartIndex, size_t stEndIndex);
 
 
-typedef struct Marble_Util_Clock Marble_Util_Clock;
+typedef struct Marble_Util_Clock {
+	LARGE_INTEGER uStartTime;
+	LARGE_INTEGER uStopTime;
+} Marble_Util_Clock;
 
 MARBLE_API void   inline Marble_Util_Clock_Start(Marble_Util_Clock *sClock);
 MARBLE_API void   inline Marble_Util_Clock_Stop(Marble_Util_Clock *sClock);
@@ -35,7 +45,11 @@ enum Marble_Util_StreamPerms {
 	Marble_Util_StreamPerm_Create = 1 << 9
 };
 
-typedef struct Marble_Util_FileStream Marble_Util_FileStream;
+typedef struct Marble_Util_FileStream {
+	FILE        *flpFilePointer;
+	struct stat  sInfo;
+	int          iPermissions;
+} Marble_Util_FileStream;
 
 MARBLE_API int         Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_Util_FileStream **ptrpFileStream);
 MARBLE_API void        Marble_Util_FileStream_Destroy(Marble_Util_FileStream **ptrpFileStream);

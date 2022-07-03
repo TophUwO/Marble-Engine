@@ -24,7 +24,7 @@ static int Marble_Util_Vector_Internal_InitBuffer(void **ptrpBuffer, size_t stCa
 	return Marble_ErrorCode_Ok;
 }
 
-static void Marble_Util_Vector_FreeElements(Marble_Util_Vector *sVector) {
+static void Marble_Util_Vector_Internal_FreeElements(Marble_Util_Vector *sVector) {
 	if (sVector->onDestroy)
 		for (size_t stCount = 0; stCount < sVector->stSize; stCount++)
 			sVector->onDestroy(&sVector->ptrpData[stCount]);
@@ -56,7 +56,7 @@ int Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCap
 
 void Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector) {
 	if (ptrpVector && *ptrpVector) {
-		Marble_Util_Vector_FreeElements(*ptrpVector);
+		Marble_Util_Vector_Internal_FreeElements(*ptrpVector);
 
 		free((*ptrpVector)->ptrpData);
 		free(*ptrpVector);
@@ -67,11 +67,13 @@ void Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector) {
 void Marble_Util_Vector_Clear(Marble_Util_Vector **ptrpVector, _Bool blDoFree) {
 	if (ptrpVector && *ptrpVector) {
 		if (blDoFree)
-			Marble_Util_Vector_FreeElements(*ptrpVector);
+			Marble_Util_Vector_Internal_FreeElements(*ptrpVector);
 		(*ptrpVector)->stSize = 0;
 
 		if (Marble_Util_Vector_Internal_Reallocate(*ptrpVector, (*ptrpVector)->stStartCapacity))
 			Marble_Util_Vector_Destroy(ptrpVector);
+
+		memset((*ptrpVector)->ptrpData, 0, sizeof(*(*ptrpVector)->ptrpData) * (*ptrpVector)->stStartCapacity);
 	}
 }
 
