@@ -6,7 +6,7 @@ static DWORD volatile gl_dwCurrentLayerId = 1;
 static int __Marble_Layer_Internal_DummyDestroy__(void **ptrpUserdata) { return Marble_ErrorCode_Ok; }
 static int __Marble_Layer_Internal_DummyOnPush__(Marble_Layer *sSelf) { return Marble_ErrorCode_Ok; }
 static int __Marble_Layer_Internal_DummyOnPop__(Marble_Layer *sSelf) { return Marble_ErrorCode_Ok; }
-static int __Marble_Layer_Internal_DummyOnUpdate__(Marble_Layer *sSelf) { return Marble_ErrorCode_Ok; }
+static int __Marble_Layer_Internal_DummyOnUpdate__(Marble_Layer *sSelf, float fFrameTime) { return Marble_ErrorCode_Ok; }
 static int __Marble_Layer_Internal_DummyOnEvent__(Marble_Layer *sSelf, Marble_Event *sEvent) { return Marble_ErrorCode_Ok; }
 
 static void inline Marble_Layer_Internal_FixLayerCallbacks(Marble_Layer *sLayer) {

@@ -26,7 +26,7 @@ typedef struct Marble_ColorAtlas Marble_ColorAtlas;
 struct Marble_Layer_Callbacks {
 	int (*OnPush)(Marble_Layer *sSelf);
 	int (*OnPop)(Marble_Layer *sSelf);
-	int (*OnUpdate)(Marble_Layer *sSelf);
+	int (*OnUpdate)(Marble_Layer *sSelf, float fFrameTime);
 	int (*OnEvent)(Marble_Layer *sSelf, Marble_Event *sEvent);
 };
 struct Marble_Atlas_CreateParams { int iAtlasType; };

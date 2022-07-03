@@ -162,4 +162,18 @@ void Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsFullscreen) {
 	}
 }
 
+void Marble_Window_Update(float fFrameTime) {
+	LARGE_INTEGER uTime;
+	QueryPerformanceCounter(&uTime);
+
+	if (uTime.QuadPart - gl_sApplication.sMainWindow->sWndData.uqwLastTitleUpdate > 0.5f * gl_sApplication.uPerfFreq.QuadPart) {
+		gl_sApplication.sMainWindow->sWndData.uqwLastTitleUpdate = uTime.QuadPart;
+
+		TCHAR caBuffer[256] = { 0 };
+		_stprintf_s(caBuffer, 255, TEXT("Marble Engine Sandbox - %i FPS"), (int)(1.0f / fFrameTime));
+
+		SetWindowText(gl_sApplication.sMainWindow->hwWindow, caBuffer);
+	}
+}
+
 

@@ -65,7 +65,7 @@ int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	return Marble_ErrorCode_Ok;
 }
 
-int Marble_System_Internal_OnRender(void) {
+int Marble_System_Internal_Render(float fFrameTime) {
 	Marble_Renderer_BeginDraw();
 
 	Marble_Renderer_Clear(0.0f, 0.0f, 0.0f, 1.0f);
@@ -73,30 +73,12 @@ int Marble_System_Internal_OnRender(void) {
 		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
 		
 		if (sLayer->blIsEnabled)
-			sLayer->sCallbacks.OnUpdate(sLayer);
+			sLayer->sCallbacks.OnUpdate(sLayer, fFrameTime);
 	}
 
-	D2D1_RECT_F sRect = {
-		100.5,100.5,
-		300.5,300.5
-	};
-	D2D1_BRUSH_PROPERTIES sProps = {
-		.opacity = 1.0f
-	};
-	D2D1_COLOR_F sColor = { 0.5f, 0.5f, 0.3f, 1.0f };
-	ID2D1SolidColorBrush *sBrush = NULL;
-	D2DWr_DeviceContext_CreateSolidColorBrush(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sColor, &sProps, &sBrush);
-	D2DWr_DeviceContext_FillRectangle(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sRect, sBrush);
-
 	Marble_Renderer_EndDraw();
+	Marble_Window_Update(fFrameTime);
 
-	//if (gl_sApplication.sMainWindow->sWndData.blIsFullscreen) {
-	//	IDXGIOutput *sOutput = NULL;
-	//	gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->GetContainingOutput(gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain, &sOutput);
-
-	//	sOutput->lpVtbl->WaitForVBlank(sOutput);
-	//	sOutput->lpVtbl->Release(sOutput);
-	//}
 	return Marble_Renderer_Present();
 }
 
@@ -162,8 +144,8 @@ MARBLE_API int Marble_System_RunApplication(void) {
 
 	MSG sMessage = { 0 };
 	while (TRUE) {
-		Marble_Util_Clock sTimer;
-		Marble_Util_Clock_Start(&sTimer);
+		Marble_Util_Clock sClock;
+		Marble_Util_Clock_Start(&sClock);
 
 		while (PeekMessage(&sMessage, NULL, 0, 0, PM_REMOVE)) {
 			if (sMessage.message == WM_QUIT)
@@ -173,10 +155,11 @@ MARBLE_API int Marble_System_RunApplication(void) {
 			DispatchMessage(&sMessage);
 		}
 
-		Marble_System_Internal_OnRender();
+		Marble_System_Internal_Render(gl_sApplication.fFrameTime);
 
-		Marble_Util_Clock_Stop(&sTimer);
-		printf("Time: %g ms\n", Marble_Util_Clock_AsMilliseconds(&sTimer));
+		Marble_Util_Clock_Stop(&sClock);
+		gl_sApplication.fFrameTime = (float)Marble_Util_Clock_AsSeconds(&sClock);
+		printf("FPS: %g\n", 1.0f / gl_sApplication.fFrameTime);
 	}
 
 CLEANUP:
