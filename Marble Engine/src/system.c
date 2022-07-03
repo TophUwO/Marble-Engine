@@ -59,7 +59,7 @@ int Marble_System_Internal_OnEvent(void *ptrEvent) {
 		Marble_Layer *sLayer = gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
 
 		if (sLayer->blIsEnabled)
-			sLayer->sCallbacks.onEvent(sLayer, sEvent);
+			sLayer->sCallbacks.OnEvent(sLayer, sEvent);
 	}
 
 	return Marble_ErrorCode_Ok;
@@ -73,7 +73,7 @@ int Marble_System_Internal_OnRender(void) {
 		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
 		
 		if (sLayer->blIsEnabled)
-			sLayer->sCallbacks.onUpdate(sLayer);
+			sLayer->sCallbacks.OnUpdate(sLayer);
 	}
 
 	Marble_Renderer_EndDraw();
@@ -81,7 +81,7 @@ int Marble_System_Internal_OnRender(void) {
 }
 
 
-MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine) {
+MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine, int (*OnUserInit)(void)) {
 	extern int Marble_LayerStack_Initialize(void);
 	extern int Marble_AssetManager_Create(void);
 
@@ -129,6 +129,11 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	if (iErrorCode = Marble_LayerStack_Initialize())
 		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
 
+
+	/* init user application */
+	if (OnUserInit)
+		OnUserInit();
+
 	return Marble_ErrorCode_Ok;
 }
 
@@ -151,7 +156,7 @@ MARBLE_API int Marble_System_RunApplication(void) {
 		Marble_System_Internal_OnRender();
 
 		Marble_Util_Clock_Stop(&sTimer);
-		printf("Time: %g ms\n", Marble_Util_Clock_AsMilliseconds(&sTimer));
+		//printf("Time: %g ms\n", Marble_Util_Clock_AsMilliseconds(&sTimer));
 	}
 
 CLEANUP:

@@ -10,14 +10,17 @@ static int __Marble_Layer_Internal_DummyOnUpdate__(Marble_Layer *sSelf) { return
 static int __Marble_Layer_Internal_DummyOnEvent__(Marble_Layer *sSelf, Marble_Event *sEvent) { return Marble_ErrorCode_Ok; }
 
 static void inline Marble_Layer_Internal_FixLayerCallbacks(Marble_Layer *sLayer) {
-	sLayer->sCallbacks.onPush   = sLayer->sCallbacks.onPush   ? sLayer->sCallbacks.onPush   : &__Marble_Layer_Internal_DummyOnPush__;
-	sLayer->sCallbacks.onPop    = sLayer->sCallbacks.onPop    ? sLayer->sCallbacks.onPop    : &__Marble_Layer_Internal_DummyOnPop__;
-	sLayer->sCallbacks.onUpdate = sLayer->sCallbacks.onUpdate ? sLayer->sCallbacks.onUpdate : &__Marble_Layer_Internal_DummyOnUpdate__;
-	sLayer->sCallbacks.onEvent  = sLayer->sCallbacks.onEvent  ? sLayer->sCallbacks.onEvent  : &__Marble_Layer_Internal_DummyOnEvent__;
+	sLayer->sCallbacks.OnPush   = sLayer->sCallbacks.OnPush   ? sLayer->sCallbacks.OnPush   : &__Marble_Layer_Internal_DummyOnPush__;
+	sLayer->sCallbacks.OnPop    = sLayer->sCallbacks.OnPop    ? sLayer->sCallbacks.OnPop    : &__Marble_Layer_Internal_DummyOnPop__;
+	sLayer->sCallbacks.OnUpdate = sLayer->sCallbacks.OnUpdate ? sLayer->sCallbacks.OnUpdate : &__Marble_Layer_Internal_DummyOnUpdate__;
+	sLayer->sCallbacks.OnEvent  = sLayer->sCallbacks.OnEvent  ? sLayer->sCallbacks.OnEvent  : &__Marble_Layer_Internal_DummyOnEvent__;
 }
 
 static void Marble_LayerStack_Internal_DestroyLayer(Marble_Layer **ptrpLayer) {
-	(*ptrpLayer)->sCallbacks.onPop(*ptrpLayer);
+	(*ptrpLayer)->sCallbacks.OnPop(*ptrpLayer);
+
+	free(*ptrpLayer);
+	*ptrpLayer = NULL;
 }
 
 
@@ -36,17 +39,8 @@ void Marble_LayerStack_Destroy(void) {
 }
 
 
-int Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled, DWORD dwSizeOfUserdata) {
+int Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled) {
 	if (*ptrpLayer = calloc(1, sizeof(**ptrpLayer))) {
-		if (dwSizeOfUserdata) {
-			if (!((*ptrpLayer)->ptrUserdata = calloc(1, dwSizeOfUserdata))) {
-				free(*ptrpLayer);
-
-				*ptrpLayer = NULL;
-				return Marble_ErrorCode_MemoryAllocation;
-			}
-		}
-
 		(*ptrpLayer)->dwLayerId   = gl_dwCurrentLayerId++;
 		(*ptrpLayer)->blIsEnabled = blIsEnabled;
 
@@ -74,7 +68,7 @@ int Marble_Layer_Push(Marble_Layer *sLayer, _Bool blIsTopmost) {
 	}
 
 	if (!iErrorCode)
-		iErrorCode = sLayer->sCallbacks.onPush(sLayer);
+		iErrorCode = sLayer->sCallbacks.OnPush(sLayer);
 
 	return iErrorCode;
 }
@@ -97,7 +91,7 @@ Marble_Layer *Marble_Layer_Pop(Marble_Layer *sLayer, _Bool blIsTopmost) {
 			stIndex,
 			FALSE
 		);
-		sLayer->sCallbacks.onPop(sLayer);
+		sLayer->sCallbacks.OnPop(sLayer);
 
 		if (!blIsTopmost)
 			--gl_sApplication.sLayers.stLastLayer;
@@ -115,14 +109,16 @@ void *Marble_Layer_GetUserdata(Marble_Layer *sLayer) {
 	return NULL;
 }
 
-void *Marble_Layer_GetHandler(Marble_Layer *sLayer, int iHandlerType) {
+void *Marble_Layer_GetCallback(Marble_Layer *sLayer, int iHandlerType) {
 	if (sLayer) {
 		switch (iHandlerType) {
-			case Marble_LayerHandlerType_OnPush:   return sLayer->sCallbacks.onPush;
-			case Marble_LayerHandlerType_OnPop:    return sLayer->sCallbacks.onPop;
-			case Marble_LayerHandlerType_OnUpdate: return sLayer->sCallbacks.onUpdate;
-			case Marble_LayerHandlerType_OnEvent:  return sLayer->sCallbacks.onEvent;
+			case Marble_LayerHandlerType_OnPush:   return sLayer->sCallbacks.OnPush;
+			case Marble_LayerHandlerType_OnPop:    return sLayer->sCallbacks.OnPop;
+			case Marble_LayerHandlerType_OnUpdate: return sLayer->sCallbacks.OnUpdate;
+			case Marble_LayerHandlerType_OnEvent:  return sLayer->sCallbacks.OnEvent;
 		}
+
+		return NULL;
 	}
 
 	return NULL;
@@ -133,21 +129,12 @@ void Marble_Layer_SetEnabled(Marble_Layer *sLayer, _Bool blIsEnabled) {
 		sLayer->blIsEnabled = blIsEnabled;
 }
 
-void *Marble_Layer_SetHandler(Marble_Layer *sLayer, int iHandlerType, void *fnptrHandler) {
+void Marble_Layer_SetCallbacks(Marble_Layer *sLayer, struct Marble_Layer_Callbacks const *sCallbacks) {
 	if (sLayer) {
-		void *fnptrRet = NULL;
+		memcpy(&sLayer->sCallbacks, sCallbacks, sizeof(struct Marble_Layer_Callbacks));
 
-		switch (iHandlerType) {
-			case Marble_LayerHandlerType_OnPush:   fnptrRet = sLayer->sCallbacks.onPush; sLayer->sCallbacks.onPush = fnptrHandler; break;
-			case Marble_LayerHandlerType_OnPop:    fnptrRet = sLayer->sCallbacks.onPop; sLayer->sCallbacks.onPop = fnptrHandler; break;
-			case Marble_LayerHandlerType_OnUpdate: fnptrRet = sLayer->sCallbacks.onUpdate; sLayer->sCallbacks.onUpdate = fnptrHandler; break;
-			case Marble_LayerHandlerType_OnEvent:  fnptrRet = sLayer->sCallbacks.onEvent; sLayer->sCallbacks.onEvent = fnptrHandler; break;
-		}
-
-		return fnptrRet;
+		Marble_Layer_Internal_FixLayerCallbacks(sLayer);
 	}
-
-	return NULL;
 }
 
 void *Marble_Layer_SetUserdata(Marble_Layer *sLayer, void *ptrUserdata) {
@@ -157,6 +144,8 @@ void *Marble_Layer_SetUserdata(Marble_Layer *sLayer, void *ptrUserdata) {
 		sLayer->ptrUserdata = ptrUserdata;
 		return ptrOldUserdata;
 	}
+
+	return NULL;
 }
 
 
