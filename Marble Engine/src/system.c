@@ -79,7 +79,7 @@ int Marble_System_Internal_UpdateAndRender(float fFrameTime) {
 	Marble_Renderer_EndDraw(gl_sApplication.sRenderer);
 	Marble_Window_Update(gl_sApplication.sMainWindow, fFrameTime);
 
-	return Marble_Renderer_Present(gl_sApplication.sRenderer);
+	return Marble_Renderer_Present(&gl_sApplication.sRenderer);
 }
 
 

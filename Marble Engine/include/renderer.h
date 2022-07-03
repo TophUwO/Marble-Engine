@@ -36,7 +36,7 @@ extern int  Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiv
 extern void Marble_Renderer_Destroy(Marble_Renderer **ptrpRenderer);
 extern void Marble_Renderer_BeginDraw(Marble_Renderer *sRenderer);
 extern void Marble_Renderer_EndDraw(Marble_Renderer *sRenderer);
-extern int  Marble_Renderer_Present(Marble_Renderer *sRenderer);
+extern int  Marble_Renderer_Present(Marble_Renderer **ptrpRenderer);
 extern void Marble_Renderer_Resize(Marble_Renderer *sRenderer, UINT uiNewWidth, UINT uiNewHeight);
 
 

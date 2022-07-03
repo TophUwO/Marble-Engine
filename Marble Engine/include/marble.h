@@ -2,6 +2,7 @@
 
 #include <error.h>
 #include <event.h>
+#include <util.h>
 
 
 enum Marble_AssetType {
