@@ -41,5 +41,8 @@
     <ClCompile Include="..\src\bitmap.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\brush.cpp">
+      <Filter>Source Files\Direct2D</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

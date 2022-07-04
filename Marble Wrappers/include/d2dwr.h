@@ -100,4 +100,6 @@ _WR_EXTERN_C_ ULONG   WINAPI D2DWr_DeviceContext_Release(ID2D1DeviceContext *sDe
 
 _WR_EXTERN_C_ ULONG WINAPI D2DWr_Bitmap_Release(ID2D1Bitmap *sBitmap);
 
+_WR_EXTERN_C_ ULONG WINAPI D2DWr_SolidColorBrush_Release(ID2D1SolidColorBrush *sBrush);
+
 

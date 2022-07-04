@@ -17,7 +17,7 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 
 			/* Ignore message if window initialization is not complete yet. */
 			if (sWindowData && sWindowData->hwWindow && sWindowData->sRefRenderer)
-				Marble_Renderer_Resize(sWindowData->sRefRenderer, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
+				Marble_Renderer_Resize(&sWindowData->sRefRenderer, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
 			
 			return Marble_ErrorCode_Ok;
 		}
@@ -135,7 +135,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 		.hCursor       = LoadCursor(NULL, IDC_ARROW),
 		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
 		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
-		.hbrBackground = CreateSolidBrush(RGB(0, 0, 0))
+		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1)
 	};
 	if (!RegisterClassEx(&sWindowClass))
 		return Marble_ErrorCode_RegisterWindowClass;
@@ -230,7 +230,7 @@ void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeigh
 		AdjustWindowRect(&sWindowRect, sWindow->sWndData.dwWindowStyle, FALSE);
 
 		/* Calculate window and client sizes */
-		sWindow->sWndData.sClientSize = (SIZE){ (SHORT)(iWidthInTiles * fScale), (SHORT)(iHeightInTiles * fScale) };
+		sWindow->sWndData.sClientSize = (SIZE){ (SHORT)(iWidthInTiles * fScale) * iTileSize, (SHORT)(iHeightInTiles * fScale) * iTileSize };
 		sWindow->sWndData.sWindowSize = (SIZE){ abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top) };
 	}
 

@@ -11,10 +11,30 @@ static void Marble_Renderer_Internal_GetDesktopDPI(float *fpDpiX, float *fpDpiY)
 
 
 #pragma region Direct2D Renderer
-static int Marble_Renderer_Internal_Direct2DCleanup(Marble_Renderer **ptrpRenderer, int iErrorCode, HWND *hwpRestoredHWND) {
-#define Marble_Direct2DRenderer_SafeRelease(fn, inst)  if (inst) fn(inst)
+#define Marble_Direct2DRenderer_SafeRelease(fn, inst)  if (inst) { fn(inst); (inst) = NULL; }
 #define Marble_Direct2DRenderer_SafeRelease_Vtbl(inst) if (inst) (inst)->lpVtbl->Release(inst)
+#define Marble_Direct2DRenderer_Action(act, ret)       if (iErrorCode == Marble_ErrorCode_Ok) { if (act != S_OK) { iErrorCode = ret; } }
 
+
+struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources {
+	IDXGISurface  *sDXGIBackbuffer;
+	ID3D11Device  *sD3D11Device;
+	IDXGIDevice   *sDXGIDevice;
+	IDXGIAdapter  *sDXGIAdapter;
+	IDXGIFactory2 *sDXGIFactory;
+	ID2D1Bitmap1  *sD2DBitmap;
+};
+
+
+static void Marble_Renderer_Internal_Direct2DRenderer_FreeIntermediateResources(struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources *sIntermediateResources) {
+	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIBackbuffer);
+	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIFactory);
+	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIDevice);
+	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIAdapter);
+	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sD3D11Device);
+}
+
+static int Marble_Renderer_Internal_Direct2DCleanup(Marble_Renderer **ptrpRenderer, int iErrorCode, HWND *hwpRestoredHWND) {
 	if (iErrorCode) {
 		if (hwpRestoredHWND && (*ptrpRenderer)->sD2DRenderer.sDXGISwapchain)
 			(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->GetHwnd(
@@ -23,22 +43,19 @@ static int Marble_Renderer_Internal_Direct2DCleanup(Marble_Renderer **ptrpRender
 			);
 
 		Marble_Direct2DRenderer_SafeRelease(D2DWr_Factory_Release, (ID2D1Factory *)(*ptrpRenderer)->sD2DRenderer.sD2DFactory);
+		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGISwapchain);
+		Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap);
 		Marble_Direct2DRenderer_SafeRelease(D2DWr_DeviceContext_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevContext);
 		Marble_Direct2DRenderer_SafeRelease(D2DWr_Device_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevice);
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)(*ptrpRenderer)->sD2DRenderer.sBitmap);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGISwapchain);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sD3D11Device);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIDevice);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIAdapter);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIFactory);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGIBackbuffer);
 	}
 
-	return iErrorCode;
+	return iErrorCode == Marble_ErrorCode_Unknown ? Marble_ErrorCode_Ok : iErrorCode;
 }
 
 static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **ptrpRenderer, HWND hwRenderWindow) {
-#define Marble_Direct2DRenderer_Action(act, ret) if (act != S_OK) { iErrorCode = ret; goto ON_ERROR; }
+	extern void Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(Marble_Renderer *sRenderer, int iErrorCode);
+	extern int  Marble_Renderer_Internal_SetActiveRendererAPI(Marble_Renderer *sRenderer, int iActiveAPI, int iErrorCode);
+
 #pragma region Static Init Data
 	static D2D1_FACTORY_OPTIONS const sD2DFactoryOptions = { .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION };
 	static D3D_FEATURE_LEVEL const eaD3DFeatureLevels[] = {
@@ -57,7 +74,7 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 		.Format      = DXGI_FORMAT_B8G8R8A8_UNORM,
 		.Scaling     = DXGI_SCALING_STRETCH,
 		.Stereo      = FALSE,
-		.SwapEffect  = DXGI_SWAP_EFFECT_DISCARD,
+		.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
 		.SampleDesc  = {
 			.Count   = 1,
 			.Quality = 0
@@ -70,6 +87,7 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 			.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED
 		}
 	};
+
 	Marble_Renderer_Internal_GetDesktopDPI(&sD2DBitmapProps.dpiX, &sD2DBitmapProps.dpiY);
 #pragma endregion
 
@@ -85,26 +103,28 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 		Marble_ErrorCode_CreateD2DFactory
 	);
 
+	ID3D11Device *sD3D11Device = NULL;
 	Marble_Direct2DRenderer_Action(
 		D3D11CreateDevice(NULL, 
 			D3D_DRIVER_TYPE_HARDWARE, 
 			0, 
-			D3D11_CREATE_DEVICE_BGRA_SUPPORT, 
+			D3D11_CREATE_DEVICE_DEBUG | D3D11_CREATE_DEVICE_BGRA_SUPPORT, 
 			eaD3DFeatureLevels, 
 			ARRAYSIZE(eaD3DFeatureLevels), 
 			D3D11_SDK_VERSION, 
-			&(*ptrpRenderer)->sD2DRenderer.sD3D11Device, 
+			&sD3D11Device, 
 			NULL, 
 			NULL
 		), 
 		Marble_ErrorCode_CreateD3D11Device
 	);
 
+	IDXGIDevice *sDXGIDevice = NULL;
 	Marble_Direct2DRenderer_Action(
-		(*ptrpRenderer)->sD2DRenderer.sD3D11Device->lpVtbl->QueryInterface(
-			(*ptrpRenderer)->sD2DRenderer.sD3D11Device, 
+		sD3D11Device->lpVtbl->QueryInterface(
+			sD3D11Device, 
 			&IID_IDXGIDevice, 
-			&(*ptrpRenderer)->sD2DRenderer.sDXGIDevice
+			&sDXGIDevice
 		), 
 		Marble_ErrorCode_GetDXGIDevice
 	);
@@ -112,7 +132,7 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 	Marble_Direct2DRenderer_Action(
 		D2DWr_Factory1_CreateDevice(
 			(*ptrpRenderer)->sD2DRenderer.sD2DFactory, 
-			(*ptrpRenderer)->sD2DRenderer.sDXGIDevice, 
+			sDXGIDevice, 
 			&(*ptrpRenderer)->sD2DRenderer.sD2DDevice
 		), 
 		Marble_ErrorCode_CreateD2DDevice
@@ -127,27 +147,29 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 		Marble_ErrorCode_CreateD2DDeviceContext
 	);
 
+	IDXGIAdapter *sDXGIAdapter = NULL;
 	Marble_Direct2DRenderer_Action(
-		(*ptrpRenderer)->sD2DRenderer.sDXGIDevice->lpVtbl->GetAdapter(
-			(*ptrpRenderer)->sD2DRenderer.sDXGIDevice, 
-			&(*ptrpRenderer)->sD2DRenderer.sDXGIAdapter
+		sDXGIDevice->lpVtbl->GetAdapter(
+			sDXGIDevice, 
+			&sDXGIAdapter
 		), 
 		Marble_ErrorCode_GetDXGIAdapter
 	);
 
+	IDXGIFactory2 *sDXGIFactory = NULL;
 	Marble_Direct2DRenderer_Action(
-		(*ptrpRenderer)->sD2DRenderer.sDXGIAdapter->lpVtbl->GetParent(
-			(*ptrpRenderer)->sD2DRenderer.sDXGIAdapter, 
+		sDXGIAdapter->lpVtbl->GetParent(
+			sDXGIAdapter, 
 			&IID_IDXGIFactory2, 
-			&(*ptrpRenderer)->sD2DRenderer.sDXGIFactory
+			&sDXGIFactory
 		), 
 		Marble_ErrorCode_GetDXGIFactory
 	);
 	
 	Marble_Direct2DRenderer_Action(
-		(*ptrpRenderer)->sD2DRenderer.sDXGIFactory->lpVtbl->CreateSwapChainForHwnd(
-			(*ptrpRenderer)->sD2DRenderer.sDXGIFactory, 
-			(IUnknown *)(*ptrpRenderer)->sD2DRenderer.sD3D11Device, 
+		sDXGIFactory->lpVtbl->CreateSwapChainForHwnd(
+			sDXGIFactory, 
+			(IUnknown *)sD3D11Device, 
 			hwRenderWindow, 
 			&sDXGISwapChainDesc,
 			NULL, 
@@ -157,12 +179,13 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 		Marble_ErrorCode_CreateDXGISwapchain
 	);
 	
+	IDXGISurface *sDXGIBackbuffer = NULL;
 	Marble_Direct2DRenderer_Action(
 		(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->GetBuffer(
 			(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain, 
 			0,
 			&IID_IDXGISurface, 
-			&(*ptrpRenderer)->sD2DRenderer.sDXGIBackbuffer
+			&sDXGIBackbuffer
 		), 
 		Marble_ErrorCode_GetDXGIBackbuffer
 	);
@@ -170,29 +193,29 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 	Marble_Direct2DRenderer_Action(
 		D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(
 			(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
-			(*ptrpRenderer)->sD2DRenderer.sDXGIBackbuffer, 
+			sDXGIBackbuffer, 
 			&sD2DBitmapProps, 
-			&(*ptrpRenderer)->sD2DRenderer.sBitmap
+			&(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
 		), 
 		Marble_ErrorCode_CreateBitmapFromDxgiSurface
 	);
+
 	D2DWr_DeviceContext_SetTarget(
 		(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
-		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sBitmap
+		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
 	);
 
-	DXGI_RGBA sBkgndColor = {
-		0.0f,
-		0.0f,
-		0.0f,
-		1.0f
+	struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources sFreeRes = {
+		.sD3D11Device    = sD3D11Device,
+		.sDXGIDevice     = sDXGIDevice,
+		.sDXGIAdapter    = sDXGIAdapter,
+		.sDXGIFactory    = sDXGIFactory,
+		.sDXGIBackbuffer = sDXGIBackbuffer
 	};
-	(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->SetBackgroundColor((*ptrpRenderer)->sD2DRenderer.sDXGISwapchain, &sBkgndColor);
+	Marble_Renderer_Internal_Direct2DRenderer_FreeIntermediateResources(&sFreeRes);
+	Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(*ptrpRenderer, iErrorCode);
 
-	(*ptrpRenderer)->iActiveRendererAPI = Marble_RendererAPI_Direct2D;
-
-ON_ERROR:
-	return Marble_Renderer_Internal_Direct2DCleanup(ptrpRenderer, iErrorCode, NULL);
+	return Marble_Renderer_Internal_SetActiveRendererAPI(*ptrpRenderer, Marble_RendererAPI_Direct2D, iErrorCode);
 }
 
 static void inline Marble_Renderer_Internal_Direct2DRenderer_Destroy(Marble_Renderer **ptrpRenderer) {
@@ -218,15 +241,78 @@ static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(Marble_Rend
 	D2DWr_DeviceContext_EndDraw(sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_Resize(Marble_Renderer *sRenderer, UINT uiNewWidth, UINT uiNewHeight) {
-	sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->ResizeBuffers(
+static int Marble_Renderer_Internal_Direct2DRenderer_RecreateDeviceContext(Marble_Renderer **ptrpRenderer) {
+	D2D1_BITMAP_PROPERTIES1 const sD2DBitmapProps = {
+		.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+		.pixelFormat   = {
+			.format    = DXGI_FORMAT_B8G8R8A8_UNORM,
+			.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED
+		}
+	};
+
+	int iErrorCode = Marble_ErrorCode_Ok;
+
+	/* Get DXGI backbuffer */
+	IDXGISurface *sDXGIBackbuffer = NULL;
+	Marble_Direct2DRenderer_Action(
+		(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->GetBuffer(
+			(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain, 
+			0,
+			&IID_IDXGISurface, 
+			&sDXGIBackbuffer
+		), 
+		Marble_ErrorCode_GetDXGIBackbuffer
+	);
+
+	Marble_Direct2DRenderer_Action(
+		D2DWr_Device_CreateDeviceContext(
+			(*ptrpRenderer)->sD2DRenderer.sD2DDevice, 
+			D2D1_DEVICE_CONTEXT_OPTIONS_NONE, 
+			&(*ptrpRenderer)->sD2DRenderer.sD2DDevContext
+		),
+		Marble_ErrorCode_CreateD2DDeviceContext
+	);
+
+	Marble_Direct2DRenderer_Action(
+		D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(
+			(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
+			sDXGIBackbuffer, 
+			&sD2DBitmapProps, 
+			&(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
+		),
+		Marble_ErrorCode_CreateBitmapFromDxgiSurface
+	);
+
+	D2DWr_DeviceContext_SetTarget(
+		(*ptrpRenderer)->sD2DRenderer.sD2DDevContext,
+		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
+	);
+
+	struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources sFreeRes = {
+		.sDXGIBackbuffer = sDXGIBackbuffer
+	};
+	Marble_Renderer_Internal_Direct2DRenderer_FreeIntermediateResources(&sFreeRes);
+	Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(*ptrpRenderer, iErrorCode);
+
+	return Marble_Renderer_Internal_SetActiveRendererAPI(*ptrpRenderer, Marble_RendererAPI_Direct2D, iErrorCode);
+}
+
+static int Marble_Renderer_Internal_Direct2DRenderer_Resize(Marble_Renderer **ptrpRenderer, UINT uiNewWidth, UINT uiNewHeight) {
+	/* Release outstanding references to DXGI's backbuffer, so we can resize properly. */
+	Marble_Direct2DRenderer_SafeRelease(D2DWr_DeviceContext_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevContext);
+	Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap);
+
+	(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->ResizeBuffers(
 		gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain,
-		2,
+		0,
 		uiNewWidth,
 		uiNewHeight,
-		DXGI_FORMAT_UNKNOWN,
+		DXGI_FORMAT_B8G8R8A8_UNORM,
 		0
 	);
+
+	/* Recreate device context so we can continue rendering */
+	return Marble_Renderer_Internal_Direct2DRenderer_RecreateDeviceContext(ptrpRenderer);
 }
 
 static int Marble_Renderer_Internal_Direct2DRenderer_Recreate(Marble_Renderer **ptrpRenderer) {
@@ -235,7 +321,28 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Recreate(Marble_Renderer **
 	
 	return Marble_Renderer_Internal_Direct2DRenderer_Create(ptrpRenderer, hwRestoredWindow);
 }
+
+static void Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(Marble_Renderer *sRenderer, int iErrorCode) {
+	if (iErrorCode == Marble_ErrorCode_Ok) {
+		DXGI_RGBA sBkgndColor = {
+			0.0f,
+			0.0f,
+			0.0f,
+			1.0f
+		};
+
+		sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->SetBackgroundColor(sRenderer->sD2DRenderer.sDXGISwapchain, &sBkgndColor);
+	}
+}
 #pragma endregion
+
+
+static int inline Marble_Renderer_Internal_SetActiveRendererAPI(Marble_Renderer *sRenderer, int iActiveAPI, int iErrorCode) {
+	if (iErrorCode == Marble_ErrorCode_Ok)
+		sRenderer->iActiveRendererAPI = iActiveAPI;
+
+	return iErrorCode;
+}
 
 
 int Marble_Renderer_Internal_Recreate(Marble_Renderer **ptrpRenderer) {
@@ -324,10 +431,10 @@ void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen,
 		}
 }
 
-void Marble_Renderer_Resize(Marble_Renderer *sRenderer, UINT uiNewWidth, UINT uiNewHeight) {
-	if (sRenderer)
-		switch (sRenderer->iActiveRendererAPI) {
-			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Resize(sRenderer, uiNewWidth, uiNewHeight); break;
+void Marble_Renderer_Resize(Marble_Renderer **ptrpRenderer, UINT uiNewWidth, UINT uiNewHeight) {
+	if (ptrpRenderer && *ptrpRenderer)
+		switch ((*ptrpRenderer)->iActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Resize(ptrpRenderer, uiNewWidth, uiNewHeight); break;
 		}
 }
 
