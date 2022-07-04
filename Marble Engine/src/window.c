@@ -139,7 +139,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 			0, 
 			gl_sWindowClassName, 
 			strTitle, 
-			WS_VISIBLE | WS_OVERLAPPEDWINDOW, 
+			WS_OVERLAPPEDWINDOW, 
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT, 
 			(int)dwWidth, 
@@ -154,7 +154,6 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 		return Marble_ErrorCode_CreateWindow;
 	}
 
-	UpdateWindow((*ptrpWindow)->hwWindow);
 	return Marble_ErrorCode_Ok;
 }
 
@@ -192,6 +191,38 @@ void Marble_Window_Update(Marble_Window *sWindow, float fFrameTime) {
 
 		SetWindowText(sWindow->hwWindow, caBuffer);
 	}
+}
+
+void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeightInTiles, int iTileSize) {
+	if (!sWindow || !iWidthInTiles || !iHeightInTiles || !iTileSize)
+		return;
+
+	/* Get window's monitor size */
+	SIZE        sEndSize  = { 0 };
+	MONITORINFO sMonInfo  = { .cbSize = sizeof(sMonInfo) };
+	HMONITOR    hmMonitor = MonitorFromWindow(gl_sApplication.sMainWindow->hwWindow, MONITOR_DEFAULTTOPRIMARY);
+	GetMonitorInfo(hmMonitor, &sMonInfo);
+
+	/* Can desired resolution be displayed on current monitor? */
+	RECT sWindowRect = { 0, 0, iWidthInTiles * iTileSize, iHeightInTiles * iTileSize };
+	AdjustWindowRectEx(&sWindowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+
+	/* Is our desired size too large for our display device? */
+	int const iScreenWidth  = abs(sMonInfo.rcWork.right - sMonInfo.rcWork.left);
+	int const iWindowWidth  = abs(sWindowRect.right - sWindowRect.left);
+	int const iScreenHeight = abs(sMonInfo.rcWork.bottom - sMonInfo.rcWork.top);
+	int const iWindowHeight = abs(sWindowRect.bottom - sWindowRect.top);
+	if (iWindowWidth > iScreenWidth || iWindowHeight > iScreenHeight) {
+		/* Get scale factor by which to scale tile sizes */
+		float const fScale = min(iScreenWidth / (float)iWindowWidth, iScreenHeight / (float)iWindowHeight);
+
+		/* Calculate new window size */
+		sWindowRect = (RECT){ 0, 0, (int)(iWidthInTiles * fScale) * iTileSize, (int)(iHeightInTiles * fScale) * iTileSize };
+		AdjustWindowRectEx(&sWindowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+	}
+
+	/* Resize window and renderer */
+	MoveWindow(sWindow->hwWindow, CW_USEDEFAULT, CW_USEDEFAULT, abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top), TRUE);
 }
 
 

@@ -137,6 +137,10 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	if (OnUserInit)
 		OnUserInit();
 
+	/* At last, present window after user has (possibly) made some modifications. */
+	UpdateWindow(gl_sApplication.sMainWindow->hwWindow);
+	ShowWindow(gl_sApplication.sMainWindow->hwWindow, SW_SHOW);
+
 	return Marble_ErrorCode_Ok;
 }
 

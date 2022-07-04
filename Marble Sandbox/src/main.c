@@ -1,8 +1,9 @@
 #include <entrypoint.h>
 
 
-Marble_Layer    *sGameLayer;
-Marble_Renderer *sRenderer;
+static Marble_Layer    *sGameLayer;
+static Marble_Renderer *sRenderer;
+static Marble_Window   *sWindow;
 struct GameLayerUserdata {
 	int unused;
 } sUserdata;
@@ -51,6 +52,8 @@ int Marble_System_OnUserInit(void) {
 	Marble_Layer_Push(sGameLayer, FALSE);
 
 	Marble_Application_GetRenderer(&sRenderer);
+	Marble_Application_GetMainWindow(&sWindow);
+	Marble_Window_SetSize(sWindow, 32, 32, 32);
 
 	return Marble_ErrorCode_Ok;
 }

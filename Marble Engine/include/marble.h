@@ -40,6 +40,17 @@ MARBLE_API void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, fl
 MARBLE_API int  Marble_Application_GetRenderer(Marble_Renderer **ptrpRenderer);
 MARBLE_API int  Marble_Application_GetMainWindow(Marble_Window **ptrpWindow);
 
+/// <summary>
+/// Resizes window to the given width and height. If the dimensions are inadequate (e.g. too large 
+/// for current monitor), the functions calculates adequate dimensions that at least closely fit
+/// the original aspect ratio of the given dimensions.
+/// </summary>
+/// <param name="sWindow"> window handle previously obtained by Marble_Application_GetMainWindow() </param>
+/// <param name="iWidthInTiles"> width in tiles (width_in_pixels = iWidthInTiles * iTileSize) </param>
+/// <param name="iHeightInTiles">height in tiles (height_in_pixels = iHeightInTiles * iTileSize) </param>
+/// <param name="iTileSize">tile size in pixels</param>
+/// <returns>nothing</returns>
+MARBLE_API void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeightInTiles, int iTileSize);
 MARBLE_API void Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsEnabled);
 MARBLE_API void Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled);
 
