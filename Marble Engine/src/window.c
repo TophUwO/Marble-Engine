@@ -45,10 +45,18 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 					ShowWindow(hwWindow, SW_SHOWMAXIMIZED);
 				} else {
 					SetWindowLongPtr(hwWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-					SetWindowLongPtr(hwWindow, GWL_EXSTYLE, WS_EX_CLIENTEDGE);
+					SetWindowLongPtr(hwWindow, GWL_EXSTYLE, 0);
 
 					ShowWindow(hwWindow, SW_SHOWNORMAL);
-					SetWindowPos(hwWindow, HWND_TOP, CW_USEDEFAULT, CW_USEDEFAULT, 512, 512, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+					SetWindowPos(
+						hwWindow, 
+						HWND_TOP, 
+						0, 
+						0, 
+						sWindowData->sWndData.sWindowSize.cx, 
+						sWindowData->sWndData.sWindowSize.cy, 
+						SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
+					);
 				}
 
 				return Marble_ErrorCode_Ok;
@@ -114,8 +122,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 		else 
 			return Marble_ErrorCode_MemoryAllocation;
 
-		(*ptrpWindow)->sWndData.dwWidth        = dwWidth;
-		(*ptrpWindow)->sWndData.dwHeight       = dwHeight;
+		(*ptrpWindow)->sWndData.sWindowSize    = (SIZE){ (SHORT)dwWidth, (SHORT)dwHeight };
 		(*ptrpWindow)->sWndData.blIsVSync      = TRUE;
 		(*ptrpWindow)->sWndData.blIsFullscreen = FALSE;
 	} else 
@@ -153,6 +160,10 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 
 		return Marble_ErrorCode_CreateWindow;
 	}
+
+	RECT sClientSize = { 0 };
+	GetClientRect((*ptrpWindow)->hwWindow, &sClientSize);
+	(*ptrpWindow)->sWndData.sClientSize = (SIZE){ (SHORT)sClientSize.right, (SHORT)sClientSize.right };
 
 	return Marble_ErrorCode_Ok;
 }
@@ -219,10 +230,13 @@ void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeigh
 		/* Calculate new window size */
 		sWindowRect = (RECT){ 0, 0, (int)(iWidthInTiles * fScale) * iTileSize, (int)(iHeightInTiles * fScale) * iTileSize };
 		AdjustWindowRectEx(&sWindowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+
+		sWindow->sWndData.sClientSize = (SIZE){ (SHORT)(iWidthInTiles * fScale), (SHORT)(iHeightInTiles * fScale) };
+		sWindow->sWndData.sWindowSize = (SIZE){ abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top) };
 	}
 
 	/* Resize window and renderer */
-	MoveWindow(sWindow->hwWindow, 0, 0, abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top), TRUE);
+	MoveWindow(sWindow->hwWindow, 0, 0, sWindow->sWndData.sWindowSize.cx, sWindow->sWndData.sWindowSize.cy, TRUE);
 }
 
 

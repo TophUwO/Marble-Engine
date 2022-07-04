@@ -10,8 +10,8 @@ typedef struct Marble_Window {
 
 	struct Marble_WindowData {
 		TCHAR   *strTitle;
-		DWORD    dwWidth;
-		DWORD    dwHeight;
+		SIZE     sClientSize;
+		SIZE     sWindowSize;
 		_Bool    blIsVSync;
 		_Bool    blIsFullscreen;
 		_Bool    blIsMinimized;

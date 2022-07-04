@@ -181,6 +181,14 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sBitmap
 	);
 
+	DXGI_RGBA sBkgndColor = {
+		0.0f,
+		0.0f,
+		0.0f,
+		1.0f
+	};
+	(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->SetBackgroundColor((*ptrpRenderer)->sD2DRenderer.sDXGISwapchain, &sBkgndColor);
+
 	(*ptrpRenderer)->iActiveRendererAPI = Marble_RendererAPI_Direct2D;
 
 ON_ERROR:
