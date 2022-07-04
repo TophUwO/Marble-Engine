@@ -222,7 +222,7 @@ void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeigh
 	}
 
 	/* Resize window and renderer */
-	MoveWindow(sWindow->hwWindow, CW_USEDEFAULT, CW_USEDEFAULT, abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top), TRUE);
+	MoveWindow(sWindow->hwWindow, 0, 0, abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top), TRUE);
 }
 
 
