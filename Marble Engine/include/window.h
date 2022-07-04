@@ -16,6 +16,7 @@ typedef struct Marble_Window {
 		_Bool    blIsFullscreen;
 		_Bool    blIsMinimized;
 		uint64_t uqwLastTitleUpdate;
+		DWORD    dwWindowStyle;
 	} sWndData;
 } Marble_Window;
 

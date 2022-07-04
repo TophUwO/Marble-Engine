@@ -57,7 +57,7 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 		.Format      = DXGI_FORMAT_B8G8R8A8_UNORM,
 		.Scaling     = DXGI_SCALING_STRETCH,
 		.Stereo      = FALSE,
-		.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+		.SwapEffect  = DXGI_SWAP_EFFECT_DISCARD,
 		.SampleDesc  = {
 			.Count   = 1,
 			.Quality = 0

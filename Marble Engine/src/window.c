@@ -38,16 +38,13 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 				sWindowData = (Marble_Window *)GetWindowLongPtr(hwWindow, GWLP_USERDATA);
 
 				if (sWindowData->sWndData.blIsFullscreen = !sWindowData->sWndData.blIsFullscreen) {
-					SetWindowLongPtr(hwWindow, GWL_STYLE, 0);
-					SetWindowLongPtr(hwWindow, GWL_EXSTYLE, 0);
+					SetWindowLong(hwWindow, GWL_STYLE, 0);
 
 					SetWindowPos(hwWindow, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 					ShowWindow(hwWindow, SW_SHOWMAXIMIZED);
 				} else {
-					SetWindowLongPtr(hwWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-					SetWindowLongPtr(hwWindow, GWL_EXSTYLE, 0);
+					SetWindowLong(hwWindow, GWL_STYLE, sWindowData->sWndData.dwWindowStyle);
 
-					ShowWindow(hwWindow, SW_SHOWNORMAL);
 					SetWindowPos(
 						hwWindow, 
 						HWND_TOP, 
@@ -57,6 +54,7 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 						sWindowData->sWndData.sWindowSize.cy, 
 						SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
 					);
+					ShowWindow(hwWindow, SW_SHOW);
 				}
 
 				return Marble_ErrorCode_Ok;
@@ -125,6 +123,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 		(*ptrpWindow)->sWndData.sWindowSize    = (SIZE){ (SHORT)dwWidth, (SHORT)dwHeight };
 		(*ptrpWindow)->sWndData.blIsVSync      = TRUE;
 		(*ptrpWindow)->sWndData.blIsFullscreen = FALSE;
+		(*ptrpWindow)->sWndData.dwWindowStyle   = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
 	} else 
 		return Marble_ErrorCode_MemoryAllocation;
 
@@ -136,7 +135,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 		.hCursor       = LoadCursor(NULL, IDC_ARROW),
 		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
 		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
-		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1)
+		.hbrBackground = CreateSolidBrush(RGB(0, 0, 0))
 	};
 	if (!RegisterClassEx(&sWindowClass))
 		return Marble_ErrorCode_RegisterWindowClass;
@@ -146,7 +145,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 			0, 
 			gl_sWindowClassName, 
 			strTitle, 
-			WS_OVERLAPPEDWINDOW, 
+			(*ptrpWindow)->sWndData.dwWindowStyle, 
 			CW_USEDEFAULT, 
 			CW_USEDEFAULT, 
 			(int)dwWidth, 
@@ -208,15 +207,14 @@ void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeigh
 	if (!sWindow || !iWidthInTiles || !iHeightInTiles || !iTileSize)
 		return;
 
-	/* Get window's monitor size */
-	SIZE        sEndSize  = { 0 };
+	/* Get window info and window's monitor size */
 	MONITORINFO sMonInfo  = { .cbSize = sizeof(sMonInfo) };
 	HMONITOR    hmMonitor = MonitorFromWindow(gl_sApplication.sMainWindow->hwWindow, MONITOR_DEFAULTTOPRIMARY);
 	GetMonitorInfo(hmMonitor, &sMonInfo);
 
 	/* Can desired resolution be displayed on current monitor? */
 	RECT sWindowRect = { 0, 0, iWidthInTiles * iTileSize, iHeightInTiles * iTileSize };
-	AdjustWindowRectEx(&sWindowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+	AdjustWindowRect(&sWindowRect, sWindow->sWndData.dwWindowStyle, FALSE);
 
 	/* Is our desired size too large for our display device? */
 	int const iScreenWidth  = abs(sMonInfo.rcWork.right - sMonInfo.rcWork.left);
@@ -229,8 +227,9 @@ void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeigh
 
 		/* Calculate new window size */
 		sWindowRect = (RECT){ 0, 0, (int)(iWidthInTiles * fScale) * iTileSize, (int)(iHeightInTiles * fScale) * iTileSize };
-		AdjustWindowRectEx(&sWindowRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+		AdjustWindowRect(&sWindowRect, sWindow->sWndData.dwWindowStyle, FALSE);
 
+		/* Calculate window and client sizes */
 		sWindow->sWndData.sClientSize = (SIZE){ (SHORT)(iWidthInTiles * fScale), (SHORT)(iHeightInTiles * fScale) };
 		sWindow->sWndData.sWindowSize = (SIZE){ abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top) };
 	}
