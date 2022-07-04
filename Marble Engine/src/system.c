@@ -15,9 +15,9 @@ __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced
 	;
 
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
+	Marble_Renderer_Destroy(&gl_sApplication.sRenderer);
 	Marble_AssetManager_Destroy();
 	Marble_LayerStack_Destroy();
-	Marble_Renderer_Destroy(&gl_sApplication.sRenderer);
 
 #ifdef _DEBUG
 	_CrtDumpMemoryLeaks();
@@ -158,7 +158,8 @@ MARBLE_API int Marble_System_RunApplication(void) {
 			DispatchMessage(&sMessage);
 		}
 
-		Marble_System_Internal_UpdateAndRender(fFrameTime);
+		if (!gl_sApplication.sMainWindow->sWndData.blIsMinimized)
+			Marble_System_Internal_UpdateAndRender(fFrameTime);
 	}
 
 CLEANUP:

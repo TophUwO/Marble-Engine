@@ -13,6 +13,7 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 			return Marble_ErrorCode_Ok;
 		case WM_SIZE: {
 			sWindowData = (Marble_Window *)GetWindowLongPtr(hwWindow, GWLP_USERDATA);
+			sWindowData->sWndData.blIsMinimized = wParam == SIZE_MINIMIZED;
 
 			/* Ignore message if window initialization is not complete yet. */
 			if (sWindowData && sWindowData->hwWindow && sWindowData->sRefRenderer)
