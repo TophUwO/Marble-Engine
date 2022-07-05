@@ -6,7 +6,7 @@ struct Marble_Application gl_sApplication = { NULL };
 
 __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced, int iRetCode) {
 	extern void Marble_LayerStack_Destroy(void);
-	extern void Marble_AssetManager_Destroy(void);
+	extern void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager);
 
 	gl_sApplication.iAppState =  
 		blIsForced 
@@ -16,8 +16,9 @@ __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced
 
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
 	Marble_Renderer_Destroy(&gl_sApplication.sRenderer);
-	Marble_AssetManager_Destroy();
+	Marble_AssetManager_Destroy(&gl_sApplication.sAssets);
 	Marble_LayerStack_Destroy();
+	CoUninitialize();
 
 #ifdef _DEBUG
 	_CrtDumpMemoryLeaks();
@@ -106,7 +107,9 @@ int Marble_System_Internal_UpdateAndRender(float fFrameTime) {
 
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine, int (*OnUserInit)(void)) {
 	extern int Marble_LayerStack_Initialize(void);
-	extern int Marble_AssetManager_Create(void);
+	extern int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager);
+
+	int iErrorCode = Marble_ErrorCode_Ok;
 
 #if (defined _DEBUG) && (defined MARBLE_DEVBUILD)
 	Marble_System_Internal_CreateDebugConsole();
@@ -118,13 +121,20 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 		Marble_System_Internal_Cleanup(TRUE, Marble_ErrorCode_InitHighPrecClock);
 	}
 
+	printf("init: component object model (COM)\n");
+	if ((iErrorCode = CoInitializeEx(NULL, COINIT_MULTITHREADED)) && iErrorCode ^ S_FALSE) {
+		MessageBox(NULL, TEXT("Could not initialize COM."), TEXT("Fatal Error"), MB_ICONERROR | MB_OK);
+
+		iErrorCode = Marble_ErrorCode_COMInit;
+		Marble_System_Internal_Cleanup(TRUE, Marble_ErrorCode_InitHighPrecClock);
+	}
+
 	printf("init: application\n");
 	gl_sApplication.iAppState       = Marble_AppState_Init;
 	gl_sApplication.hiInstance      = hiInstance;
 	gl_sApplication.astrCommandLine = astrCommandLine;
 
 	printf("init: main window\n");
-	int iErrorCode = Marble_ErrorCode_Ok;
 	if (iErrorCode = Marble_Window_Create(&gl_sApplication.sMainWindow, TEXT("Marble Engine Sandbox"), 512, 512, TRUE)) {
 		if (gl_sApplication.sMainWindow)
 			Marble_Window_Destroy(&gl_sApplication.sMainWindow);
@@ -148,7 +158,7 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 
 	printf("init: asset manager\n");
 	Marble_IfError(
-		iErrorCode = Marble_AssetManager_Create(),
+		iErrorCode = Marble_AssetManager_Create(&gl_sApplication.sAssets),
 		Marble_ErrorCode_Ok,
 		Marble_System_Internal_Cleanup(TRUE, iErrorCode)
 	);
@@ -160,7 +170,7 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 
 	/* At last, present window after user has (possibly) made some modifications. */
 	UpdateWindow(gl_sApplication.sMainWindow->hwWindow);
-	ShowWindow(gl_sApplication.sMainWindow->hwWindow, SW_SHOW);
+	ShowWindow(gl_sApplication.sMainWindow->hwWindow, SW_SHOWNORMAL);
 
 	return Marble_ErrorCode_Ok;
 }
@@ -193,7 +203,7 @@ CLEANUP:
 
 
 int Marble_Application_GetRenderer(Marble_Renderer **ptrpRenderer) {
-	if (gl_sApplication.sRenderer) {
+	if (gl_sApplication.sRenderer && ptrpRenderer) {
 		*ptrpRenderer = gl_sApplication.sRenderer;
 
 		return Marble_ErrorCode_Ok;
@@ -203,8 +213,18 @@ int Marble_Application_GetRenderer(Marble_Renderer **ptrpRenderer) {
 }
 
 int Marble_Application_GetMainWindow(Marble_Window **ptrpWindow) {
-	if (gl_sApplication.sMainWindow) {
+	if (gl_sApplication.sMainWindow && ptrpWindow) {
 		*ptrpWindow = gl_sApplication.sMainWindow;
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_InitState;
+}
+
+int Marble_Application_GetAssetManager(Marble_AssetManager **ptrpAssetManager) {
+	if (gl_sApplication.sAssets && ptrpAssetManager) {
+		*ptrpAssetManager = gl_sApplication.sAssets;
 
 		return Marble_ErrorCode_Ok;
 	}

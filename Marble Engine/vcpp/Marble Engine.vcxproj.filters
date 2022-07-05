@@ -48,6 +48,9 @@
     <ClCompile Include="..\src\asset.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\image.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\error.h">

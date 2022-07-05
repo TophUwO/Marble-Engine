@@ -21,6 +21,8 @@ enum Marble_Internal_AppState {
 
 typedef struct Marble_AssetManager {
 	Marble_Util_Vector *sAtlases;
+
+	IWICImagingFactory *sWICFactory;
 } Marble_AssetManager;
 
 
@@ -41,6 +43,7 @@ extern struct Marble_Application {
 	} sLayers;
 } gl_sApplication;
 
+extern ULONGLONG volatile Marble_AssetManager_RequestAssetId(void);
 
 extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
 extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);

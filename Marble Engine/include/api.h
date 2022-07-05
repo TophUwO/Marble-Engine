@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <wincodec.h>
 #include <tchar.h>
 #include <stdio.h>
 #include <stdint.h>

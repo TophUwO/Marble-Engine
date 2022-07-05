@@ -8,7 +8,8 @@
 enum Marble_AssetType {
 	Marble_AssetType_Unknown,
 
-	Marble_AssetType_Atlas
+	Marble_AssetType_Atlas,
+	Marble_AssetType_Image
 };
 
 enum Marble_AtlasType {
@@ -18,12 +19,13 @@ enum Marble_AtlasType {
 };
 
 
-typedef struct Marble_Layer      Marble_Layer;
-typedef struct Marble_Asset      Marble_Asset;
-typedef struct Marble_Atlas      Marble_Atlas;
-typedef struct Marble_ColorAtlas Marble_ColorAtlas;
-typedef struct Marble_Renderer   Marble_Renderer;
-typedef struct Marble_Window     Marble_Window;
+typedef struct Marble_Layer        Marble_Layer;
+typedef struct Marble_Asset        Marble_Asset;
+typedef struct Marble_Atlas        Marble_Atlas;
+typedef struct Marble_Renderer     Marble_Renderer;
+typedef struct Marble_Window       Marble_Window;
+typedef struct Marble_ColorAtlas   Marble_ColorAtlas;
+typedef struct Marble_AssetManager Marble_AssetManager;
 
 
 struct Marble_Layer_Callbacks {
@@ -39,6 +41,7 @@ MARBLE_API void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, fl
 
 MARBLE_API int  Marble_Application_GetRenderer(Marble_Renderer **ptrpRenderer);
 MARBLE_API int  Marble_Application_GetMainWindow(Marble_Window **ptrpWindow);
+MARBLE_API int  Marble_Application_GetAssetManager(Marble_AssetManager **ptrpAssetManager);
 
 /// <summary>
 /// Resizes window to the given width and height. If the dimensions are inadequate (e.g. too large 
@@ -56,6 +59,8 @@ MARBLE_API void Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIs
 
 MARBLE_API int        Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPath);
 MARBLE_API int inline Marble_ColorAtlas_GetColorByIndex(Marble_ColorAtlas *sAtlas, size_t stIndex, void *ptrColor);
+
+MARBLE_API int        Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath);
 
 MARBLE_API int           Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled);
 MARBLE_API int           Marble_Layer_Push(Marble_Layer *sLayer, _Bool blIsTopmost);

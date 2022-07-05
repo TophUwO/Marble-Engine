@@ -1,5 +1,3 @@
-#pragma once
-
 #include <application.h>
 
 
@@ -53,8 +51,11 @@ int Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPa
 		return iErrorCode;
 
 	Marble_IfError(
-		iErrorCode = Marble_Util_FileStream_ReadSize(sFile, sizeof(struct Marble_Internal_ColorAtlasHead), &sAtlas->sHead),
-		Marble_ErrorCode_Ok, 
+		iErrorCode = Marble_Util_FileStream_ReadSize(
+			sFile, 
+			sizeof(struct Marble_Internal_ColorAtlasHead), 
+			&sAtlas->sHead
+		), Marble_ErrorCode_Ok, 
 		goto ON_ERROR
 	);
 	Marble_IfError(
@@ -66,8 +67,10 @@ int Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPa
 		}
 	);
 	Marble_IfError(
-		iErrorCode = Marble_Util_FileStream_Goto(sFile, sAtlas->sHead.stBeginOfData),
-		Marble_ErrorCode_Ok, 
+		iErrorCode = Marble_Util_FileStream_Goto(
+			sFile, 
+			sAtlas->sHead.stBeginOfData
+		), Marble_ErrorCode_Ok, 
 		goto ON_ERROR
 	);
 

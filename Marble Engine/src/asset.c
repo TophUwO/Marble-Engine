@@ -2,9 +2,13 @@
 #include <marble.h>
 
 
+static ULONGLONG volatile gl_uqwGlobalAssetId = 0;
+
+
 #pragma region Marble_Asset
 int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *ptrCreateParams) {
 	extern int Marble_Atlas_Create(int iAtlasType, Marble_Atlas **ptrpAtlas);
+	extern int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpAsset);
 
 	if (ptrpAsset) {
 		switch (iAssetType) {
@@ -16,14 +20,13 @@ int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *pt
 				);
 
 				if (!iErrorCode) {
-					static ULONGLONG gl_uqwGlobalAssetId = 1; // TODO: interlocked
-
 					((Marble_Asset *)*ptrpAsset)->iAssetType       = iAssetType;
-					((Marble_Asset *)*ptrpAsset)->uqwGlobalAssetId = gl_uqwGlobalAssetId++;
+					((Marble_Asset *)*ptrpAsset)->uqwGlobalAssetId = InterlockedIncrement64(&gl_uqwGlobalAssetId);
 				}
 
 				return iErrorCode;
 			}
+			case Marble_AssetType_Image: return Marble_Asset_CreateImageAsset(ptrpAsset);
 		}
 
 		*ptrpAsset = NULL;
@@ -50,19 +53,33 @@ int Marble_Asset_GetType(Marble_Asset *sAsset) {
 
 
 #pragma region Marble_AssetManager
-int Marble_AssetManager_Create(void) {
-	extern void Marble_AssetManager_Destroy(void);
+int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) {
+	extern void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager);
 
-	if (gl_sApplication.sAssets = malloc(sizeof(*gl_sApplication.sAssets))) {
+	if (*ptrpAssetManager = malloc(sizeof(**ptrpAssetManager))) {
 		int iErrorCode = Marble_ErrorCode_Ok;
 
 		Marble_IfError(
+			CoCreateInstance(
+				&CLSID_WICImagingFactory,
+				NULL,
+				CLSCTX_INPROC_SERVER,
+				&IID_IWICImagingFactory2,
+				&(*ptrpAssetManager)->sWICFactory
+			), S_OK, {
+				Marble_AssetManager_Destroy(ptrpAssetManager);
+
+				return iErrorCode;
+			}
+		);
+
+		Marble_IfError(
 			Marble_Util_Vector_Create(
-				&gl_sApplication.sAssets->sAtlases,
+				&(*ptrpAssetManager)->sAtlases,
 				64, 
-				(void (*)(void **))&Marble_Asset_Destroy),
-			Marble_ErrorCode_Ok, {
-				Marble_AssetManager_Destroy();
+				(void (*)(void **))&Marble_Asset_Destroy
+			), Marble_ErrorCode_Ok, {
+				Marble_AssetManager_Destroy(ptrpAssetManager);
 
 				return iErrorCode;
 			}
@@ -74,24 +91,29 @@ int Marble_AssetManager_Create(void) {
 	return Marble_ErrorCode_MemoryAllocation;
 }
 
-void Marble_AssetManager_Destroy(void) {
-	if (gl_sApplication.sAssets) {
-		Marble_Util_Vector_Destroy(&gl_sApplication.sAssets->sAtlases);
+void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager) {
+	if (ptrpAssetManager && *ptrpAssetManager) {
+		Marble_Util_Vector_Destroy(&(*ptrpAssetManager)->sAtlases);
 
-		free(gl_sApplication.sAssets);
-		gl_sApplication.sAssets = NULL;
+		(*ptrpAssetManager)->sWICFactory->lpVtbl->Release((*ptrpAssetManager)->sWICFactory);
+
+		free(*ptrpAssetManager);
+		*ptrpAssetManager = NULL;
 	}
 }
 
 int Marble_AssetManager_RegisterAsset(Marble_Asset *sAsset) {
 	if (sAsset && gl_sApplication.sAssets)
 		return Marble_Util_Vector_PushBack(gl_sApplication.sAssets->sAtlases, sAsset);
-
 	return Marble_ErrorCode_Parameter;
 }
 
 int Marble_AssetManager_UnregisterAsset(Marble_Asset *sAsset, _Bool blDoFree) {
 	return Marble_ErrorCode_UnimplementedFeature;
+}
+
+ULONGLONG volatile Marble_AssetManager_RequestAssetId(void) {
+	return InterlockedIncrement64(&gl_uqwGlobalAssetId);
 }
 #pragma endregion
 
