@@ -24,47 +24,72 @@ static void Marble_LayerStack_Internal_DestroyLayer(Marble_Layer **ptrpLayer) {
 }
 
 
-int Marble_LayerStack_Initialize(void) {
-	int iErrorCode = Marble_ErrorCode_Ok;
-	if (iErrorCode = Marble_Util_Vector_Create(&gl_sApplication.sLayers.sLayerStack, 32, (void (*)(void **))&Marble_LayerStack_Internal_DestroyLayer))
-		return iErrorCode;
+int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) {
+	if (ptrpLayerstack) {
+		int iErrorCode = Marble_ErrorCode_Ok;
 
-	gl_sApplication.sLayers.stLastLayer = 0;
-	return Marble_ErrorCode_Ok;
+		if (iErrorCode = Marble_System_AllocateMemory(ptrpLayerstack, sizeof(**ptrpLayerstack), FALSE)) {
+			*ptrpLayerstack = NULL;
+
+			return iErrorCode;
+		}
+
+		if (iErrorCode = Marble_Util_Vector_Create(&(*ptrpLayerstack)->sLayerStack, 32, (void (*)(void **))&Marble_LayerStack_Internal_DestroyLayer)) {
+			free(*ptrpLayerstack);
+			*ptrpLayerstack = NULL;
+
+			return iErrorCode;
+		}
+		(*ptrpLayerstack)->stLastLayer = 0;
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_Parameter;
 }
 
-void Marble_LayerStack_Destroy(void) {
-	if (gl_sApplication.sLayers.sLayerStack)
-		Marble_Util_Vector_Destroy(&gl_sApplication.sLayers.sLayerStack);
+void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack) {
+	if (ptrpLayerstack && *ptrpLayerstack) {
+		Marble_Util_Vector_Destroy(&(*ptrpLayerstack)->sLayerStack);
+
+		free(*ptrpLayerstack);
+		*ptrpLayerstack = NULL;
+	}
 }
 
 
 int Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled) {
-	if (*ptrpLayer = calloc(1, sizeof(**ptrpLayer))) {
+	if (ptrpLayer) {
+		if (Marble_System_AllocateMemory(ptrpLayer, sizeof(**ptrpLayer), FALSE)) {
+			*ptrpLayer = NULL;
+
+			return Marble_ErrorCode_InternalParameter;
+		}
+
 		(*ptrpLayer)->dwLayerId   = gl_dwCurrentLayerId++;
 		(*ptrpLayer)->blIsEnabled = blIsEnabled;
 
 		return Marble_ErrorCode_Ok;
 	}
 
-	return Marble_ErrorCode_CreateLayer;
+	return Marble_ErrorCode_Parameter;
 }
 
-int Marble_Layer_Push(Marble_Layer *sLayer, _Bool blIsTopmost) {
+int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) {
 	int iErrorCode = Marble_ErrorCode_Ok;
 
 	Marble_Layer_Internal_FixLayerCallbacks(sLayer);
 	if (blIsTopmost)
-		iErrorCode = Marble_Util_Vector_PushBack(gl_sApplication.sLayers.sLayerStack, sLayer);
+		iErrorCode = Marble_Util_Vector_PushBack(sLayerStack->sLayerStack, sLayer);
 	else {
 		iErrorCode = Marble_Util_Vector_Insert(
-			gl_sApplication.sLayers.sLayerStack, 
-			gl_sApplication.sLayers.stLastLayer, 
+			sLayerStack->sLayerStack, 
+			sLayerStack->stLastLayer, 
 			sLayer
 		);
 
 		if (!iErrorCode)
-			++gl_sApplication.sLayers.stLastLayer;
+			++sLayerStack->stLastLayer;
 	}
 
 	if (!iErrorCode)
@@ -73,28 +98,28 @@ int Marble_Layer_Push(Marble_Layer *sLayer, _Bool blIsTopmost) {
 	return iErrorCode;
 }
 
-Marble_Layer *Marble_Layer_Pop(Marble_Layer *sLayer, _Bool blIsTopmost) {
+Marble_Layer *Marble_Layer_Pop(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) {
 	size_t stIndex = Marble_Util_Vector_Find(
-		gl_sApplication.sLayers.sLayerStack, 
+		sLayerStack->sLayerStack, 
 		sLayer, 
 		blIsTopmost 
-			? gl_sApplication.sLayers.stLastLayer - 1
+			? sLayerStack->stLastLayer - 1
 			: 0, 
 		blIsTopmost
-			? gl_sApplication.sLayers.stLastLayer
+			? sLayerStack->stLastLayer
 			: 0
 	);
 
 	if (stIndex ^ (size_t)(-1)) {
 		Marble_Layer *sLayer = Marble_Util_Vector_Erase(
-			gl_sApplication.sLayers.sLayerStack,
+			sLayerStack->sLayerStack,
 			stIndex,
 			FALSE
 		);
 		sLayer->sCallbacks.OnPop(sLayer);
 
 		if (!blIsTopmost)
-			--gl_sApplication.sLayers.stLastLayer;
+			--sLayerStack->stLastLayer;
 
 		return sLayer;
 	}

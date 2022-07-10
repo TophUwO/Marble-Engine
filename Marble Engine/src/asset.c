@@ -56,59 +56,62 @@ int Marble_Asset_GetType(Marble_Asset *sAsset) {
 int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) {
 	extern void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager);
 
-	if (*ptrpAssetManager = malloc(sizeof(**ptrpAssetManager))) {
-		int iErrorCode = Marble_ErrorCode_Ok;
+	if (Marble_System_AllocateMemory(ptrpAssetManager, sizeof(**ptrpAssetManager), FALSE)) {
+		*ptrpAssetManager = NULL;
 
-		Marble_IfError(
-			CoCreateInstance(
-				&CLSID_WICImagingFactory,
-				NULL,
-				CLSCTX_INPROC_SERVER,
-				&IID_IWICImagingFactory2,
-				&(*ptrpAssetManager)->sWICFactory
-			), S_OK, {
-				Marble_AssetManager_Destroy(ptrpAssetManager);
-
-				return iErrorCode;
-			}
-		);
-
-		Marble_IfError(
-			Marble_Util_Vector_Create(
-				&(*ptrpAssetManager)->sAtlases,
-				64, 
-				(void (*)(void **))&Marble_Asset_Destroy
-			), Marble_ErrorCode_Ok, {
-				Marble_AssetManager_Destroy(ptrpAssetManager);
-
-				return iErrorCode;
-			}
-		);
-
-		return Marble_ErrorCode_Ok;
+		return Marble_ErrorCode_InternalParameter;
 	}
 
-	return Marble_ErrorCode_MemoryAllocation;
+	Marble_IfError(
+		CoCreateInstance(
+			&CLSID_WICImagingFactory,
+			NULL,
+			CLSCTX_INPROC_SERVER,
+			&IID_IWICImagingFactory2,
+			&(*ptrpAssetManager)->sWICFactory
+		), S_OK, {
+			Marble_AssetManager_Destroy(ptrpAssetManager);
+
+			return Marble_ErrorCode_CreateWICImagingFactory;
+		}
+	);
+
+	int iErrorCode = 0;
+	Marble_IfError(
+		Marble_Util_Vector_Create(
+			&(*ptrpAssetManager)->sAtlases,
+			64, 
+			(void (*)(void **))&Marble_Asset_Destroy
+		), Marble_ErrorCode_Ok, {
+			Marble_AssetManager_Destroy(ptrpAssetManager);
+
+			return iErrorCode;
+		}
+	);
+
+	return Marble_ErrorCode_Ok;
 }
 
 void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager) {
 	if (ptrpAssetManager && *ptrpAssetManager) {
 		Marble_Util_Vector_Destroy(&(*ptrpAssetManager)->sAtlases);
 
-		(*ptrpAssetManager)->sWICFactory->lpVtbl->Release((*ptrpAssetManager)->sWICFactory);
+		if ((*ptrpAssetManager)->sWICFactory)
+			(*ptrpAssetManager)->sWICFactory->lpVtbl->Release((*ptrpAssetManager)->sWICFactory);
 
 		free(*ptrpAssetManager);
 		*ptrpAssetManager = NULL;
 	}
 }
 
-int Marble_AssetManager_RegisterAsset(Marble_Asset *sAsset) {
-	if (sAsset && gl_sApplication.sAssets)
-		return Marble_Util_Vector_PushBack(gl_sApplication.sAssets->sAtlases, sAsset);
+int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset) {
+	if (sAsset && sAssetManager)
+		return Marble_Util_Vector_PushBack(sAssetManager->sAtlases, sAsset); // for testing
+
 	return Marble_ErrorCode_Parameter;
 }
 
-int Marble_AssetManager_UnregisterAsset(Marble_Asset *sAsset, _Bool blDoFree) {
+int Marble_Asset_Unregister(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset, _Bool blDoFree) {
 	return Marble_ErrorCode_UnimplementedFeature;
 }
 

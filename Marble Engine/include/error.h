@@ -5,11 +5,12 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_Ok = 0,
 	Marble_ErrorCode_Unknown,
 
-	Marble_ErrorCode_UnimplementedFeature,
+	Marble_ErrorCode_UnimplementedFeature, 
 	Marble_ErrorCode_CreateDebugConsole,
 	Marble_ErrorCode_MemoryAllocation,
 	Marble_ErrorCode_MemoryReallocation,
 	Marble_ErrorCode_Parameter,
+	Marble_ErrorCode_InternalParameter,
 	Marble_ErrorCode_OpenFile,
 	Marble_ErrorCode_GetFileInfo,
 	Marble_ErrorCode_ReadFromFile,
@@ -17,7 +18,6 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_RegisterWindowClass,
 	Marble_ErrorCode_COMInit,
 	Marble_ErrorCode_CreateWindow,
-	Marble_ErrorCode_CreateLayer,
 	Marble_ErrorCode_InitHighPrecClock,
 	Marble_ErrorCode_InitState,
 	Marble_ErrorCode_ArraySubscript,
@@ -36,11 +36,14 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_AtlasType,
 	Marble_ErrorCode_HeadValidation,
 	Marble_ErrorCode_AssetType,
-	Marble_ErrorCode_WICDecoderCreate,
+	Marble_ErrorCode_CreateWICImagingFactory,
+	Marble_ErrorCode_CreateWICDecoder,
 	Marble_ErrorCode_WICDecoderGetFrame,
 	Marble_ErrorCode_WICCreateFormatConv,
 	Marble_ErrorCode_WICFormatConversion,
 	Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap,
+
+	__MARBLE_NUMERRORCODES__
 } Marble_ErrorCode;
 
 

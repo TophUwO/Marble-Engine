@@ -2,12 +2,16 @@
 
 
 int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpAsset) {
-	if (*ptrpAsset = malloc(sizeof(Marble_Asset_Image))) {
-		(*ptrpAsset)->iAssetType       = Marble_AssetType_Image;
-		(*ptrpAsset)->uqwGlobalAssetId = Marble_AssetManager_RequestAssetId();
+	if (Marble_System_AllocateMemory(ptrpAsset, sizeof(Marble_ImageAsset), FALSE)) {
+		*ptrpAsset = NULL;
+
+		return Marble_ErrorCode_InternalParameter;
 	}
 
-	return Marble_ErrorCode_MemoryAllocation;
+	(*ptrpAsset)->iAssetType       = Marble_AssetType_Image;
+	(*ptrpAsset)->uqwGlobalAssetId = Marble_AssetManager_RequestAssetId();
+
+	return Marble_ErrorCode_Ok;
 }
 
 int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath) {
@@ -27,7 +31,7 @@ int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath) {
 				&sWICDecoder
 			),
 			S_OK,
-			return Marble_ErrorCode_WICDecoderCreate
+			return Marble_ErrorCode_CreateWICDecoder
 		);
 
 		/* Get first frame from file */
@@ -76,7 +80,7 @@ int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath) {
 		);
 
 		/* Create Direct2D bitmap */
-		Marble_Asset_Image *sAcImage = (Marble_Asset_Image *)sImage;
+		Marble_ImageAsset *sAcImage = (Marble_ImageAsset *)sImage;
 		Marble_IfError(
 			D2DWr_DeviceContext_CreateBitmapFromWicBitmap(
 				gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext,

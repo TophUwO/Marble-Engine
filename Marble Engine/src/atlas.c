@@ -8,10 +8,13 @@ static void Marble_ColorAtlas_Internal_DestroyColorEntry(void **ptrpColorEntry) 
 }
 
 static int Marble_ColorAtlas_Internal_Create(Marble_ColorAtlas **ptrpColorAtlas) {
-	void Marble_Atlas_Destroy(void **ptrpAtlas);
+	extern void Marble_Atlas_Destroy(void **ptrpAtlas);
 
-	if (!(*ptrpColorAtlas = malloc(sizeof(**ptrpColorAtlas))))
-		return Marble_ErrorCode_MemoryAllocation;
+	if (Marble_System_AllocateMemory(ptrpColorAtlas, sizeof(**ptrpColorAtlas), FALSE)) {
+		*ptrpColorAtlas = NULL;
+
+		return Marble_ErrorCode_InternalParameter;
+	}
 
 	int iErrorCode = Marble_ErrorCode_Ok;
 	if (iErrorCode = Marble_Util_Vector_Create(&(*ptrpColorAtlas)->sColorTable, 32, (void (*)(void **))&Marble_ColorAtlas_Internal_DestroyColorEntry)) {

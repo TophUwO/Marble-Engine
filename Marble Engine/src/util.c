@@ -18,8 +18,11 @@ static int Marble_Util_Vector_Internal_Reallocate(Marble_Util_Vector *sVector, s
 }
 
 static int Marble_Util_Vector_Internal_InitBuffer(void **ptrpBuffer, size_t stCapacity) {
-	if (!(*ptrpBuffer = calloc(1, sizeof(*ptrpBuffer) * stCapacity)))
-		return Marble_ErrorCode_MemoryAllocation;
+	if (Marble_System_AllocateMemory(ptrpBuffer, sizeof(*ptrpBuffer) * stCapacity, TRUE)) {
+		*ptrpBuffer = NULL;
+
+		return Marble_ErrorCode_InternalParameter;
+	}
 
 	return Marble_ErrorCode_Ok;
 }
@@ -32,26 +35,27 @@ static void Marble_Util_Vector_Internal_FreeElements(Marble_Util_Vector *sVector
 
 
 int Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCapacity, void (*onDestroy)(void **ptrpObject)) {
-	if (*ptrpVector = malloc(sizeof(**ptrpVector))) {
-		stStartCapacity = stStartCapacity ? stStartCapacity : gl_stDefStartCapacity;
+	if (Marble_System_AllocateMemory(ptrpVector, sizeof(**ptrpVector), FALSE)) {
+		*ptrpVector = NULL;
 
-		(*ptrpVector)->onDestroy       = onDestroy;
-		(*ptrpVector)->stCapacity      = stStartCapacity;
-		(*ptrpVector)->stStartCapacity = stStartCapacity;
-		(*ptrpVector)->stSize          = 0;
-
-		int iErrorCode = Marble_ErrorCode_Ok;
-		if (iErrorCode = Marble_Util_Vector_Internal_InitBuffer((void **)&(*ptrpVector)->ptrpData, (*ptrpVector)->stCapacity)) {
-			free(*ptrpVector);
-			*ptrpVector = NULL;
-
-			return iErrorCode;
-		}
-
-		return Marble_ErrorCode_Ok;
+		return Marble_ErrorCode_InternalParameter;
 	}
 
-	return Marble_ErrorCode_MemoryAllocation;
+	stStartCapacity = stStartCapacity ? stStartCapacity : gl_stDefStartCapacity;
+
+	(*ptrpVector)->onDestroy       = onDestroy;
+	(*ptrpVector)->stCapacity      = stStartCapacity;
+	(*ptrpVector)->stStartCapacity = stStartCapacity;
+	(*ptrpVector)->stSize          = 0;
+
+	if (Marble_Util_Vector_Internal_InitBuffer((void **)&(*ptrpVector)->ptrpData, (*ptrpVector)->stCapacity)) {
+		free(*ptrpVector);
+		*ptrpVector = NULL;
+
+		return Marble_ErrorCode_InternalParameter;
+	}
+
+	return Marble_ErrorCode_Ok;
 }
 
 void Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector) {

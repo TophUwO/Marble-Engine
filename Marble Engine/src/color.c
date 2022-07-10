@@ -9,14 +9,14 @@ size_t Marble_Color_GetColorSizeByFormat(int iColorFormat) {
 		{ Marble_ColorFormat_RGBAbyte,  4 * sizeof(BYTE)  }
 	};
 
-	if (iColorFormat < 0 || iColorFormat >= __NUMCOLORFORMATS__)
+	if (iColorFormat < 0 || iColorFormat >= __MARBLE_NUMCOLORFORMATS__)
 		return Marble_Color_GetColorSizeByFormat(Marble_ColorFormat_Unknown);
 
 	return gl_saColorFormatTable[iColorFormat].stSizeInBytes;
 }
 
 _Bool Marble_Color_IsValidColorFormat(int iColorFormat) {
-	return iColorFormat > Marble_ColorFormat_Unknown && iColorFormat < __NUMCOLORFORMATS__;
+	return iColorFormat > Marble_ColorFormat_Unknown && iColorFormat < __MARBLE_NUMCOLORFORMATS__;
 }
 
 

@@ -13,12 +13,18 @@ enum Marble_LayerHandlerType {
 };
 
 
-struct Marble_Layer {
+typedef struct Marble_Layer {
 	DWORD  dwLayerId;
 	_Bool  blIsEnabled;
 	void  *ptrUserdata;
 
 	struct Marble_Layer_Callbacks sCallbacks;
-};
+} Marble_Layer;
+
+typedef struct Marble_LayerStack {
+	Marble_Util_Vector *sLayerStack;
+
+	size_t stLastLayer;
+} Marble_LayerStack;
 
 

@@ -3,9 +3,8 @@
 
 struct Marble_Application gl_sApplication = { NULL };
 
-
 __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced, int iRetCode) {
-	extern void Marble_LayerStack_Destroy(void);
+	extern void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack);
 	extern void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager);
 
 	gl_sApplication.iAppState =  
@@ -17,7 +16,7 @@ __declspec(noreturn) static void Marble_System_Internal_Cleanup(_Bool blIsForced
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
 	Marble_Renderer_Destroy(&gl_sApplication.sRenderer);
 	Marble_AssetManager_Destroy(&gl_sApplication.sAssets);
-	Marble_LayerStack_Destroy();
+	Marble_LayerStack_Destroy(&gl_sApplication.sLayers);
 	CoUninitialize();
 
 #ifdef _DEBUG
@@ -56,8 +55,8 @@ static int Marble_System_Internal_CreateDebugConsole(void) {
 int Marble_System_Internal_OnEvent(void *ptrEvent) {
 	Marble_Event *sEvent = (Marble_Event *)ptrEvent;
 
-	for (size_t stIndex = gl_sApplication.sLayers.sLayerStack->stSize - 1; stIndex && stIndex ^ (size_t)(-1) && !sEvent->blIsHandled; stIndex--) {
-		Marble_Layer *sLayer = gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
+	for (size_t stIndex = gl_sApplication.sLayers->sLayerStack->stSize - 1; stIndex && stIndex ^ (size_t)(-1) && !sEvent->blIsHandled; stIndex--) {
+		Marble_Layer *sLayer = gl_sApplication.sLayers->sLayerStack->ptrpData[stIndex];
 
 		if (sLayer->blIsEnabled)
 			sLayer->sCallbacks.OnEvent(sLayer, sEvent);
@@ -70,8 +69,8 @@ int Marble_System_Internal_UpdateAndRender(float fFrameTime) {
 	Marble_Renderer_BeginDraw(gl_sApplication.sRenderer);
 
 	Marble_Renderer_Clear(gl_sApplication.sRenderer, 0.0f, 0.0f, 0.0f, 1.0f);
-	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers.sLayerStack->stSize; stIndex++) {
-		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers.sLayerStack->ptrpData[stIndex];
+	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers->sLayerStack->stSize; stIndex++) {
+		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers->sLayerStack->ptrpData[stIndex];
 		
 		if (sLayer->blIsEnabled)
 			sLayer->sCallbacks.OnUpdate(sLayer, fFrameTime);
@@ -106,7 +105,7 @@ int Marble_System_Internal_UpdateAndRender(float fFrameTime) {
 
 
 MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine, int (*OnUserInit)(void)) {
-	extern int Marble_LayerStack_Initialize(void);
+	extern int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerStack);
 	extern int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager);
 
 	int iErrorCode = Marble_ErrorCode_Ok;
@@ -153,7 +152,7 @@ MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR as
 	gl_sApplication.sMainWindow->sRefRenderer = gl_sApplication.sRenderer;
 
 	printf("init: layer stack\n");
-	if (iErrorCode = Marble_LayerStack_Initialize())
+	if (iErrorCode = Marble_LayerStack_Create(&gl_sApplication.sLayers))
 		Marble_System_Internal_Cleanup(TRUE, iErrorCode);
 
 	printf("init: asset manager\n");
@@ -230,6 +229,37 @@ int Marble_Application_GetAssetManager(Marble_AssetManager **ptrpAssetManager) {
 	}
 
 	return Marble_ErrorCode_InitState;
+}
+
+int Marble_Application_GetLayerStack(Marble_LayerStack **ptrpLayerStack) {
+	if (gl_sApplication.sLayers && ptrpLayerStack) {
+		*ptrpLayerStack = gl_sApplication.sLayers;
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_InitState;
+}
+
+
+void __declspec(noreturn) Marble_System_Exit(int iErrorCode) {
+	exit(iErrorCode);
+}
+
+int Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed) {
+	if (ptrpMemoryPointer && stSize) {
+		if (blNeedZeroed)
+			*ptrpMemoryPointer = calloc(1, stSize);
+		else
+			*ptrpMemoryPointer = malloc(stSize);
+
+		if (!*ptrpMemoryPointer)
+			Marble_System_Exit(Marble_ErrorCode_MemoryAllocation);
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_Parameter;
 }
 
 

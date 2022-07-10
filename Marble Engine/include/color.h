@@ -9,7 +9,7 @@ enum Marble_ColorFormat {
 	Marble_ColorFormat_RGBAfloat,
 	Marble_ColorFormat_RGBAbyte,
 
-	__NUMCOLORFORMATS__
+	__MARBLE_NUMCOLORFORMATS__
 };
 
 
