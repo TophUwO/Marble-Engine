@@ -6,7 +6,7 @@ struct Marble_Application gl_sApplication = { NULL };
 
 #pragma region initialization functions
 static void inline Marble_Application_Internal_CreateHighPrecisionClock(int *ipErrorCode) {
-	if (!*ipErrorCode)
+	if (*ipErrorCode)
 		return;
 		
 	printf("init: high-precision clock\n");
@@ -34,8 +34,7 @@ static void inline Marble_Application_Internal_InitializeAppState(int *ipErrorCo
 
 	Marble_System_SetAppState(
 		FALSE,
-		FALSE,
-		NULL,
+		0,
 		Marble_AppState_Init
 	);
 
@@ -161,11 +160,14 @@ MARBLE_API int Marble_Application_Initialize(HINSTANCE hiInstance, PSTR astrComm
 
 	/* init user application */
 	printf("init: user application\n");
-	OnUserInit();
+	if (!iErrorCode)
+		OnUserInit();
 
 	/* At last, present window after user has (possibly) made some modifications. */
-	UpdateWindow(gl_sApplication.sMainWindow->hwWindow);
-	ShowWindow(gl_sApplication.sMainWindow->hwWindow, SW_SHOWNORMAL);
+	if (!iErrorCode) {
+		UpdateWindow(gl_sApplication.sMainWindow->hwWindow);
+		ShowWindow(gl_sApplication.sMainWindow->hwWindow, SW_SHOWNORMAL);
+	}
 
 	return Marble_ErrorCode_Ok;
 }
@@ -181,7 +183,7 @@ MARBLE_API int Marble_Application_Run(void) {
 		gl_sApplication.uFTLast = uTime;
 
 		while (PeekMessage(&sMessage, NULL, 0, 0, PM_REMOVE)) {
-			if (sMessage.message == WM_QUIT)
+			if (sMessage.message == WM_QUIT || sMessage.message == MARBLE_WM_FATAL)
 				goto CLEANUP;
 
 			TranslateMessage(&sMessage);
@@ -191,7 +193,7 @@ MARBLE_API int Marble_Application_Run(void) {
 		if (!gl_sApplication.sMainWindow->sWndData.blIsMinimized)
 			Marble_Application_Internal_UpdateAndRender(fFrameTime);
 	}
-
+	
 CLEANUP:
 	if (gl_sApplication.sAppState.blIsFatal == TRUE) {
 		TCHAR caBuffer[1024] = { 0 };

@@ -28,12 +28,9 @@ extern struct Marble_Application {
 	LARGE_INTEGER uPerfFreq;
 	LARGE_INTEGER uFTLast;
 	struct Marble_Application_AppState {
-		int    iState;
-		_Bool  blIsFatal;
-		union {
-			void *ptrParameter;
-			int   iParameter;
-		};
+		int   iState;
+		_Bool blIsFatal;
+		int   iParameter;
 	} sAppState;
 
 	Marble_Window       *sMainWindow;
@@ -52,7 +49,7 @@ extern int  Marble_System_Internal_CreateDebugConsole(void);
 extern int  Marble_System_Cleanup(int iRetCode);
 extern void Marble_System_InitiateShutdown(int iRetCode);
 extern void Marble_System_RaiseFatalError(int iErrorCode);
-extern void Marble_System_SetAppState(_Bool blIsFatal, _Bool blIsPtrParam, void *ptrParameter, int iAppState);
+extern void Marble_System_SetAppState(_Bool blIsFatal, int iParameter, int iAppState);
 extern void Marble_System_ClearAppState(void);
 extern int  Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed);
 

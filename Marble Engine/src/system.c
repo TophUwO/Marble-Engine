@@ -29,7 +29,7 @@ static BOOL WINAPI Marble_System_Console_CtrlHandler(DWORD dwCtrlType) {
 	return TRUE;
 }
 
-int Marble_System_Internal_CreateDebugConsole(int *ipErrorCode) {
+int Marble_System_Internal_CreateDebugConsole(void) {
 	if (AllocConsole()) {
 		FILE *fpTmp = NULL;
 		freopen_s(&fpTmp, "CONOUT$", "w", stdout);
@@ -44,21 +44,17 @@ int Marble_System_Internal_CreateDebugConsole(int *ipErrorCode) {
 }
 
 
-void Marble_System_SetAppState(_Bool blIsFatal, _Bool blIsPtrParam, void *ptrParameter, int iAppState) {
+void Marble_System_SetAppState(_Bool blIsFatal, int iParameter, int iAppState) {
 	gl_sApplication.sAppState = (struct Marble_Application_AppState){
 		.blIsFatal = blIsFatal,
 		.iState    = iAppState
 	};
 
-	if (blIsPtrParam)
-		gl_sApplication.sAppState.ptrParameter = ptrParameter;
-	else
-		gl_sApplication.sAppState.iParameter   = (int)ptrParameter;
+	gl_sApplication.sAppState.iParameter = iParameter;
 }
 
 void Marble_System_InitiateShutdown(int iRetCode) {
 	Marble_System_SetAppState(
-		FALSE,
 		FALSE,
 		iRetCode,
 		Marble_AppState_Shutdown
@@ -70,19 +66,18 @@ void Marble_System_InitiateShutdown(int iRetCode) {
 void Marble_System_RaiseFatalError(int iErrorCode) {
 	Marble_System_SetAppState(
 		TRUE,
-		FALSE,
 		iErrorCode,
 		Marble_AppState_ForcedShutdown
 	);
 
-	SendMessage(gl_sApplication.sMainWindow->hwWindow, MARBLE_WM_FATAL, 0, 0);
+	PostThreadMessage(GetCurrentThreadId(), MARBLE_WM_FATAL, 0, 0);
 }
 
 void Marble_System_ClearAppState(void) {
 	gl_sApplication.sAppState = (struct Marble_Application_AppState){
-		.blIsFatal    = FALSE,
-		.ptrParameter = NULL,
-		.iState       = Marble_AppState_Running
+		.blIsFatal  = FALSE,
+		.iParameter = 0,
+		.iState     = Marble_AppState_Running
 	};
 }
 
