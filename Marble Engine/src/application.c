@@ -87,6 +87,15 @@ static void inline Marble_Application_Internal_CreateAssetManager(int *ipErrorCo
 	if (*ipErrorCode = Marble_AssetManager_Create(&gl_sApplication.sAssets))
 		Marble_System_RaiseFatalError(*ipErrorCode);
 }
+
+static void inline Marble_Application_Internal_RunUserInitialization(int *ipErrorCode, int (*OnUserInit)(void)) {
+	if (*ipErrorCode)
+		return;
+
+	printf("init: user application\n");
+
+	OnUserInit();
+}
 #pragma endregion
 
 
@@ -144,6 +153,8 @@ int Marble_Application_Internal_OnEvent(void *ptrEvent) {
 
 
 MARBLE_API int Marble_Application_Initialize(HINSTANCE hiInstance, PSTR astrCommandLine, int (*OnUserInit)(void)) {
+	gl_sApplication.htMainThread = GetCurrentThread();
+
 #if (defined _DEBUG) || (defined MARBLE_DEVBUILD)
 	Marble_System_Internal_CreateDebugConsole();
 #endif
@@ -157,11 +168,7 @@ MARBLE_API int Marble_Application_Initialize(HINSTANCE hiInstance, PSTR astrComm
 	Marble_Application_Internal_CreateRenderer(&iErrorCode);
 	Marble_Application_Internal_CreateLayerStack(&iErrorCode);
 	Marble_Application_Internal_CreateAssetManager(&iErrorCode);
-
-	/* init user application */
-	printf("init: user application\n");
-	if (!iErrorCode)
-		OnUserInit();
+	Marble_Application_Internal_RunUserInitialization(&iErrorCode, OnUserInit);
 
 	/* At last, present window after user has (possibly) made some modifications. */
 	if (!iErrorCode) {

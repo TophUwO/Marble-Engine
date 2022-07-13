@@ -21,7 +21,7 @@ int Marble_System_Cleanup(int iRetCode) {
 static BOOL WINAPI Marble_System_Console_CtrlHandler(DWORD dwCtrlType) {
 	switch (dwCtrlType) {
 		case CTRL_CLOSE_EVENT:
-			PostMessage(gl_sApplication.sMainWindow->hwWindow, WM_CLOSE, 0, 0);
+			PostThreadMessage(GetThreadId(gl_sApplication.htMainThread), WM_QUIT, 0, 0);
 
 			break;
 	}

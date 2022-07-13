@@ -27,6 +27,7 @@ extern struct Marble_Application {
 	PSTR          astrCommandLine;
 	LARGE_INTEGER uPerfFreq;
 	LARGE_INTEGER uFTLast;
+	HANDLE        htMainThread;
 	struct Marble_Application_AppState {
 		int   iState;
 		_Bool blIsFatal;
