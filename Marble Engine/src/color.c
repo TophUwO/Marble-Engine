@@ -5,7 +5,7 @@ size_t Marble_Color_GetColorSizeByFormat(int iColorFormat) {
 	static struct Marble_Internal_ColorFormatEntry { int iFormat; size_t stSizeInBytes; } const gl_saColorFormatTable[] = {
 		{ Marble_ColorFormat_Unknown,   0                 },
 
-		{ Marble_ColorFormat_RGBAfloat, 4 * sizeof(FLOAT) },
+		{ Marble_ColorFormat_RGBAfloat, 4 * sizeof(float) },
 		{ Marble_ColorFormat_RGBAbyte,  4 * sizeof(BYTE)  }
 	};
 

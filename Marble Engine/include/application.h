@@ -10,6 +10,9 @@
 
 #define Marble_IfError(expr, equal, body) if ((expr) != equal) { body; }
 
+#define MARBLE_WM_START (WM_USER)
+#define MARBLE_WM_FATAL (MARBLE_WM_START + 1)
+
 
 enum Marble_Internal_AppState {
 	Marble_AppState_Init,
@@ -22,9 +25,16 @@ enum Marble_Internal_AppState {
 extern struct Marble_Application {
 	HINSTANCE     hiInstance;
 	PSTR          astrCommandLine;
-	int           iAppState;
 	LARGE_INTEGER uPerfFreq;
 	LARGE_INTEGER uFTLast;
+	struct Marble_Application_AppState {
+		int    iState;
+		_Bool  blIsFatal;
+		union {
+			void *ptrParameter;
+			int   iParameter;
+		};
+	} sAppState;
 
 	Marble_Window       *sMainWindow;
 	Marble_Renderer     *sRenderer;
@@ -38,7 +48,12 @@ extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_Eve
 extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);
 extern Marble_EventType   Marble_Event_GetMouseEventType(UINT udwMessage);
 
-extern void __declspec(noreturn) Marble_System_Exit(int iErrorCode);
+extern int  Marble_System_Internal_CreateDebugConsole(void);
+extern int  Marble_System_Cleanup(int iRetCode);
+extern void Marble_System_InitiateShutdown(int iRetCode);
+extern void Marble_System_RaiseFatalError(int iErrorCode);
+extern void Marble_System_SetAppState(_Bool blIsFatal, _Bool blIsPtrParam, void *ptrParameter, int iAppState);
+extern void Marble_System_ClearAppState(void);
 extern int  Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed);
 
 

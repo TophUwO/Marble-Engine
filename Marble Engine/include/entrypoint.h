@@ -4,15 +4,13 @@
 
 
 INT APIENTRY WinMain(_In_ HINSTANCE hiInstance, _In_opt_ HINSTANCE hiPrevInstance, _In_ PSTR astrCommandLine, _In_ int dwShowCommand) {
-	MARBLE_API int Marble_System_InitializeApplication(HINSTANCE hiInstance, PSTR astrCommandLine, int (*OnUserInit)(void));
-	MARBLE_API int Marble_System_RunApplication();
-	extern     int Marble_System_OnUserInit(void);
+	MARBLE_API int Marble_Application_Initialize(HINSTANCE hiInstance, PSTR astrCommandLine, int (*OnUserInit)(void));
+	MARBLE_API int Marble_Application_Run();
+	extern     int Marble_Application_OnUserInit(void); /* to be defined by user application */
 
-	int iErrorCode = Marble_ErrorCode_Ok;
-	if (iErrorCode = Marble_System_InitializeApplication(hiInstance, astrCommandLine, &Marble_System_OnUserInit))
-		return iErrorCode;
+	Marble_Application_Initialize(hiInstance, astrCommandLine, &Marble_Application_OnUserInit);
 
-	return Marble_System_RunApplication();
+	return Marble_Application_Run();
 }
 
 

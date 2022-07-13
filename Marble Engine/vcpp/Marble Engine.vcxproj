@@ -168,9 +168,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\application.c" />
     <ClCompile Include="..\src\asset.c" />
     <ClCompile Include="..\src\atlas.c" />
     <ClCompile Include="..\src\color.c" />
+    <ClCompile Include="..\src\error.c" />
     <ClCompile Include="..\src\event.c" />
     <ClCompile Include="..\src\image.c" />
     <ClCompile Include="..\src\layer.c" />

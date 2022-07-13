@@ -40,7 +40,7 @@ static int GameLayer_OnEvent(Marble_Layer *sLayer, Marble_Event *sEvent) {
 }
 
 
-int Marble_System_OnUserInit(void) {
+int Marble_Application_OnUserInit(void) {
 	Marble_Application_GetRenderer(&sRenderer); 
 	Marble_Application_GetMainWindow(&sWindow);
 	Marble_Application_GetAssetManager(&sAssetManager);

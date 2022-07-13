@@ -2,7 +2,7 @@
 
 
 static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UINT uiMessage, WPARAM wParam, LPARAM lParam) {
-	extern int Marble_System_Internal_OnEvent(void *ptrEvent);
+	extern int Marble_Application_Internal_OnEvent(void *ptrEvent);
 
 	struct Marble_Window *sWindowData = NULL;
 
@@ -30,7 +30,9 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 			};
 			Marble_Event_ConstructEvent(&sKeyDownEvent, lParam >> 30 & 1 ? Marble_EventType_Keyboard_KeyRepeated : Marble_EventType_Keyboard_KeyPressed, &sEventData);
 
-			return Marble_System_Internal_OnEvent(&sKeyDownEvent);
+			Marble_System_RaiseFatalError(Marble_ErrorCode_MemoryAllocation);
+
+			return Marble_Application_Internal_OnEvent(&sKeyDownEvent);
 		}
 		case WM_KEYUP:
 		case WM_SYSKEYUP: {
@@ -67,7 +69,7 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 			};
 			Marble_Event_ConstructEvent(&sKeyReleasedEvent, Marble_EventType_Keyboard_KeyReleased, &sEventData);
 
-			return Marble_System_Internal_OnEvent(&sKeyReleasedEvent);
+			return Marble_Application_Internal_OnEvent(&sKeyReleasedEvent);
 		}
 		case WM_LBUTTONDOWN:
 		case WM_RBUTTONDOWN:
@@ -86,13 +88,20 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 			};
 			Marble_Event_ConstructEvent(&sMouseEvent, Marble_Event_GetMouseEventType(uiMessage), &sEventData);
 
-			return Marble_System_Internal_OnEvent(&sMouseEvent);
+			return Marble_Application_Internal_OnEvent(&sMouseEvent);
 		}
 		case WM_CLOSE: {
 			Marble_WindowClosedEvent sWindowClosedEvent;
 			Marble_Event_ConstructEvent(&sWindowClosedEvent, Marble_EventType_Window_Closed, NULL);
 
-			Marble_System_Internal_OnEvent(&sWindowClosedEvent);
+			Marble_Application_Internal_OnEvent(&sWindowClosedEvent);
+			if (!wParam)
+				Marble_System_SetAppState(
+					FALSE,
+					FALSE,
+					(void *)Marble_ErrorCode_Ok,
+					Marble_AppState_Shutdown
+				);
 
 			DestroyWindow(hwWindow);
 			return Marble_ErrorCode_Ok;
@@ -100,6 +109,12 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 		case WM_DESTROY:
 			if (hwWindow == gl_sApplication.sMainWindow->hwWindow)
 				PostQuitMessage(0);
+
+			return Marble_ErrorCode_Ok;
+
+		case MARBLE_WM_FATAL:
+			if (hwWindow == gl_sApplication.sMainWindow->hwWindow)
+				SendMessage(hwWindow, WM_CLOSE, TRUE, 0);
 
 			return Marble_ErrorCode_Ok;
 	}

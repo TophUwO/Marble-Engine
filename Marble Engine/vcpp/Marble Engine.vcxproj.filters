@@ -51,6 +51,12 @@
     <ClCompile Include="..\src\image.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\error.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\application.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\error.h">

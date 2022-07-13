@@ -56,9 +56,10 @@ int Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPa
 	Marble_IfError(
 		iErrorCode = Marble_Util_FileStream_ReadSize(
 			sFile, 
-			sizeof(struct Marble_Internal_ColorAtlasHead), 
+			sizeof(struct Marble_Internal_ColorAtlasHead),
 			&sAtlas->sHead
-		), Marble_ErrorCode_Ok, 
+		), 
+		Marble_ErrorCode_Ok, 
 		goto ON_ERROR
 	);
 	Marble_IfError(

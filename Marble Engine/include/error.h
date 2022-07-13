@@ -1,5 +1,7 @@
 #pragma once
 
+#include <api.h>
+
 
 typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_Ok = 0,
@@ -41,9 +43,11 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_WICDecoderGetFrame,
 	Marble_ErrorCode_WICCreateFormatConv,
 	Marble_ErrorCode_WICFormatConversion,
-	Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap,
-
-	__MARBLE_NUMERRORCODES__
+	Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap
 } Marble_ErrorCode;
+
+
+MARBLE_API TCHAR const *const Marble_Error_ToString(Marble_ErrorCode eErrorCode);
+MARBLE_API TCHAR const *const Marble_Error_ToDesc(Marble_ErrorCode eErrorCode);
 
 
