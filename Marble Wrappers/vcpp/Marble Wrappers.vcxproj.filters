@@ -16,33 +16,48 @@
     <Filter Include="Source Files\Direct2D">
       <UniqueIdentifier>{898e119d-e536-4524-acb9-fad5a0a0e998}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\DirectWrite">
+      <UniqueIdentifier>{ea0e9486-f1cc-4f5a-b9ff-efbb502ffbd1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\d2dwr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\dwritewr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\wrbase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\rendertarget.cpp">
-      <Filter>Source Files\Direct2D</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\factory.cpp">
+    <ClCompile Include="..\src\DirectWrite\dwr_factory.cpp">
+      <Filter>Source Files\DirectWrite</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Direct2D\d2dwr_bitmap.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\devicecontext.cpp">
+    <ClCompile Include="..\src\Direct2D\d2dwr_brush.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\device.cpp">
+    <ClCompile Include="..\src\Direct2D\d2dwr_device.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\bitmap.cpp">
+    <ClCompile Include="..\src\Direct2D\d2dwr_devicecontext.cpp">
       <Filter>Source Files\Direct2D</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\brush.cpp">
+    <ClCompile Include="..\src\Direct2D\d2dwr_factory.cpp">
       <Filter>Source Files\Direct2D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Direct2D\d2dwr_rendertarget.cpp">
+      <Filter>Source Files\Direct2D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\DirectWrite\dwr_textformat.cpp">
+      <Filter>Source Files\DirectWrite</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

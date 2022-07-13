@@ -114,19 +114,19 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 }
 
 
-int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWidth, DWORD dwHeight, _Bool blIsVSync) {
+int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWidth, DWORD dwHeight, _Bool blIsVSync) { MARBLE_ERRNO
 	static TCHAR const *const gl_sWindowClassName = TEXT("Marble_Window");
 
-	if (Marble_System_AllocateMemory(ptrpWindow, sizeof(**ptrpWindow), FALSE))
-		return Marble_ErrorCode_InternalParameter;
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpWindow, sizeof(**ptrpWindow), FALSE, TRUE))
+		return iErrorCode;
 
 	(*ptrpWindow)->hwWindow = NULL;
 	size_t stTitleLen = _tcslen(strTitle);
-	if (Marble_System_AllocateMemory(&(*ptrpWindow)->sWndData.strTitle, sizeof(*strTitle) * (stTitleLen + 1), TRUE)) {
+	if (iErrorCode = Marble_System_AllocateMemory(&(*ptrpWindow)->sWndData.strTitle, sizeof(*strTitle) * (stTitleLen + 1), TRUE, TRUE)) {
 		free(*ptrpWindow);
 		*ptrpWindow = NULL;
 
-		return Marble_ErrorCode_InternalParameter;
+		return iErrorCode;
 	}
 	_tcscpy_s((*ptrpWindow)->sWndData.strTitle, stTitleLen + 1, strTitle);
 

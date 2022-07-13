@@ -1,11 +1,6 @@
 #pragma once
 
-#ifdef __cplusplus
-	#define _WR_EXTERN_C_ extern "C" __declspec(dllexport)
-#else
-	#define _WR_EXTERN_C_ extern __declspec(dllimport)
-#endif
-
+#include <wrbase.h>
 #include <d2d1_1.h>
 
 
@@ -98,6 +93,7 @@ _WR_EXTERN_C_ HRESULT WINAPI D2DWr_DeviceContext_CreateBitmapFromWicBitmap(ID2D1
 _WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_DrawBitmap(ID2D1DeviceContext *sDeviceContext, ID2D1Bitmap *sBitmap, D2D1_RECT_F const *sDstRect, FLOAT fOpacity, D2D1_INTERPOLATION_MODE eInterpolationMode, D2D1_RECT_F const *sSrcRect, D2D1_MATRIX_4X4_F const *sPerspectiveTransform);
 _WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_DrawRectangle(ID2D1DeviceContext *sDeviceContext, D2D1_RECT_F const *sRect, ID2D1Brush *sBrush, FLOAT fStrokeWith, ID2D1StrokeStyle *sStrokeStyle);
 _WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_FillRectangle(ID2D1DeviceContext *sDeviceContext, D2D1_RECT_F const *sRect, ID2D1Brush *sBrush);
+_WR_EXTERN_C_ void    WINAPI D2DWr_DeviceContext_DrawText(ID2D1DeviceContext *sDeviceContext, WCHAR const *wstrString, UINT32 ui32Length, IDWriteTextFormat *sFormat, D2D1_RECT_F const *sLayoutRect, ID2D1Brush *sFillBrush, D2D1_DRAW_TEXT_OPTIONS eOptions, DWRITE_MEASURING_MODE eMeasuringMode);
 _WR_EXTERN_C_ ULONG   WINAPI D2DWr_DeviceContext_Release(ID2D1DeviceContext *sDeviceContext);
 
 _WR_EXTERN_C_ ULONG WINAPI D2DWr_Bitmap_Release(ID2D1Bitmap *sBitmap);

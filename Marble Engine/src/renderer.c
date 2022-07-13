@@ -47,12 +47,13 @@ static int Marble_Renderer_Internal_Direct2DCleanup(Marble_Renderer **ptrpRender
 		Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap);
 		Marble_Direct2DRenderer_SafeRelease(D2DWr_DeviceContext_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevContext);
 		Marble_Direct2DRenderer_SafeRelease(D2DWr_Device_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevice);
+		Marble_Direct2DRenderer_SafeRelease(WrDWrite_Factory_Release, (*ptrpRenderer)->sD2DRenderer.sDWriteFactory);
 	}
 
 	return iErrorCode == Marble_ErrorCode_Unknown ? Marble_ErrorCode_Ok : iErrorCode;
 }
 
-static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **ptrpRenderer, HWND hwRenderWindow) {
+static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **ptrpRenderer, HWND hwRenderWindow) { MARBLE_ERRNO
 	extern void Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(Marble_Renderer *sRenderer, int iErrorCode);
 	extern int  Marble_Renderer_Internal_SetActiveRendererAPI(Marble_Renderer *sRenderer, int iActiveAPI, int iErrorCode);
 
@@ -91,8 +92,6 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 	Marble_Renderer_Internal_GetDesktopDPI(&sD2DBitmapProps.dpiX, &sD2DBitmapProps.dpiY);
 #pragma endregion
 
-	int iErrorCode = Marble_ErrorCode_Ok;
-	
 	Marble_Direct2DRenderer_Action(
 		D2D1CreateFactory(
 			D2D1_FACTORY_TYPE_SINGLE_THREADED, 
@@ -200,6 +199,14 @@ static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **pt
 		Marble_ErrorCode_CreateBitmapFromDxgiSurface
 	);
 
+	Marble_Direct2DRenderer_Action(
+		WrDWrite_Factory_Create(
+			DWRITE_FACTORY_TYPE_SHARED,
+			&(*ptrpRenderer)->sD2DRenderer.sDWriteFactory
+		),
+		Marble_ErrorCode_CreateDWriteFactory
+	);
+
 	D2DWr_DeviceContext_SetTarget(
 		(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
 		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
@@ -241,7 +248,7 @@ static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(Marble_Rend
 	D2DWr_DeviceContext_EndDraw(sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
 }
 
-static int Marble_Renderer_Internal_Direct2DRenderer_RecreateDeviceContext(Marble_Renderer **ptrpRenderer) {
+static int Marble_Renderer_Internal_Direct2DRenderer_RecreateDeviceContext(Marble_Renderer **ptrpRenderer) { MARBLE_ERRNO
 	D2D1_BITMAP_PROPERTIES1 const sD2DBitmapProps = {
 		.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
 		.pixelFormat   = {
@@ -249,8 +256,6 @@ static int Marble_Renderer_Internal_Direct2DRenderer_RecreateDeviceContext(Marbl
 			.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED
 		}
 	};
-
-	int iErrorCode = Marble_ErrorCode_Ok;
 
 	/* Get DXGI backbuffer */
 	IDXGISurface *sDXGIBackbuffer = NULL;
@@ -334,6 +339,45 @@ static void Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(Marble_
 		sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->SetBackgroundColor(sRenderer->sD2DRenderer.sDXGISwapchain, &sBkgndColor);
 	}
 }
+
+static DWRITE_FONT_WEIGHT inline Marble_Renderer_Internal_Direct2DRenderer_toDWriteFontWeight(int iWeight) {
+	
+}
+
+static int Marble_Renderer_Internal_Direct2DRenderer_CreateTextFormat(Marble_Renderer *sRenderer, WCHAR const *wstrFamily, float fSize, Marble_FontWeight eWeight, Marble_FontStyle eStyle, Marble_TextFormat **ptrpTextFormat) {
+	if (!wstrFamily || !*wstrFamily || fSize == 0.0f) {
+		*ptrpTextFormat = NULL;
+
+		return Marble_ErrorCode_Parameter;
+	}
+
+	if (Marble_System_AllocateMemory(ptrpTextFormat, sizeof(**ptrpTextFormat), FALSE, FALSE))
+		return Marble_ErrorCode_InternalParameter;
+
+	if (WrDWrite_Factory_CreateTextFormat(
+		sRenderer->sD2DRenderer.sDWriteFactory,
+		wstrFamily,
+		NULL,
+		(DWRITE_FONT_WEIGHT)eWeight,
+		(DWRITE_FONT_STYLE)eStyle,
+		DWRITE_FONT_STRETCH_NORMAL,
+		fSize,
+		L"",
+		&(*ptrpTextFormat)->sDWriteTextFormat
+	) != S_OK) {
+		free(*ptrpTextFormat);
+		*ptrpTextFormat = NULL;
+
+		return Marble_ErrorCode_CreateTextFormat;
+	}
+	(*ptrpTextFormat)->iRendererAPI = Marble_RendererAPI_Direct2D;
+
+	return Marble_ErrorCode_Ok;
+}
+
+static void Marble_Renderer_Internal_Direct2DRenderer_DestroyTextFormat(Marble_TextFormat **ptrpTextFormat) {
+	Marble_Direct2DRenderer_SafeRelease(WrDWrite_TextFormat_Release, (*ptrpTextFormat)->sDWriteTextFormat);
+}
 #pragma endregion
 
 
@@ -358,19 +402,18 @@ int Marble_Renderer_Internal_Recreate(Marble_Renderer **ptrpRenderer) {
 }
 
 
-int Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiveAPI, HWND hwRenderWindow) {
-	if (ptrpRenderer) {
-		if (!(*ptrpRenderer = malloc(sizeof(**ptrpRenderer))))
-			return Marble_ErrorCode_MemoryAllocation;
+int Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiveAPI, HWND hwRenderWindow) { MARBLE_ERRNO
+	if (!ptrpRenderer || !hwRenderWindow)
+		return Marble_ErrorCode_InternalParameter;
 
-		switch (dwActiveAPI) {
-			case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_Direct2DRenderer_Create(ptrpRenderer, hwRenderWindow);
-		}
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpRenderer, sizeof(**ptrpRenderer), FALSE, TRUE))
+		return iErrorCode;
 
-		return Marble_ErrorCode_RendererAPI;
+	switch (dwActiveAPI) {
+		case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_Direct2DRenderer_Create(ptrpRenderer, hwRenderWindow);
 	}
 
-	return Marble_ErrorCode_RendererInit;
+	return Marble_ErrorCode_RendererAPI;
 }
 
 void Marble_Renderer_Destroy(Marble_Renderer **ptrpRenderer) {
@@ -436,6 +479,49 @@ void Marble_Renderer_Resize(Marble_Renderer **ptrpRenderer, UINT uiNewWidth, UIN
 		switch ((*ptrpRenderer)->iActiveRendererAPI) {
 			case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Resize(ptrpRenderer, uiNewWidth, uiNewHeight); break;
 		}
+}
+
+int Marble_Renderer_CreateTextFormat(Marble_Renderer *sRenderer, WCHAR const *wstrFamily, float fSize, Marble_FontWeight eWeight, Marble_FontStyle eStyle, Marble_TextFormat **ptrpTextFormat) {
+	if (sRenderer && ptrpTextFormat) {
+		switch (sRenderer->iActiveRendererAPI) {
+			case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_Direct2DRenderer_CreateTextFormat(sRenderer, wstrFamily, fSize, eWeight, eStyle, ptrpTextFormat);
+		}
+
+		return Marble_ErrorCode_RendererAPI;
+	}
+
+	return sRenderer ? Marble_ErrorCode_Parameter : Marble_ErrorCode_RendererInit;
+}
+
+void Marble_Renderer_DestroyTextFormat(Marble_TextFormat **ptrpTextFormat) {
+	if (!ptrpTextFormat || !*ptrpTextFormat)
+		return;
+
+	switch ((*ptrpTextFormat)->iRendererAPI) {
+		case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_DestroyTextFormat(ptrpTextFormat);
+	}
+
+	free(*ptrpTextFormat);
+	*ptrpTextFormat = NULL;
+}
+
+
+void Marble_Renderer_DrawText(Marble_Renderer *sRenderer, WCHAR const *wstrText, Marble_TextFormat *sFormat, int iXPos, int iYPos, ID2D1Brush *sBrush) {
+	// TODO: abstract away
+	D2D1_RECT_F sPos = {
+		iXPos, iYPos, 200, 200
+	};
+
+	D2DWr_DeviceContext_DrawText(
+		sRenderer->sD2DRenderer.sD2DDevContext,
+		L"Hello, world!",
+		13,
+		sFormat->sDWriteTextFormat,
+		&sPos,
+		sBrush,
+		D2D1_DRAW_TEXT_OPTIONS_NONE,
+		DWRITE_MEASURING_MODE_NATURAL
+	);
 }
 
 

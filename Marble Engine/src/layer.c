@@ -27,11 +27,10 @@ static void Marble_LayerStack_Internal_DestroyLayer(Marble_Layer **ptrpLayer) {
 int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) {
 	if (ptrpLayerstack) {
 		int iErrorCode = Marble_ErrorCode_Ok;
-
-		if (Marble_System_AllocateMemory(ptrpLayerstack, sizeof(**ptrpLayerstack), FALSE)) {
+		if (iErrorCode = Marble_System_AllocateMemory(ptrpLayerstack, sizeof(**ptrpLayerstack), FALSE, TRUE)) {
 			*ptrpLayerstack = NULL;
 
-			return Marble_ErrorCode_InternalParameter;
+			return iErrorCode;
 		}
 
 		if (iErrorCode = Marble_Util_Vector_Create(&(*ptrpLayerstack)->sLayerStack, 32, (void (*)(void **))&Marble_LayerStack_Internal_DestroyLayer)) {
@@ -58,13 +57,10 @@ void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack) {
 }
 
 
-int Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled) {
+int Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled) { MARBLE_ERRNO
 	if (ptrpLayer) {
-		if (Marble_System_AllocateMemory(ptrpLayer, sizeof(**ptrpLayer), FALSE)) {
-			*ptrpLayer = NULL;
-
-			return Marble_ErrorCode_InternalParameter;
-		}
+		if (iErrorCode = Marble_System_AllocateMemory(ptrpLayer, sizeof(**ptrpLayer), FALSE, TRUE))
+			return iErrorCode;
 
 		(*ptrpLayer)->dwLayerId   = InterlockedIncrement(&gl_dwCurrentLayerId);
 		(*ptrpLayer)->blIsEnabled = blIsEnabled;
@@ -75,9 +71,7 @@ int Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled) {
 	return Marble_ErrorCode_Parameter;
 }
 
-int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) {
-	int iErrorCode = Marble_ErrorCode_Ok;
-
+int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) { MARBLE_ERRNO
 	Marble_Layer_Internal_FixLayerCallbacks(sLayer);
 	if (blIsTopmost)
 		iErrorCode = Marble_Util_Vector_PushBack(sLayerStack->sLayerStack, sLayer);

@@ -41,6 +41,10 @@ void WINAPI D2DWr_DeviceContext_FillRectangle(ID2D1DeviceContext *sDeviceContext
 	sDeviceContext->FillRectangle(sRect, sBrush);
 }
 
+void WINAPI D2DWr_DeviceContext_DrawText(ID2D1DeviceContext *sDeviceContext, WCHAR const *wstrString, UINT32 ui32Length, IDWriteTextFormat *sFormat, D2D1_RECT_F const *sLayoutRect, ID2D1Brush *sFillBrush, D2D1_DRAW_TEXT_OPTIONS eOptions, DWRITE_MEASURING_MODE eMeasuringMode) {
+	sDeviceContext->DrawTextW(wstrString, ui32Length, sFormat, sLayoutRect, sFillBrush, eOptions, eMeasuringMode);
+}
+
 ULONG WINAPI D2DWr_DeviceContext_Release(ID2D1DeviceContext *sDeviceContext) {
 	return sDeviceContext->Release();
 }

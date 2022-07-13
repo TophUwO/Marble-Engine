@@ -17,12 +17,9 @@ static int Marble_Util_Vector_Internal_Reallocate(Marble_Util_Vector *sVector, s
 	return Marble_ErrorCode_MemoryReallocation;
 }
 
-static int Marble_Util_Vector_Internal_InitBuffer(void **ptrpBuffer, size_t stCapacity) {
-	if (Marble_System_AllocateMemory(ptrpBuffer, sizeof(*ptrpBuffer) * stCapacity, TRUE)) {
-		*ptrpBuffer = NULL;
-
-		return Marble_ErrorCode_InternalParameter;
-	}
+static int Marble_Util_Vector_Internal_InitBuffer(void **ptrpBuffer, size_t stCapacity) { MARBLE_ERRNO
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpBuffer, sizeof(*ptrpBuffer) * stCapacity, TRUE, FALSE))
+		return iErrorCode;
 
 	return Marble_ErrorCode_Ok;
 }
@@ -34,12 +31,9 @@ static void Marble_Util_Vector_Internal_FreeElements(Marble_Util_Vector *sVector
 }
 
 
-int Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCapacity, void (*onDestroy)(void **ptrpObject)) {
-	if (Marble_System_AllocateMemory(ptrpVector, sizeof(**ptrpVector), FALSE)) {
-		*ptrpVector = NULL;
-
-		return Marble_ErrorCode_InternalParameter;
-	}
+int Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCapacity, void (*onDestroy)(void **ptrpObject)) { MARBLE_ERRNO
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpVector, sizeof(**ptrpVector), FALSE, FALSE))
+		return iErrorCode;
 
 	stStartCapacity = stStartCapacity ? stStartCapacity : gl_stDefStartCapacity;
 
@@ -48,11 +42,11 @@ int Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCap
 	(*ptrpVector)->stStartCapacity = stStartCapacity;
 	(*ptrpVector)->stSize          = 0;
 
-	if (Marble_Util_Vector_Internal_InitBuffer((void **)&(*ptrpVector)->ptrpData, (*ptrpVector)->stCapacity)) {
+	if (iErrorCode = Marble_Util_Vector_Internal_InitBuffer((void **)&(*ptrpVector)->ptrpData, (*ptrpVector)->stCapacity)) {
 		free(*ptrpVector);
 		*ptrpVector = NULL;
 
-		return Marble_ErrorCode_InternalParameter;
+		return iErrorCode;
 	}
 
 	return Marble_ErrorCode_Ok;
@@ -101,9 +95,8 @@ void *Marble_Util_Vector_PopFront(Marble_Util_Vector *sVector, _Bool blDoFree) {
 	return Marble_Util_Vector_Erase(sVector, 0, blDoFree);
 }
 
-int Marble_Util_Vector_Insert(Marble_Util_Vector *sVector, size_t stIndex, void *ptrObject) {
+int Marble_Util_Vector_Insert(Marble_Util_Vector *sVector, size_t stIndex, void *ptrObject) { MARBLE_ERRNO
 	if (sVector->stSize >= sVector->stCapacity) {
-		int iErrorCode = Marble_ErrorCode_Ok;
 		if (iErrorCode = Marble_Util_Vector_Internal_Reallocate(sVector, sVector->stCapacity + (size_t)(gl_dblDefCapacityMultiplier * sVector->stCapacity)))
 			return iErrorCode;
 	}
@@ -205,28 +198,28 @@ static TCHAR inline const *const Marble_Util_Stream_Internal_GetStringFromPermis
 }
 
 
-int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_Util_FileStream **ptrpFileStream) {
-	if (strPath && ptrpFileStream) {
-		if (!(*ptrpFileStream = malloc(sizeof(**ptrpFileStream))))
-			return Marble_ErrorCode_MemoryAllocation;
+int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_Util_FileStream **ptrpFileStream) { MARBLE_ERRNO
+	if (!strPath || !*strPath || !ptrpFileStream)
+		return Marble_ErrorCode_Parameter;
 
-		_tfopen_s(&(*ptrpFileStream)->flpFilePointer, strPath, Marble_Util_Stream_Internal_GetStringFromPermissions((*ptrpFileStream)->iPermissions = iPermissions));
-		if (!(*ptrpFileStream)->flpFilePointer) {
-			Marble_Util_FileStream_Destroy(ptrpFileStream);
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpFileStream, sizeof(**ptrpFileStream), FALSE, FALSE))
+		return iErrorCode;
 
-			return Marble_ErrorCode_OpenFile;
-		}
+	_tfopen_s(&(*ptrpFileStream)->flpFilePointer, strPath, Marble_Util_Stream_Internal_GetStringFromPermissions((*ptrpFileStream)->iPermissions = iPermissions));
 
-		if (fstat(_fileno((*ptrpFileStream)->flpFilePointer), &(*ptrpFileStream)->sInfo)) {
-			Marble_Util_FileStream_Destroy(ptrpFileStream);
+	if (!(*ptrpFileStream)->flpFilePointer) {
+		Marble_Util_FileStream_Destroy(ptrpFileStream);
 
-			return Marble_ErrorCode_GetFileInfo;
-		}
-
-		return Marble_ErrorCode_Ok;
+		return Marble_ErrorCode_OpenFile;
 	}
 
-	return Marble_ErrorCode_Parameter;
+	if (fstat(_fileno((*ptrpFileStream)->flpFilePointer), &(*ptrpFileStream)->sInfo)) {
+		Marble_Util_FileStream_Destroy(ptrpFileStream);
+
+		return Marble_ErrorCode_GetFileInfo;
+	}
+
+	return Marble_ErrorCode_Ok;
 }
 
 void Marble_Util_FileStream_Destroy(Marble_Util_FileStream **ptrpFileStream) {

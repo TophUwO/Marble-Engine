@@ -9,6 +9,7 @@
 #include <color.h>
 
 #define Marble_IfError(expr, equal, body) if ((expr) != equal) { body; }
+#define MARBLE_ERRNO                      int iErrorCode = Marble_ErrorCode_Ok;
 
 #define MARBLE_WM_START (WM_USER)
 #define MARBLE_WM_FATAL (MARBLE_WM_START + 1)
@@ -52,6 +53,6 @@ extern void Marble_System_InitiateShutdown(int iRetCode);
 extern void Marble_System_RaiseFatalError(int iErrorCode);
 extern void Marble_System_SetAppState(_Bool blIsFatal, int iParameter, int iAppState);
 extern void Marble_System_ClearAppState(void);
-extern int  Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed);
+extern int  Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed, _Bool blIsFatalOnFailure);
 
 

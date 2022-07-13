@@ -1,12 +1,9 @@
 #include <application.h>
 
 
-int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpAsset) {
-	if (Marble_System_AllocateMemory(ptrpAsset, sizeof(Marble_ImageAsset), FALSE)) {
-		*ptrpAsset = NULL;
-
-		return Marble_ErrorCode_InternalParameter;
-	}
+int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpAsset) { MARBLE_ERRNO
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpAsset, sizeof(Marble_ImageAsset), FALSE, FALSE))
+		return iErrorCode;
 
 	(*ptrpAsset)->iAssetType       = Marble_AssetType_Image;
 	(*ptrpAsset)->uqwGlobalAssetId = Marble_AssetManager_RequestAssetId();
@@ -105,3 +102,5 @@ int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath) {
 
 	return Marble_ErrorCode_Parameter;
 }
+
+

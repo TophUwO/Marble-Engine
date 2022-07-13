@@ -81,20 +81,23 @@ void Marble_System_ClearAppState(void) {
 	};
 }
 
-int Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed) {
-	if (ptrpMemoryPointer && stSize) {
-		if (blNeedZeroed)
-			*ptrpMemoryPointer = calloc(1, stSize);
-		else
-			*ptrpMemoryPointer = malloc(stSize);
+int Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed, _Bool blIsFatalOnFailure) {
+	if (!ptrpMemoryPointer || !stSize)
+		return Marble_ErrorCode_InternalParameter;
 
-		if (!*ptrpMemoryPointer)
+	if (blNeedZeroed)
+		*ptrpMemoryPointer = calloc(1, stSize);
+	else
+		*ptrpMemoryPointer = malloc(stSize);
+
+	if (!*ptrpMemoryPointer) {
+		if (blIsFatalOnFailure)
 			Marble_System_RaiseFatalError(Marble_ErrorCode_MemoryAllocation);
 
-		return Marble_ErrorCode_Ok;
+		return Marble_ErrorCode_MemoryAllocation;
 	}
 
-	return Marble_ErrorCode_Parameter;
+	return Marble_ErrorCode_Ok;
 }
 
 

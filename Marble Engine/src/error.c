@@ -41,7 +41,9 @@ static TCHAR const *const gl_straErrorCodeStrings[] = {
 	TEXT("Marble_ErrorCode_WICDecoderGetFrame"),
 	TEXT("Marble_ErrorCode_WICCreateFormatConv"),
 	TEXT("Marble_ErrorCode_WICFormatConversion"),
-	TEXT("Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap")
+	TEXT("Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap"),
+	TEXT("Marble_ErrorCode_CreateDWriteFactory"),
+	TEXT("Marble_ErrorCode_CreateTextFormat")
 };
 static size_t const gl_stNumOfErrorCodeStrings = sizeof(gl_straErrorCodeStrings) / sizeof(*gl_straErrorCodeStrings);
 
@@ -85,21 +87,23 @@ static TCHAR const *const gl_straErrorCodeDescs[] = {
 	TEXT("Could not decode frame. Check parameters and system memory consumption."),
 	TEXT("Could not create WIC (windows imaging component) pixel format converter. Check parameters and memory usage."),
 	TEXT("Could not convert pixel format. This is usually due to parameter inconsistencies or invalid file formats."),
-	TEXT("Could not create Direct2D bitmap from WIC (windows imaging component) bitmap. There are perhaps format inconsistencies between the two bitmaps.")
+	TEXT("Could not create Direct2D bitmap from WIC (windows imaging component) bitmap. There are perhaps format inconsistencies between the two bitmaps."),
+	TEXT("Failed to create DirectWrite factory. Check parameters and memory consumption."),
+	TEXT("Failed to create text format. Check parameters. System may be out of usable memory.")
 	/* TODO: add more descriptions */
 };
 static size_t const gl_stNumOfErrorCodeDescs = sizeof(gl_straErrorCodeDescs) / sizeof(*gl_straErrorCodeDescs);
 
 
 TCHAR const *const Marble_Error_ToString(Marble_ErrorCode eErrorCode) {
-	if (eErrorCode < Marble_ErrorCode_Ok || eErrorCode >= gl_stNumOfErrorCodeStrings)
+	if (eErrorCode < Marble_ErrorCode_Ok || eErrorCode >= (int)gl_stNumOfErrorCodeStrings)
 		return Marble_Error_ToString(Marble_ErrorCode_UnimplementedFeature);
 
 	return gl_straErrorCodeStrings[eErrorCode];
 }
 
 TCHAR const *const Marble_Error_ToDesc(Marble_ErrorCode eErrorCode) {
-	if (eErrorCode < Marble_ErrorCode_Ok || eErrorCode >= gl_stNumOfErrorCodeDescs)
+	if (eErrorCode < Marble_ErrorCode_Ok || eErrorCode >= (int)gl_stNumOfErrorCodeDescs)
 		return Marble_Error_ToDesc(Marble_ErrorCode_UnimplementedFeature);
 
 	return gl_straErrorCodeDescs[eErrorCode];

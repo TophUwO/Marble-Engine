@@ -6,7 +6,7 @@ static ULONGLONG volatile gl_uqwGlobalAssetId = 0;
 
 
 #pragma region Marble_Asset
-int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *ptrCreateParams) {
+int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *ptrCreateParams) { MARBLE_ERRNO
 	extern int Marble_Atlas_Create(int iAtlasType, Marble_Atlas **ptrpAtlas);
 	extern int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpAsset);
 
@@ -14,7 +14,7 @@ int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *pt
 		switch (iAssetType) {
 			case Marble_AssetType_Atlas: {
 				struct Marble_Atlas_CreateParams *sCreateParams = (struct Marble_Atlas_CreateParams *)ptrCreateParams;
-				int iErrorCode = Marble_Atlas_Create(
+				iErrorCode = Marble_Atlas_Create(
 					sCreateParams->iAtlasType,
 					(Marble_Atlas **)ptrpAsset
 				);
@@ -53,14 +53,11 @@ int Marble_Asset_GetType(Marble_Asset *sAsset) {
 
 
 #pragma region Marble_AssetManager
-int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) {
+int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) { MARBLE_ERRNO
 	extern void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager);
 
-	if (Marble_System_AllocateMemory(ptrpAssetManager, sizeof(**ptrpAssetManager), FALSE)) {
-		*ptrpAssetManager = NULL;
-
-		return Marble_ErrorCode_InternalParameter;
-	}
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpAssetManager, sizeof(**ptrpAssetManager), FALSE, TRUE))
+		return iErrorCode;
 
 	Marble_IfError(
 		CoCreateInstance(
@@ -76,7 +73,6 @@ int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) {
 		}
 	);
 
-	int iErrorCode = 0;
 	Marble_IfError(
 		Marble_Util_Vector_Create(
 			&(*ptrpAssetManager)->sAtlases,
