@@ -12,13 +12,13 @@ struct GameLayerUserdata {
 
 
 static int GameLayer_OnPush(Marble_Layer *sLayer) {
-	struct Marble_Atlas_CreateParams const sAtlasCP = {
-		.iAtlasType = Marble_AtlasType_ColorAtlas
-	};
 	Marble_Asset *sAtlas = NULL;
-
-	Marble_Asset_Create(Marble_AssetType_Atlas, &sAtlas, &sAtlasCP);
-	Marble_ColorAtlas_LoadFromFile((Marble_ColorAtlas *)sAtlas, TEXT("..\\res\\test.mbasset"));
+	Marble_Asset_CreateAndLoadFromFile(
+		Marble_AssetType_ColorTable,
+		TEXT("..\\res\\test.mbasset"),
+		NULL,
+		&sAtlas
+	);
 	Marble_Asset_Register(sAssetManager, sAtlas);
 
 	return Marble_ErrorCode_Ok;
@@ -46,7 +46,7 @@ int Marble_Application_OnUserInit(void) {
 	Marble_Application_GetAssetManager(&sAssetManager);
 	Marble_Application_GetLayerStack(&sLayerStack);
 
-	Marble_Layer_Create(&sGameLayer, TRUE);
+	Marble_Layer_Create(TRUE, &sGameLayer);
 	Marble_Layer_SetUserdata(sGameLayer, &sUserdata);
 	struct Marble_Layer_Callbacks sCallbacks = {
 		.OnPush   = &GameLayer_OnPush,

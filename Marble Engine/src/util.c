@@ -251,7 +251,7 @@ int Marble_Util_FileStream_ReadSize(Marble_Util_FileStream *sFileStream, size_t 
 	if (!sFileStream || !ptrDest || !stSizeInBytes)
 		return Marble_ErrorCode_Parameter;
 
-	if (fread(ptrDest, stSizeInBytes, 1, sFileStream->flpFilePointer) ^ stSizeInBytes)
+	if (fread(ptrDest, stSizeInBytes, 1, sFileStream->flpFilePointer) ^ 1)
 		return Marble_ErrorCode_ReadFromFile;
 
 	return Marble_ErrorCode_Ok;

@@ -57,7 +57,7 @@ void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack) {
 }
 
 
-int Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled) { MARBLE_ERRNO
+int Marble_Layer_Create(_Bool blIsEnabled, Marble_Layer **ptrpLayer) { MARBLE_ERRNO
 	if (ptrpLayer) {
 		if (iErrorCode = Marble_System_AllocateMemory(ptrpLayer, sizeof(**ptrpLayer), FALSE, TRUE))
 			return iErrorCode;

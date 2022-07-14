@@ -15,12 +15,4 @@ typedef struct Marble_Asset {
 	int       iAssetType;
 } Marble_Asset;
 
-typedef struct Marble_ImageAsset {
-	Marble_Asset;
-
-	union {
-		ID2D1Bitmap *sD2DBitmap;
-	};
-} Marble_ImageAsset;
-
 

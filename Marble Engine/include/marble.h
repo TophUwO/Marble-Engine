@@ -9,6 +9,7 @@ enum Marble_AssetType {
 	Marble_AssetType_Unknown,
 
 	Marble_AssetType_Atlas,
+	Marble_AssetType_ColorTable,
 	Marble_AssetType_Image
 };
 
@@ -24,7 +25,6 @@ typedef struct Marble_Asset        Marble_Asset;
 typedef struct Marble_Atlas        Marble_Atlas;
 typedef struct Marble_Renderer     Marble_Renderer;
 typedef struct Marble_Window       Marble_Window;
-typedef struct Marble_ColorAtlas   Marble_ColorAtlas;
 typedef struct Marble_AssetManager Marble_AssetManager;
 typedef struct Marble_LayerStack   Marble_LayerStack;
 
@@ -49,12 +49,9 @@ MARBLE_API void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles,
 MARBLE_API void Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsEnabled);
 MARBLE_API void Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled);
 
-MARBLE_API int        Marble_ColorAtlas_LoadFromFile(Marble_ColorAtlas *sAtlas, TCHAR const *strPath);
-MARBLE_API int inline Marble_ColorAtlas_GetColorByIndex(Marble_ColorAtlas *sAtlas, size_t stIndex, void *ptrColor);
+MARBLE_API int inline Marble_ColorTable_GetColorByIndex(Marble_Asset *sColorTable, size_t stIndex, void *ptrColor);
 
-MARBLE_API int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath);
-
-MARBLE_API int           Marble_Layer_Create(Marble_Layer **ptrpLayer, _Bool blIsEnabled);
+MARBLE_API int           Marble_Layer_Create(_Bool blIsEnabled, Marble_Layer **ptrpLayer);
 MARBLE_API int           Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost);
 MARBLE_API Marble_Layer *Marble_Layer_Pop(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost);
 MARBLE_API void inline  *Marble_Layer_GetUserdata(Marble_Layer *sLayer);
@@ -63,7 +60,9 @@ MARBLE_API void inline   Marble_Layer_SetEnabled(Marble_Layer *sLayer, _Bool blI
 MARBLE_API void inline   Marble_Layer_SetCallbacks(Marble_Layer *sLayer, struct Marble_Layer_Callbacks const *sCallbacks);
 MARBLE_API void inline  *Marble_Layer_SetUserdata(Marble_Layer *sLayer, void *ptrUserdata);
 
-MARBLE_API int  Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *ptrCreateParams);
+MARBLE_API int  Marble_Asset_Create(int iAssetType, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
+MARBLE_API int  Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath);
+MARBLE_API int  Marble_Asset_CreateAndLoadFromFile(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
 MARBLE_API void Marble_Asset_Destroy(Marble_Asset **ptrpAsset);
 MARBLE_API int  Marble_Asset_GetType(Marble_Asset *sAsset);
 MARBLE_API int  Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset);

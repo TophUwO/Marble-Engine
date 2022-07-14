@@ -6,44 +6,75 @@ static ULONGLONG volatile gl_uqwGlobalAssetId = 0;
 
 
 #pragma region Marble_Asset
-int Marble_Asset_Create(int iAssetType, Marble_Asset **ptrpAsset, void const *ptrCreateParams) { MARBLE_ERRNO
-	extern int Marble_Atlas_Create(int iAtlasType, Marble_Atlas **ptrpAtlas);
-	extern int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpAsset);
+int Marble_Asset_Create(int iAssetType, void const *ptrCreateParams, Marble_Asset **ptrpAsset) { MARBLE_ERRNO
+	extern int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpImageAsset);
+	extern int Marble_Asset_CreateColorTableAsset(Marble_Asset **ptrpColorTable);
 
 	if (ptrpAsset) {
 		switch (iAssetType) {
-			case Marble_AssetType_Atlas: {
-				struct Marble_Atlas_CreateParams *sCreateParams = (struct Marble_Atlas_CreateParams *)ptrCreateParams;
-				iErrorCode = Marble_Atlas_Create(
-					sCreateParams->iAtlasType,
-					(Marble_Atlas **)ptrpAsset
-				);
+			case Marble_AssetType_Image:      iErrorCode = Marble_Asset_CreateImageAsset(ptrpAsset); break;
+			case Marble_AssetType_ColorTable: iErrorCode = Marble_Asset_CreateColorTableAsset(ptrpAsset); break;
+			default:
+				*ptrpAsset = NULL;
 
-				if (!iErrorCode) {
-					((Marble_Asset *)*ptrpAsset)->iAssetType       = iAssetType;
-					((Marble_Asset *)*ptrpAsset)->uqwGlobalAssetId = InterlockedIncrement64(&gl_uqwGlobalAssetId);
-				}
-
-				return iErrorCode;
-			}
-			case Marble_AssetType_Image: return Marble_Asset_CreateImageAsset(ptrpAsset);
+				return Marble_ErrorCode_AssetType;
 		}
 
-		*ptrpAsset = NULL;
-		return Marble_ErrorCode_AssetType;
+		/* Free generic asset structure */
+		if (iErrorCode)
+			Marble_Asset_Destroy(ptrpAsset);
+
+		return iErrorCode;
 	}
 
 	return Marble_ErrorCode_Parameter;
 }
 
 void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
-	extern void Marble_Atlas_Destroy(Marble_Atlas **ptrpAtlas);
+	extern void Marble_ImageAsset_Destroy(Marble_Asset *sImage);
+	extern void Marble_ColorTableAsset_Destroy(Marble_Asset *sColorTable);
 
-	if (ptrpAsset && *ptrpAsset) {
-		switch ((*ptrpAsset)->iAssetType) {
-			case Marble_AssetType_Atlas: Marble_Atlas_Destroy((Marble_Atlas **)ptrpAsset);
-		}
+	if (!ptrpAsset || !*ptrpAsset)
+		return;
+
+	switch ((*ptrpAsset)->iAssetType) {
+		case Marble_AssetType_Image:      Marble_ImageAsset_Destroy(*ptrpAsset);
+		case Marble_AssetType_ColorTable: Marble_ColorTableAsset_Destroy(*ptrpAsset);
 	}
+
+	free(*ptrpAsset);
+	*ptrpAsset = NULL;
+}
+
+int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath) {
+	extern int Marble_ImageAsset_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath);
+	extern int Marble_ColorTableAsset_LoadFromFile(Marble_Asset *sColorTable, TCHAR const *strPath);
+
+	if (!sAsset || !strPath || !*strPath)
+		return Marble_ErrorCode_Parameter;
+
+	switch (sAsset->iAssetType) {
+		case Marble_AssetType_Image:      return Marble_ImageAsset_LoadFromFile(sAsset, strPath);
+		case Marble_AssetType_ColorTable: return Marble_ColorTableAsset_LoadFromFile(sAsset, strPath);
+	}
+
+	return Marble_ErrorCode_AssetType;
+}
+
+int Marble_Asset_CreateAndLoadFromFile(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset) { MARBLE_ERRNO
+	if (!ptrpAsset || !strPath || !*strPath)
+		return Marble_ErrorCode_Parameter;
+
+	if (iErrorCode = Marble_Asset_Create(iAssetType, ptrCreateParams, ptrpAsset))
+		return iErrorCode;
+
+	if (iErrorCode = Marble_Asset_LoadFromFile(*ptrpAsset, strPath)) {
+		Marble_Asset_Destroy(ptrpAsset);
+
+		return iErrorCode;
+	}
+
+	return Marble_ErrorCode_Ok;
 }
 
 int Marble_Asset_GetType(Marble_Asset *sAsset) {

@@ -1,18 +1,28 @@
 #include <application.h>
 
 
-int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpAsset) { MARBLE_ERRNO
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpAsset, sizeof(Marble_ImageAsset), FALSE, FALSE))
+typedef struct Marble_ImageAsset {
+	Marble_Asset;
+
+	union {
+		ID2D1Bitmap *sD2DBitmap;
+	};
+} Marble_ImageAsset;
+
+
+int Marble_Asset_CreateImageAsset(Marble_ImageAsset **ptrpImageAsset) { MARBLE_ERRNO
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpImageAsset, sizeof(Marble_ImageAsset), TRUE, FALSE))
 		return iErrorCode;
 
-	(*ptrpAsset)->iAssetType       = Marble_AssetType_Image;
-	(*ptrpAsset)->uqwGlobalAssetId = Marble_AssetManager_RequestAssetId();
+	(*ptrpImageAsset)->iAssetType       = Marble_AssetType_Image;
+	(*ptrpImageAsset)->uqwGlobalAssetId = Marble_AssetManager_RequestAssetId();
 
 	return Marble_ErrorCode_Ok;
 }
 
-int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath) {
-	if (sImage && strPath) {
+
+int Marble_ImageAsset_LoadFromFile(Marble_ImageAsset *sImageAsset, TCHAR const *strPath) {
+	if (sImageAsset && strPath) {
 		IWICBitmapDecoder     *sWICDecoder      = NULL;
 		IWICBitmapFrameDecode *sWICFrameDecoder = NULL;
 		IWICFormatConverter   *sWICFmtConverter = NULL;
@@ -77,13 +87,12 @@ int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath) {
 		);
 
 		/* Create Direct2D bitmap */
-		Marble_ImageAsset *sAcImage = (Marble_ImageAsset *)sImage;
 		Marble_IfError(
 			D2DWr_DeviceContext_CreateBitmapFromWicBitmap(
 				gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext,
 				(IWICBitmapSource *)sWICFmtConverter,
 				NULL,
-				(ID2D1Bitmap1 **)&sAcImage->sD2DBitmap
+				(ID2D1Bitmap1 **)&sImageAsset->sD2DBitmap
 			), S_OK, {
 				sWICDecoder->lpVtbl->Release(sWICDecoder);
 				sWICFrameDecoder->lpVtbl->Release(sWICFrameDecoder);
@@ -101,6 +110,13 @@ int Marble_Image_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath) {
 	}
 
 	return Marble_ErrorCode_Parameter;
+}
+
+void Marble_ImageAsset_Destroy(Marble_ImageAsset *sImage) {
+	if (!sImage)
+		return;
+
+	D2DWr_Bitmap_Release(sImage->sD2DBitmap);
 }
 
 
