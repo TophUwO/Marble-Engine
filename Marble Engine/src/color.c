@@ -81,7 +81,7 @@ int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, TCH
 		Marble_IfError(
 			iErrorCode = Marble_Util_FileStream_ReadSize(sStream, stEntrySize, ptrColorEntry),
 			Marble_ErrorCode_Ok, {
-				Marble_Util_Vector_Clear(&sColorTable->sColorTable, TRUE);
+				Marble_Util_Vector_Clear(&sColorTable->sColorTable, TRUE, FALSE);
 	
 				goto ON_ERROR;
 			}
