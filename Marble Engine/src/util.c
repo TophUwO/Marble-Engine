@@ -53,29 +53,31 @@ int Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCap
 }
 
 void Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector) {
-	if (ptrpVector && *ptrpVector) {
+	if (!ptrpVector || !*ptrpVector)
+		return;
+
+	Marble_Util_Vector_Internal_FreeElements(*ptrpVector);
+
+	free((*ptrpVector)->ptrpData);
+	free(*ptrpVector);
+	*ptrpVector = NULL;
+}
+
+void Marble_Util_Vector_Clear(Marble_Util_Vector **ptrpVector, _Bool blDoFree, _Bool blDoDownsize) {
+	if (!ptrpVector || !*ptrpVector)
+		return;
+
+	if (blDoFree)
 		Marble_Util_Vector_Internal_FreeElements(*ptrpVector);
+	(*ptrpVector)->stSize = 0;
 
-		free((*ptrpVector)->ptrpData);
-		free(*ptrpVector);
-		*ptrpVector = NULL;
-	}
+	if (blDoDownsize && Marble_Util_Vector_Internal_Reallocate(*ptrpVector, (*ptrpVector)->stStartCapacity))
+		Marble_Util_Vector_Destroy(ptrpVector);
+
+	memset((*ptrpVector)->ptrpData, 0, sizeof(*(*ptrpVector)->ptrpData) * (*ptrpVector)->stStartCapacity);
 }
 
-void Marble_Util_Vector_Clear(Marble_Util_Vector **ptrpVector, _Bool blDoFree) {
-	if (ptrpVector && *ptrpVector) {
-		if (blDoFree)
-			Marble_Util_Vector_Internal_FreeElements(*ptrpVector);
-		(*ptrpVector)->stSize = 0;
-
-		if (Marble_Util_Vector_Internal_Reallocate(*ptrpVector, (*ptrpVector)->stStartCapacity))
-			Marble_Util_Vector_Destroy(ptrpVector);
-
-		memset((*ptrpVector)->ptrpData, 0, sizeof(*(*ptrpVector)->ptrpData) * (*ptrpVector)->stStartCapacity);
-	}
-}
-
-void Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, int (*onDestroy)(void **ptrpObject)) {
+void Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, void (*onDestroy)(void **ptrpObject)) {
 	sVector->onDestroy = onDestroy;
 }
 
@@ -96,10 +98,9 @@ void *Marble_Util_Vector_PopFront(Marble_Util_Vector *sVector, _Bool blDoFree) {
 }
 
 int Marble_Util_Vector_Insert(Marble_Util_Vector *sVector, size_t stIndex, void *ptrObject) { MARBLE_ERRNO
-	if (sVector->stSize >= sVector->stCapacity) {
+	if (sVector->stSize >= sVector->stCapacity)
 		if (iErrorCode = Marble_Util_Vector_Internal_Reallocate(sVector, sVector->stCapacity + (size_t)(gl_dblDefCapacityMultiplier * sVector->stCapacity)))
 			return iErrorCode;
-	}
 
 	memmove(
 		&sVector->ptrpData[stIndex + 1], 
@@ -115,18 +116,36 @@ void *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, size_t stIndex, _Boo
 	if (stIndex >= sVector->stSize)
 		return (void *)Marble_ErrorCode_ArraySubscript;
 
-	if (sVector->onDestroy && blDoFree)
-		sVector->onDestroy(&sVector->ptrpData[stIndex]);
-
 	void *ptrRet = sVector->ptrpData[stIndex];
+	if (sVector->onDestroy && blDoFree) {
+		sVector->onDestroy(&ptrRet);
+		
+		/* 
+			* It's very likely that onDestroy will already zero <ptrRet> 
+			* (all internal clean-up functions used for this container do);
+			* However, this API may be exposed to the user at some point, hence
+			* we have no control over what the function will do to the pointer itself,
+			* so we just zero it just to make sure.
+		*/
+		ptrRet = NULL;
+	}
+
+	/*
+		* Overwrite deleted (thus, now invalid) index with the memory block that follows it until
+		* the end by moving the block by -1 indices.
+	*/
 	memmove(
 		&sVector->ptrpData[stIndex],
 		&sVector->ptrpData[stIndex + 1], 
 		(sVector->stSize - stIndex) * sizeof(*sVector->ptrpData)
 	);
+	/*
+		* To avoid having the last element twice (due to memmove not actually moving, but copying
+		* blocks while supporting overlapping as opposed to memcpy), we just zero it.
+	*/
 	sVector->ptrpData[--sVector->stSize] = NULL;
 
-	return ptrRet ? ptrRet : (void *)Marble_ErrorCode_Ok;
+	return ptrRet;
 }
 
 size_t Marble_Util_Vector_Find(Marble_Util_Vector *sVector, void *ptrObject, size_t stStartIndex, size_t stEndIndex) {
@@ -223,12 +242,13 @@ int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_U
 }
 
 void Marble_Util_FileStream_Destroy(Marble_Util_FileStream **ptrpFileStream) {
-	if (ptrpFileStream && *ptrpFileStream) {
-		Marble_Util_FileStream_Close(*ptrpFileStream);
+	if (!ptrpFileStream || !*ptrpFileStream)
+		return;
 
-		free(*ptrpFileStream);
-		*ptrpFileStream = NULL;
-	}
+	Marble_Util_FileStream_Close(*ptrpFileStream);
+
+	free(*ptrpFileStream);
+	*ptrpFileStream = NULL;
 }
 
 void Marble_Util_FileStream_Close(Marble_Util_FileStream *sFileStream) {
@@ -237,14 +257,13 @@ void Marble_Util_FileStream_Close(Marble_Util_FileStream *sFileStream) {
 }
 
 int Marble_Util_FileStream_Goto(Marble_Util_FileStream *sFileStream, size_t stNewPos) {
-	if (sFileStream) {
-		if (_fseeki64(sFileStream->flpFilePointer, stNewPos, SEEK_SET))
-			return Marble_ErrorCode_GotoFilePosition;
+	if (!sFileStream)
+		return Marble_ErrorCode_InternalParameter;
 
-		return Marble_ErrorCode_Ok;
-	}
+	if (_fseeki64(sFileStream->flpFilePointer, stNewPos, SEEK_SET))
+		return Marble_ErrorCode_GotoFilePosition;
 
-	return Marble_ErrorCode_Parameter;
+	return Marble_ErrorCode_Ok;
 }
 
 int Marble_Util_FileStream_ReadSize(Marble_Util_FileStream *sFileStream, size_t stSizeInBytes, void *ptrDest) {
@@ -271,6 +290,159 @@ int Marble_Util_FileStream_ReadDWORD(Marble_Util_FileStream *sFileStream, uint32
 
 int Marble_Util_FileStream_ReadQWORD(Marble_Util_FileStream *sFileStream, uint64_t *qwpDest) {
 	return Marble_Util_FileStream_ReadSize(sFileStream, sizeof(uint64_t), qwpDest);
+}
+#pragma endregion
+
+
+#pragma region Marble_Util_HashTable
+#define MARBLE_DEFNUMOFBUCKETS (64)
+
+
+static uint32_t inline Marble_Util_HashTable_Internal_MurmurHash(CHAR const *astrKey) {
+	/* https://github.com/jwerle/murmurhash.c/blob/master/murmurhash.c */
+
+	uint32_t c1 = 0xcc9e2d51;
+	uint32_t c2 = 0x1b873593;
+	uint32_t r1 = 15;
+	uint32_t r2 = 13;
+	uint32_t m  = 5;
+	uint32_t n  = 0xe6546b64;
+	uint32_t h  = 0;
+	uint32_t k  = 0;
+	uint8_t *d  = (uint8_t *)astrKey;
+
+	const uint32_t *chunks = NULL;
+	const uint8_t  *tail   = NULL;
+	int i = 0;
+	int const iLen = (int)strlen(astrKey);
+	int l = iLen / 4;
+	
+	h = gl_sApplication.ui32HashSeed;
+
+	chunks = (const uint32_t *)(d + (size_t)l * 4);
+	tail   = (const uint8_t *)(d + (size_t)l * 4);
+
+	for (i = -l; i != 0; ++i) {
+		k = chunks[i];
+
+		k *= c1;
+		k = (k << r1) | (k >> (32 - r1));
+		k *= c2;
+
+		h ^= k;
+		h = (h << r2) | (h >> (32 - r2));
+		h = h * m + n;
+	}
+	k = 0;
+
+	switch (iLen & 3) {
+		case 3: k ^= (tail[2] << 16);
+		case 2: k ^= (tail[1] << 8);
+		case 1:
+			k ^= tail[0];
+			k *= c1;
+			k = (k << r1) | (k >> (32 - r1));
+			k *= c2;
+			h ^= k;
+	}
+	h ^= iLen;
+
+	h ^= (h >> 16);
+	h *= 0x85ebca6b;
+	h ^= (h >> 13);
+	h *= 0xc2b2ae35;
+	h ^= (h >> 16);
+
+	return h;
+}
+
+static size_t inline Marble_Util_HashTable_Internal_Hash(Marble_Util_HashTable *sHashTable, CHAR const *astrKey) {
+	return (size_t)Marble_Util_HashTable_Internal_MurmurHash(astrKey) % sHashTable->stBucketCount;
+}
+
+/*
+	* Attempt to locate element; if the element can be located, the function will 
+	* return non-zero, both populating <stBucketIndex> and <stVecIndex>. If the element
+	* cannot be found, the function will return zero and <stVecIndex> will be 0.
+*/
+static _Bool Marble_Util_HashTable_Internal_Locate(Marble_Util_HashTable *sHashTable, CHAR const *strKey, void *ptrElement, size_t *stpBucketIndex, size_t *stpVecIndex) {
+	if (!sHashTable->ptrpStorage[*stpBucketIndex = Marble_Util_HashTable_Internal_Hash(sHashTable, strKey)]) {
+		*stpVecIndex = 0;
+
+		return FALSE;
+	}
+
+	return (_Bool)(*stpVecIndex = Marble_Util_Vector_Find(sHashTable->ptrpStorage[*stpBucketIndex], ptrElement, 0, 0) ^ (size_t)(-1));
+}
+
+
+int Marble_Util_HashTable_Create(Marble_Util_HashTable **ptrpHashTable, size_t stNumOfBuckets, void (*onDestroy)(void **ptrpObject)) { MARBLE_ERRNO
+	if (!ptrpHashTable)
+		return Marble_ErrorCode_InternalParameter;
+
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpHashTable, sizeof(**ptrpHashTable), FALSE, FALSE))
+		return iErrorCode;
+
+	(*ptrpHashTable)->onDestroy     = onDestroy;
+	(*ptrpHashTable)->stBucketCount = stNumOfBuckets ? stNumOfBuckets : MARBLE_DEFNUMOFBUCKETS;
+	if (iErrorCode = Marble_System_AllocateMemory((void **)&(*ptrpHashTable)->ptrpStorage, sizeof(*(*ptrpHashTable)->ptrpStorage) * (*ptrpHashTable)->stBucketCount, TRUE, FALSE)) {
+		Marble_Util_HashTable_Destroy(ptrpHashTable);
+
+		return iErrorCode;
+	}
+
+	return Marble_ErrorCode_Ok;
+}
+
+void Marble_Util_HashTable_Destroy(Marble_Util_HashTable **ptrpHashTable) {
+	if (!ptrpHashTable || !*ptrpHashTable)
+		return;
+
+	/* Free-up bucket resources */
+	if ((*ptrpHashTable)->ptrpStorage)
+		for (size_t stIndex = 0; stIndex < (*ptrpHashTable)->stBucketCount; stIndex++)
+			Marble_Util_Vector_Destroy(&(*ptrpHashTable)->ptrpStorage[stIndex]);
+
+	/* Free hash table memory itself */
+	free((*ptrpHashTable)->ptrpStorage);
+	free(*ptrpHashTable);
+	*ptrpHashTable = NULL;
+}
+
+void Marble_Util_HashTable_SetOnDestroy(Marble_Util_HashTable *sHashTable, void (*onDestroy)(void **ptrpObject)) {
+	if (sHashTable)
+		sHashTable->onDestroy = onDestroy;
+}
+
+int Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blAllowDuplicate) { MARBLE_ERRNO
+	size_t stBucketIndex = 0, stVecIndex = 0;
+
+	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, ptrObject, &stBucketIndex, &stVecIndex))
+		if (!blAllowDuplicate)
+			return Marble_ErrorCode_DuplicatesNotAllowed;
+
+	/* 
+		* <stBucketIndex> will always be populated with the hash index, hence we can just use
+		* it here without having to verify it. We may still have to create the bucket
+		* in case it does not already exist.
+	*/
+	if (!sHashTable->ptrpStorage[stBucketIndex])
+		if (iErrorCode = Marble_Util_Vector_Create(&sHashTable->ptrpStorage[stBucketIndex], 32, sHashTable->onDestroy))
+			return iErrorCode;
+
+	return Marble_Util_Vector_PushBack(sHashTable->ptrpStorage[stBucketIndex], ptrObject);
+}
+
+int Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blDoFree) {
+	size_t stBucketIndex = 0, stVecIndex = 0;
+	
+	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, ptrObject, &stBucketIndex, &stVecIndex)) {
+		void *ptrElem = Marble_Util_Vector_Erase(sHashTable->ptrpStorage[stBucketIndex], stVecIndex, blDoFree);
+
+		return Marble_ErrorCode_Ok;
+	}
+
+	return Marble_ErrorCode_ElementNotFound;
 }
 #pragma endregion
 

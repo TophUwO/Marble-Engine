@@ -29,6 +29,7 @@ extern struct Marble_Application {
 	LARGE_INTEGER uPerfFreq;
 	LARGE_INTEGER uFTLast;
 	HANDLE        htMainThread;
+	uint32_t      ui32HashSeed;
 	struct Marble_Application_AppState {
 		int   iState;
 		_Bool blIsFatal;
@@ -40,8 +41,6 @@ extern struct Marble_Application {
 	Marble_AssetManager *sAssets;
 	Marble_LayerStack   *sLayers;
 } gl_sApplication;
-
-extern ULONGLONG volatile Marble_AssetManager_RequestAssetId(void);
 
 extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
 extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);

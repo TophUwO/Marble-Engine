@@ -43,7 +43,9 @@ static TCHAR const *const gl_straErrorCodeStrings[] = {
 	TEXT("Marble_ErrorCode_WICFormatConversion"),
 	TEXT("Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap"),
 	TEXT("Marble_ErrorCode_CreateDWriteFactory"),
-	TEXT("Marble_ErrorCode_CreateTextFormat")
+	TEXT("Marble_ErrorCode_CreateTextFormat"),
+	TEXT("Marble_ErrorCode_ElementNotFound"),
+	TEXT("Marble_ErrorCode_DuplicatesNotAllowed")
 };
 static size_t const gl_stNumOfErrorCodeStrings = sizeof(gl_straErrorCodeStrings) / sizeof(*gl_straErrorCodeStrings);
 
@@ -89,7 +91,9 @@ static TCHAR const *const gl_straErrorCodeDescs[] = {
 	TEXT("Could not convert pixel format. This is usually due to parameter inconsistencies or invalid file formats."),
 	TEXT("Could not create Direct2D bitmap from WIC (windows imaging component) bitmap. There are perhaps format inconsistencies between the two bitmaps."),
 	TEXT("Failed to create DirectWrite factory. Check parameters and memory consumption."),
-	TEXT("Failed to create text format. Check parameters. System may be out of usable memory.")
+	TEXT("Failed to create text format. Check parameters. System may be out of usable memory."),
+	TEXT("Element could not be found in this container."),
+	TEXT("Duplicates are not allowed in this container.")
 	/* TODO: add more descriptions */
 };
 static size_t const gl_stNumOfErrorCodeDescs = sizeof(gl_straErrorCodeDescs) / sizeof(*gl_straErrorCodeDescs);

@@ -98,7 +98,6 @@ static void inline Marble_Application_Internal_RunUserInitialization(int *ipErro
 }
 #pragma endregion
 
-Marble_TextFormat *sFmt = NULL;
 static int Marble_Application_Internal_UpdateAndRender(float fFrameTime) {
 	Marble_Renderer_BeginDraw(gl_sApplication.sRenderer);
 
@@ -127,13 +126,6 @@ static int Marble_Application_Internal_UpdateAndRender(float fFrameTime) {
 	D2D1_COLOR_F sColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 	ID2D1SolidColorBrush *sBrush = NULL;
 	D2DWr_DeviceContext_CreateSolidColorBrush(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sColor, &sBrushProps, &sBrush);
-	Marble_Renderer_DrawText(
-		gl_sApplication.sRenderer,
-		L"Hello, world!",
-		sFmt,
-		100,100,
-		(ID2D1Brush *)sBrush
-	);
 	D2DWr_DeviceContext_FillRectangle(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sRect, (ID2D1Brush *)sBrush);
 
 	D2DWr_SolidColorBrush_Release(sBrush);
@@ -176,15 +168,6 @@ MARBLE_API int Marble_Application_Initialize(HINSTANCE hiInstance, PSTR astrComm
 	Marble_Application_Internal_CreateLayerStack(&iErrorCode);
 	Marble_Application_Internal_CreateAssetManager(&iErrorCode);
 	Marble_Application_Internal_RunUserInitialization(&iErrorCode, OnUserInit);
-
-	Marble_Renderer_CreateTextFormat(
-		gl_sApplication.sRenderer,
-		L"Times New Roman",
-		36.0f,
-		Marble_FontWeight_Black,
-		Marble_FontStyle_Italic,
-		&sFmt
-	);
 
 	/* At last, present window after user has (possibly) made some modifications. */
 	if (!iErrorCode) {

@@ -69,7 +69,6 @@ extern void Marble_Renderer_BeginDraw(Marble_Renderer *sRenderer);
 extern void Marble_Renderer_EndDraw(Marble_Renderer *sRenderer);
 extern int  Marble_Renderer_Present(Marble_Renderer **ptrpRenderer);
 extern void Marble_Renderer_Resize(Marble_Renderer **ptrpRenderer, UINT uiNewWidth, UINT uiNewHeight);
-extern void Marble_Renderer_DrawText(Marble_Renderer *sRenderer, WCHAR const *wstrText, Marble_TextFormat *sFormat, int iXPos, int iYPos, ID2D1Brush *sBrush);
 extern int  Marble_Renderer_CreateTextFormat(Marble_Renderer *sRenderer, WCHAR const *wstrFamily, float fSize, Marble_FontWeight eWeight, Marble_FontStyle eStyle, Marble_TextFormat **ptrpTextFormat);
 extern void Marble_Renderer_DestroyTextFormat(Marble_TextFormat **ptrpTextFormat);
 

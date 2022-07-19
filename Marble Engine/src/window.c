@@ -220,10 +220,10 @@ void Marble_Window_Update(Marble_Window *sWindow, float fFrameTime) {
 /// for current monitor), the functions calculates the largest adequate dimensions that at least
 /// closely fit the original aspect ratio of the given dimensions.
 /// </summary>
-/// <param name="sWindow"> window handle previously obtained by Marble_Application_GetMainWindow() </param>
-/// <param name="iWidthInTiles"> width in tiles (width_in_pixels = iWidthInTiles * iTileSize) </param>
-/// <param name="iHeightInTiles">height in tiles (height_in_pixels = iHeightInTiles * iTileSize) </param>
-/// <param name="iTileSize">tile size in pixels</param>
+/// <param name="sWindow"> > Window handle previously obtained by Marble_Application_GetMainWindow() </param>
+/// <param name="iWidthInTiles"> > Width in tiles (width_in_pixels = iWidthInTiles * iTileSize) </param>
+/// <param name="iHeightInTiles"> > Height in tiles (height_in_pixels = iHeightInTiles * iTileSize) </param>
+/// <param name="iTileSize"> > Tile size in pixels</param>
 /// <returns>nothing</returns>
 void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeightInTiles, int iTileSize) {
 	if (!sWindow || !iWidthInTiles || !iHeightInTiles || !iTileSize)

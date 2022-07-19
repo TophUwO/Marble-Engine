@@ -14,7 +14,7 @@ typedef enum Marble_AssetDependencies {
 
 
 typedef struct Marble_AssetManager {
-	Marble_Util_Vector *sAtlases;
+	Marble_Util_HashTable *sHashTable;
 
 	IWICImagingFactory *sWICFactory;
 } Marble_AssetManager;

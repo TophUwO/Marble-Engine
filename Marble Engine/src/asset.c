@@ -3,7 +3,7 @@
 
 
 #pragma region Marble_Asset
-static void Marble_Asset_Internal_CopyAssetId(Marble_AssetHead *sAssetHead, CHAR const *astrId) {
+static void Marble_Asset_Internal_CopyAssetId(Marble_AssetHead *sAssetHead, CHAR *astrId) {
 	memcpy_s(astrId, MARBLE_ASSETIDLEN, sAssetHead->astrAssetId, MARBLE_ASSETIDLEN);
 }
 
@@ -147,7 +147,7 @@ int Marble_Asset_CreateAndLoadFromFileExplicit(int iAssetType, TCHAR const *strP
 }
 
 int Marble_Asset_CreateAndLoadFromFile(TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset) {
-
+	return Marble_ErrorCode_UnimplementedFeature;
 }
 
 int Marble_Asset_GetType(Marble_Asset *sAsset) {
@@ -178,8 +178,8 @@ int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) { MARBLE_
 	);
 
 	Marble_IfError(
-		Marble_Util_Vector_Create(
-			&(*ptrpAssetManager)->sAtlases,
+		Marble_Util_HashTable_Create(
+			&(*ptrpAssetManager)->sHashTable,
 			64, 
 			(void (*)(void **))&Marble_Asset_Destroy
 		), Marble_ErrorCode_Ok, {
@@ -194,7 +194,7 @@ int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) { MARBLE_
 
 void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager) {
 	if (ptrpAssetManager && *ptrpAssetManager) {
-		Marble_Util_Vector_Destroy(&(*ptrpAssetManager)->sAtlases);
+		Marble_Util_HashTable_Destroy(&(*ptrpAssetManager)->sHashTable);
 
 		if ((*ptrpAssetManager)->sWICFactory)
 			(*ptrpAssetManager)->sWICFactory->lpVtbl->Release((*ptrpAssetManager)->sWICFactory);
@@ -204,9 +204,19 @@ void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager) {
 	}
 }
 
+/// <summary>
+/// int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset)
+/// 
+/// Attempt to register asset (i.e. transfer ownership of asset pointer from user to engine);
+/// If the asset does already exist or it cannot be registered, the ownership will not be
+/// transferred, meaning that the user will still have to take care of destroying the asset.
+/// </summary>
+/// <param name="Marble_AssetManager *sAssetManager"> > Asset manager to register asset in </param>
+/// <param name="Marble_Asset *sAsset"> > Asset to register </param>
+/// <returns>Non-zero on error; 0 on success. </returns>
 int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset) {
 	if (sAsset && sAssetManager)
-		return Marble_Util_Vector_PushBack(sAssetManager->sAtlases, sAsset); // for testing
+		return Marble_Util_HashTable_Insert(sAssetManager->sHashTable, sAsset->astrAssetId, sAsset, FALSE);
 
 	return Marble_ErrorCode_Parameter;
 }

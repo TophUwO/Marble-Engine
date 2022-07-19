@@ -340,10 +340,6 @@ static void Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(Marble_
 	}
 }
 
-static DWRITE_FONT_WEIGHT inline Marble_Renderer_Internal_Direct2DRenderer_toDWriteFontWeight(int iWeight) {
-	
-}
-
 static int Marble_Renderer_Internal_Direct2DRenderer_CreateTextFormat(Marble_Renderer *sRenderer, WCHAR const *wstrFamily, float fSize, Marble_FontWeight eWeight, Marble_FontStyle eStyle, Marble_TextFormat **ptrpTextFormat) {
 	if (!wstrFamily || !*wstrFamily || fSize == 0.0f) {
 		*ptrpTextFormat = NULL;
@@ -503,25 +499,6 @@ void Marble_Renderer_DestroyTextFormat(Marble_TextFormat **ptrpTextFormat) {
 
 	free(*ptrpTextFormat);
 	*ptrpTextFormat = NULL;
-}
-
-
-void Marble_Renderer_DrawText(Marble_Renderer *sRenderer, WCHAR const *wstrText, Marble_TextFormat *sFormat, int iXPos, int iYPos, ID2D1Brush *sBrush) {
-	// TODO: abstract away
-	D2D1_RECT_F sPos = {
-		iXPos, iYPos, 200, 200
-	};
-
-	D2DWr_DeviceContext_DrawText(
-		sRenderer->sD2DRenderer.sD2DDevContext,
-		L"Hello, world!",
-		13,
-		sFormat->sDWriteTextFormat,
-		&sPos,
-		sBrush,
-		D2D1_DRAW_TEXT_OPTIONS_NONE,
-		DWRITE_MEASURING_MODE_NATURAL
-	);
 }
 
 

@@ -45,7 +45,9 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_WICFormatConversion,
 	Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap,
 	Marble_ErrorCode_CreateDWriteFactory,
-	Marble_ErrorCode_CreateTextFormat
+	Marble_ErrorCode_CreateTextFormat,
+	Marble_ErrorCode_ElementNotFound,
+	Marble_ErrorCode_DuplicatesNotAllowed
 } Marble_ErrorCode;
 
 
