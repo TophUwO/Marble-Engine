@@ -4,20 +4,17 @@
 #pragma region color table
 typedef struct Marble_ColorTableAsset {
 	Marble_Asset;
-	struct Marble_Internal_ColorAtlasHead {
-		DWORD  dwMagic;
-		DWORD  dwMinVersion;
-		CHAR   astrIdent[64];
-		size_t stNumOfEntries;
-		int    iColorFormat;
-		size_t stBeginOfData;
+
+	struct Marble_Internal_ColorTableHead {
+		DWORD dwNumOfEntries;
+		int   iColorFormat;
 	} sHead;
 	Marble_Util_Vector *sColorTable;
 } Marble_ColorTableAsset;
 
 
 void Marble_ColorTableAsset_Destroy(Marble_ColorTableAsset *ptrColorTable) {
-	if (!ptrColorTable || ptrColorTable->iAssetType ^ Marble_AssetType_ColorTable)
+	if (!ptrColorTable || (ptrColorTable->iAssetType & 0xFF) ^ Marble_AssetType_ColorTable)
 		return;
 
 	Marble_Util_Vector_Destroy(&ptrColorTable->sColorTable);
@@ -29,15 +26,11 @@ static void Marble_ColorTable_Internal_DestroyColorEntry(void **ptrpColorEntry) 
 	*ptrpColorEntry = NULL;
 }
 
-static _Bool Marble_ColorAtlas_Internal_ValidateHead(struct Marble_Internal_ColorAtlasHead *sHead) {
-	static CHAR   const gl_acaString[sizeof(DWORD)] = { 'm', 'b', 'c', 'a' };
-	static size_t const gl_stColorAtlasDataBegin = 128;
+static _Bool Marble_ColorAtlas_Internal_ValidateHead(Marble_AssetHead *sAssetHead) {
+	static CHAR const gl_acaMagicStr[sizeof(DWORD)] = { 'm', 'b', Marble_AssetType_ColorTable, 0 };
 
-	if (memcmp(&sHead->dwMagic, gl_acaString, sizeof(DWORD)))
+	if (memcmp(&sAssetHead->dwMagic, gl_acaMagicStr, sizeof(DWORD)))
 		return FALSE;
-	if (sHead->dwMinVersion > MARBLE_VERSION)                  return FALSE;
-	if (sHead->stBeginOfData < gl_stColorAtlasDataBegin)       return FALSE;
-	if (!Marble_Color_IsValidColorFormat(sHead->iColorFormat)) return FALSE;
 
 	return TRUE;
 }
@@ -55,52 +48,38 @@ int Marble_Asset_CreateColorTableAsset(Marble_Asset **ptrpColorTable) { MARBLE_E
 	
 		return iErrorCode;
 	}
-	memset(&sColorTableAsset->sHead, 0, sizeof(struct Marble_Internal_ColorAtlasHead));
+	memset(&sColorTableAsset->sHead, 0, sizeof(sColorTableAsset->sHead));
 	
 	return iErrorCode;
 }
 
-int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, TCHAR const *strPath) { MARBLE_ERRNO
-	Marble_Util_FileStream *sFile = NULL;
-	if (iErrorCode = Marble_Util_FileStream_Open(strPath, Marble_Util_StreamPerm_Read, &sFile))
-		return iErrorCode;
-	
+int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead) { MARBLE_ERRNO
 	Marble_IfError(
 		iErrorCode = Marble_Util_FileStream_ReadSize(
-			sFile, 
-			sizeof(struct Marble_Internal_ColorAtlasHead),
+			sStream, 
+			sizeof(sColorTable->sHead),
 			&sColorTable->sHead
 		), 
 		Marble_ErrorCode_Ok, 
 		goto ON_ERROR
 	);
 	Marble_IfError(
-		Marble_ColorAtlas_Internal_ValidateHead(&sColorTable->sHead), 
+		Marble_ColorAtlas_Internal_ValidateHead(sAssetHead), 
 		TRUE, {
 			iErrorCode = Marble_ErrorCode_HeadValidation; 
 	
 			goto ON_ERROR;
 		}
 	);
-	Marble_IfError(
-		iErrorCode = Marble_Util_FileStream_Goto(
-			sFile, 
-			sColorTable->sHead.stBeginOfData
-		), Marble_ErrorCode_Ok, 
-		goto ON_ERROR
-	);
 	
 	size_t const stEntrySize = Marble_Color_GetColorSizeByFormat(sColorTable->sHead.iColorFormat);
-	for (size_t stIndex = 0; stIndex < sColorTable->sHead.stNumOfEntries; stIndex++) {
+	for (DWORD dwIndex = 0; dwIndex < sColorTable->sHead.dwNumOfEntries; dwIndex++) {
 		void *ptrColorEntry = NULL;
-		if (!(ptrColorEntry = malloc(stEntrySize))) {
-			iErrorCode = Marble_ErrorCode_MemoryAllocation;
-	
+		if (iErrorCode = Marble_System_AllocateMemory(&ptrColorEntry, stEntrySize, FALSE, FALSE))
 			goto ON_ERROR;
-		}
 	
 		Marble_IfError(
-			iErrorCode = Marble_Util_FileStream_ReadSize(sFile, stEntrySize, ptrColorEntry),
+			iErrorCode = Marble_Util_FileStream_ReadSize(sStream, stEntrySize, ptrColorEntry),
 			Marble_ErrorCode_Ok, {
 				Marble_Util_Vector_Clear(&sColorTable->sColorTable, TRUE);
 	
@@ -111,9 +90,7 @@ int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, TCH
 		Marble_Util_Vector_PushBack(sColorTable->sColorTable, ptrColorEntry);
 	}
 	
-	ON_ERROR:
-	Marble_Util_FileStream_Destroy(&sFile);
-	
+ON_ERROR:
 	return iErrorCode;
 }
 

@@ -109,5 +109,11 @@
     <Text Include="..\..\Notes\asset_types.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
+    <Text Include="..\..\Notes\script_commands.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
+    <Text Include="..\..\Notes\asset_deps.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
   </ItemGroup>
 </Project>

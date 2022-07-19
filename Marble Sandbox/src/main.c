@@ -13,9 +13,9 @@ struct GameLayerUserdata {
 
 static int GameLayer_OnPush(Marble_Layer *sLayer) {
 	Marble_Asset *sAtlas = NULL;
-	Marble_Asset_CreateAndLoadFromFile(
+	Marble_Asset_CreateAndLoadFromFileExplicit(
 		Marble_AssetType_ColorTable,
-		TEXT("..\\res\\test.mbasset"),
+		TEXT("..\\res\\mba_ctab1.mbasset"),
 		NULL,
 		&sAtlas
 	);

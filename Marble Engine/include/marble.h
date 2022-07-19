@@ -62,7 +62,8 @@ MARBLE_API void inline  *Marble_Layer_SetUserdata(Marble_Layer *sLayer, void *pt
 
 MARBLE_API int  Marble_Asset_Create(int iAssetType, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
 MARBLE_API int  Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath);
-MARBLE_API int  Marble_Asset_CreateAndLoadFromFile(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
+MARBLE_API int  Marble_Asset_CreateAndLoadFromFile(TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
+MARBLE_API int  Marble_Asset_CreateAndLoadFromFileExplicit(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
 MARBLE_API void Marble_Asset_Destroy(Marble_Asset **ptrpAsset);
 MARBLE_API int  Marble_Asset_GetType(Marble_Asset *sAsset);
 MARBLE_API int  Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset);

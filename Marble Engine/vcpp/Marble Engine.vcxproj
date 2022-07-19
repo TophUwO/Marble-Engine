@@ -199,8 +199,10 @@
     <ClInclude Include="..\include\window.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\..\Notes\asset_deps.txt" />
     <Text Include="..\..\Notes\asset_types.txt" />
     <Text Include="..\..\Notes\old_vec_test.txt" />
+    <Text Include="..\..\Notes\script_commands.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

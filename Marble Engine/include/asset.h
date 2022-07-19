@@ -3,6 +3,16 @@
 #include <api.h>
 
 
+#define MARBLE_ASSETIDLEN (24)
+
+
+typedef enum Marble_AssetDependencies {
+	Marble_AssetDependency_Unknown = 0,
+
+	Marble_AssetDependency_Asset
+} Marble_AssetDependency;
+
+
 typedef struct Marble_AssetManager {
 	Marble_Util_Vector *sAtlases;
 
@@ -10,9 +20,17 @@ typedef struct Marble_AssetManager {
 } Marble_AssetManager;
 
 
+typedef struct Marble_AssetHead {
+	DWORD dwMagic;
+	CHAR  astrAssetId[MARBLE_ASSETIDLEN];
+	DWORD dwNumOfDeps;
+	DWORD dwOffDepTable;
+	DWORD dwOffData;
+} Marble_AssetHead;
+
 typedef struct Marble_Asset {
-	ULONGLONG uqwGlobalAssetId;
-	int       iAssetType;
+	int  iAssetType;
+	CHAR astrAssetId[MARBLE_ASSETIDLEN];
 } Marble_Asset;
 
 

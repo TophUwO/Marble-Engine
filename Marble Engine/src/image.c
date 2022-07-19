@@ -14,8 +14,7 @@ int Marble_Asset_CreateImageAsset(Marble_ImageAsset **ptrpImageAsset) { MARBLE_E
 	if (iErrorCode = Marble_System_AllocateMemory(ptrpImageAsset, sizeof(Marble_ImageAsset), TRUE, FALSE))
 		return iErrorCode;
 
-	(*ptrpImageAsset)->iAssetType       = Marble_AssetType_Image;
-	(*ptrpImageAsset)->uqwGlobalAssetId = Marble_AssetManager_RequestAssetId();
+	(*ptrpImageAsset)->iAssetType = Marble_AssetType_Image;
 
 	return Marble_ErrorCode_Ok;
 }
