@@ -25,7 +25,7 @@ static int GameLayer_OnPush(Marble_Layer *sLayer) {
 		&sParams,
 		&sMap1
 	);
-	//Marble.Asset.Register(Marble_DefAssetMan, sMap1);
+	Marble.Asset.Register(Marble_DefAssetMan, sMap1);
 
 	return Marble_ErrorCode_Ok;
 }

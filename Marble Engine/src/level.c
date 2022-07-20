@@ -19,8 +19,8 @@ typedef struct Marble_MapAsset {
 	} sHead;
 
 	struct Marble_MapAsset_MapLayer {
-		int iLayerType;
-		int iLayerId;
+		int   iLayerType;
+		DWORD dwLayerId;
 
 		Marble_Util_Array2D *sTiles;
 	} *sLayers;
@@ -28,7 +28,26 @@ typedef struct Marble_MapAsset {
 
 
 static int Marble_MapAsset_Internal_InitializeContainer(Marble_MapAsset *sAsset) { MARBLE_ERRNO
+	if (iErrorCode = Marble_System_AllocateMemory(&sAsset->sLayers, sAsset->sHead.dwNumOfLayers * sizeof(struct Marble_MapAsset_MapLayer), TRUE, FALSE))
+		return iErrorCode;
+
+	for (DWORD dwIndex = 0; dwIndex < sAsset->sHead.dwNumOfLayers; dwIndex++) {
+		struct Marble_MapAsset_MapLayer *sLayer = &sAsset->sLayers[dwIndex];
+
+		if (iErrorCode = Marble_Util_Array2D_Create(sizeof(ULONGLONG), sAsset->sHead.dwWidth, sAsset->sHead.dwHeight, &sLayer->sTiles))
+			return iErrorCode;
+
+		sLayer->dwLayerId = dwIndex;
+	}
+
 	return 0;
+}
+
+static void Marble_MapAsset_Internal_DestroyLayer(struct Marble_MapAsset_MapLayer *sLayer) {
+	if (!sLayer)
+		return;
+
+	Marble_Util_Array2D_Destroy(&sLayer->sTiles);
 }
 
 
@@ -67,7 +86,12 @@ void Marble_MapAsset_Destroy(Marble_MapAsset *sMapAsset) {
 	if (!sMapAsset)
 		return;
 
-	// TODO: destroy layers
+	if (sMapAsset->sLayers) {
+		for (DWORD dwIndex = 0; dwIndex < sMapAsset->sHead.dwNumOfLayers; dwIndex++)
+			Marble_MapAsset_Internal_DestroyLayer(&sMapAsset->sLayers[dwIndex]);
+
+		free(sMapAsset->sLayers);
+	}
 }
 
 int Marble_MapAsset_LoadFromFile(Marble_Asset *sMap, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead) {
