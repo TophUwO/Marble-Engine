@@ -194,6 +194,7 @@
     <ClInclude Include="..\include\layer.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
+    <ClInclude Include="..\include\platform.h" />
     <ClInclude Include="..\include\renderer.h" />
     <ClInclude Include="..\include\util.h" />
     <ClInclude Include="..\include\window.h" />

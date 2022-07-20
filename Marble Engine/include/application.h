@@ -8,6 +8,7 @@
 #include <atlas.h>
 #include <color.h>
 
+
 #define Marble_IfError(expr, equal, body) if ((expr) != equal) { body; }
 /*
 	* Macro used to initialize error code variable. Will always be put on the

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <def.h>
+#include <platform.h>
 
 #include <windows.h>
 #include <windowsx.h>

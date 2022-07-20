@@ -22,29 +22,6 @@ static int Marble_Util_Vector_Internal_Reallocate(Marble_Util_Vector *sVector, s
 }
 
 static int Marble_Util_Vector_Internal_InitBuffer(Marble_Util_Vector *sVector) {
-	/*switch (sVector->iVectorType) {
-		case Marble_Util_VectorType_VecOfPointers:
-			iErrorCode = Marble_System_AllocateMemory(
-				sVector->ptrpData, 
-				sizeof(*sVector->ptrpData) * sVector->stCapacity, 
-				TRUE, 
-				FALSE
-			);
-
-			break;
-		case Marble_Util_VectorType_VecOfObjects:
-			iErrorCode = Marble_System_AllocateMemory(
-				&sVector->ptrData,
-				sVector->stObjectSize * sVector->stCapacity,
-				TRUE,
-				FALSE
-			);
-
-			break;
-	}
-
-	*/
-
 	return Marble_System_AllocateMemory(
 		sVector->iVectorType == Marble_Util_VectorType_VecOfPointers 
 			? (void **)&sVector->ptrpData 
