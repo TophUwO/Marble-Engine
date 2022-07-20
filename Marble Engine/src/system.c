@@ -136,6 +136,7 @@ struct Marble_UserAPI Marble = {
 		.Destroy                       = &Marble_Asset_Destroy,
 		.getType                       = &Marble_Asset_GetType,
 		.getId                         = &Marble_Asset_GetId,
+		.setId                         = &Marble_Asset_SetId,
 		.Register                      = &Marble_Asset_Register,
 		.Unregister                    = &Marble_Asset_Unregister
 	}

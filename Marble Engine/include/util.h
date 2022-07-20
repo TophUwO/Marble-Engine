@@ -93,3 +93,16 @@ extern int         Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTabl
 extern int         Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blDoFree);
 
 
+typedef struct Marble_Util_Array2D {
+	size_t  stWidth;
+	size_t  stHeight;
+	size_t  stElemSize;
+
+	void **ptrpData;
+} Marble_Util_Array2D;
+
+extern int   Marble_Util_Array2D_Create(size_t stElementSize, size_t stWidth, size_t stHeight, Marble_Util_Array2D **ptrpArray);
+extern void  Marble_Util_Array2D_Destroy(Marble_Util_Array2D **ptrpArray);
+extern void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[2]);
+
+

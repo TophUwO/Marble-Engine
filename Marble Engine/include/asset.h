@@ -44,6 +44,7 @@ extern int   Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPat
 extern void  Marble_Asset_Destroy(Marble_Asset **ptrpAsset);
 extern int   Marble_Asset_GetType(Marble_Asset *sAsset);
 extern CHAR *Marble_Asset_GetId(Marble_Asset *sAsset);
+extern void  Marble_Asset_SetId(Marble_Asset *sAsset, CHAR const *astrId);
 extern int   Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset);
 extern int   Marble_Asset_Unregister(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset, _Bool blDoFree);
 

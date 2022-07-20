@@ -57,6 +57,9 @@
     <ClCompile Include="..\src\application.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\level.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\error.h">

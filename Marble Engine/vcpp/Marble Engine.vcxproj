@@ -176,6 +176,7 @@
     <ClCompile Include="..\src\event.c" />
     <ClCompile Include="..\src\image.c" />
     <ClCompile Include="..\src\layer.c" />
+    <ClCompile Include="..\src\level.c" />
     <ClCompile Include="..\src\main.c" />
     <ClCompile Include="..\src\renderer.c" />
     <ClCompile Include="..\src\system.c" />

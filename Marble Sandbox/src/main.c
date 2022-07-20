@@ -17,6 +17,16 @@ static int GameLayer_OnPush(Marble_Layer *sLayer) {
 	);
 	Marble.Asset.Register(Marble_DefAssetMan, sAtlas);
 
+	Marble_Asset *sMap1 = NULL;
+	Marble_MapAsset_CreateParams sParams = { "mba_map1", 100, 100, 1 };
+	Marble.Asset.CreateAndLoadFromFileExplicit(
+		Marble_AssetType_Map,
+		TEXT("..\\res\\mba_map1.mbasset"),
+		&sParams,
+		&sMap1
+	);
+	//Marble.Asset.Register(Marble_DefAssetMan, sMap1);
+
 	return Marble_ErrorCode_Ok;
 }
 

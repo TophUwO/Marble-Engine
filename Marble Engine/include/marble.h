@@ -10,7 +10,8 @@ enum Marble_AssetType {
 
 	Marble_AssetType_Atlas,
 	Marble_AssetType_ColorTable,
-	Marble_AssetType_Image
+	Marble_AssetType_Image,
+	Marble_AssetType_Map
 };
 
 
@@ -29,7 +30,19 @@ struct Marble_Layer_Callbacks {
 	int (*OnUpdate)(Marble_Layer *sSelf, float fFrameTime);
 	int (*OnEvent)(Marble_Layer *sSelf, Marble_Event *sEvent);
 };
-struct Marble_Atlas_CreateParams { int iAtlasType; };
+typedef struct Marble_Asset_CreateParams { CHAR *astrId; } Marble_Asset_CreateParams;
+typedef struct Marble_AtlasAsset_CreateParams { 
+	Marble_Asset_CreateParams; 
+	
+	int iAtlasType; 
+} Marble_AtlasAsset_CreateParams;
+typedef struct Marble_MapAsset_CreateParams { 
+	Marble_Asset_CreateParams; 
+	
+	DWORD dwWidth; 
+	DWORD dwHeight;
+	DWORD dwNumOfLayers; 
+} Marble_MapAsset_CreateParams;
 
 
 MARBLE_API struct Marble_UserAPI {
@@ -66,6 +79,7 @@ MARBLE_API struct Marble_UserAPI {
 		void  (*const Destroy)(Marble_Asset **ptrpAsset);
 		int   (*const getType)(Marble_Asset *sAsset);
 		CHAR *(*const getId)(Marble_Asset *sAsset);
+		void  (*const setId)(Marble_Asset *sAsset, CHAR const *astrNewId);
 		int   (*const Register)(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset);
 		int   (*const Unregister)(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset, _Bool blDoFree);
 	} Asset;

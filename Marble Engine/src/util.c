@@ -519,3 +519,42 @@ int Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *a
 #pragma endregion
 
 
+#pragma region Marble_Util_Array
+int Marble_Util_Array2D_Create(size_t stElementSize, size_t stWidth, size_t stHeight, Marble_Util_Array2D **ptrpArray) { MARBLE_ERRNO
+	if (!ptrpArray || !stElementSize || !stWidth || !stHeight)
+		return Marble_ErrorCode_InternalParameter;
+
+	if (iErrorCode = Marble_System_AllocateMemory(ptrpArray, sizeof(**ptrpArray), FALSE, FALSE))
+		return iErrorCode;
+
+	(*ptrpArray)->stWidth    = stWidth;
+	(*ptrpArray)->stHeight   = stHeight;
+	(*ptrpArray)->stElemSize = stElementSize;
+
+	if (iErrorCode = Marble_System_AllocateMemory((void **)&(*ptrpArray)->ptrpData, stWidth * stHeight * stElementSize, TRUE, FALSE)) {
+		Marble_Util_Array2D_Destroy(ptrpArray);
+
+		return iErrorCode;
+	}
+
+	return Marble_ErrorCode_Ok;
+}
+
+void Marble_Util_Array2D_Destroy(Marble_Util_Array2D **ptrpArray) {
+	if (!ptrpArray || !*ptrpArray)
+		return;
+
+	free((*ptrpArray)->ptrpData);
+	free(*ptrpArray);
+	*ptrpArray = NULL;
+}
+
+void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[2]) {
+	if (!sArray || staDimIndices[0] >= sArray->stWidth || staDimIndices[1] >= sArray->stHeight)
+		return NULL;
+
+	return ((void ***)sArray->ptrpData)[staDimIndices[0]][staDimIndices[1]];
+}
+#pragma endregion
+
+

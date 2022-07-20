@@ -59,19 +59,24 @@ int Marble_Asset_Create(Marble_Asset **ptrpAsset) {
 int Marble_Asset_CreateExplicit(int iAssetType, void const *ptrCreateParams, Marble_Asset **ptrpAsset) { MARBLE_ERRNO
 	extern int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpImageAsset);
 	extern int Marble_Asset_CreateColorTableAsset(Marble_Asset **ptrpColorTable);
+	extern int Marble_Asset_CreateMapAsset(void const *ptrCreateParams, Marble_Asset **ptrpMapAsset);
 
 	if (!ptrpAsset)
 		return Marble_ErrorCode_Parameter;
 
 	switch (iAssetType) {
-		case Marble_AssetType_Image:      iErrorCode = Marble_Asset_CreateImageAsset(ptrpAsset); break;
-		case Marble_AssetType_ColorTable: iErrorCode = Marble_Asset_CreateColorTableAsset(ptrpAsset); break;
+		case Marble_AssetType_Image:      iErrorCode = Marble_Asset_CreateImageAsset(ptrpAsset);                break;
+		case Marble_AssetType_ColorTable: iErrorCode = Marble_Asset_CreateColorTableAsset(ptrpAsset);           break;
+		case Marble_AssetType_Map:        iErrorCode = Marble_Asset_CreateMapAsset(ptrCreateParams, ptrpAsset); break;
 		default:
 			*ptrpAsset = NULL;
 
 			return Marble_ErrorCode_AssetType;
 	}
 	(*ptrpAsset)->sRefAssetMan = NULL;
+
+	if (ptrCreateParams)
+		Marble_Asset_SetId(*ptrpAsset, ((Marble_Asset_CreateParams *)ptrCreateParams)->astrId);
 
 	/* Free generic asset structure */
 	if (iErrorCode)
@@ -83,6 +88,7 @@ int Marble_Asset_CreateExplicit(int iAssetType, void const *ptrCreateParams, Mar
 void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
 	extern void Marble_ImageAsset_Destroy(Marble_Asset *sImage);
 	extern void Marble_ColorTableAsset_Destroy(Marble_Asset *sColorTable);
+	extern void Marble_MapAsset_Destroy(Marble_Asset *sMap);
 
 	if (!ptrpAsset || !*ptrpAsset)
 		return;
@@ -91,8 +97,9 @@ void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
 		Marble_Util_HashTable_Erase((*ptrpAsset)->sRefAssetMan->sHashTable, (*ptrpAsset)->astrAssetId, *ptrpAsset, FALSE);
 
 	switch ((*ptrpAsset)->iAssetType) {
-		case Marble_AssetType_Image:      Marble_ImageAsset_Destroy(*ptrpAsset);
-		case Marble_AssetType_ColorTable: Marble_ColorTableAsset_Destroy(*ptrpAsset);
+		case Marble_AssetType_Image:      Marble_ImageAsset_Destroy(*ptrpAsset);      break;
+		case Marble_AssetType_ColorTable: Marble_ColorTableAsset_Destroy(*ptrpAsset); break;
+		case Marble_AssetType_Map:        Marble_MapAsset_Destroy(*ptrpAsset);        break;
 	}
 
 	free(*ptrpAsset);
@@ -102,6 +109,7 @@ void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
 int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath) { MARBLE_ERRNO
 	extern int Marble_ImageAsset_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead);
 	extern int Marble_ColorTableAsset_LoadFromFile(Marble_Asset *sColorTable, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead);
+	extern int Marble_MapAsset_LoadFromFile(Marble_Asset *sMap, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead);
 
 	if (!sAsset || !strPath || !*strPath)
 		return Marble_ErrorCode_Parameter;
@@ -121,10 +129,10 @@ int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath) { MARB
 
 	/* Load asset from file */
 	switch (sAsset->iAssetType) {
-		case Marble_AssetType_Image:      iErrorCode = Marble_ImageAsset_LoadFromFile(sAsset, strPath, sStream, &sAssetHead); break;
+		case Marble_AssetType_Image:      iErrorCode = Marble_ImageAsset_LoadFromFile(sAsset, strPath, sStream, &sAssetHead);      break;
 		case Marble_AssetType_ColorTable: iErrorCode = Marble_ColorTableAsset_LoadFromFile(sAsset, strPath, sStream, &sAssetHead); break;
-		default:
-			iErrorCode = Marble_ErrorCode_AssetType;
+		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_LoadFromFile(sAsset, strPath, sStream, &sAssetHead);        break;
+		default:                          iErrorCode = Marble_ErrorCode_AssetType;
 	}
 
 	Marble_Util_FileStream_Destroy(&sStream);
@@ -157,6 +165,13 @@ int Marble_Asset_GetType(Marble_Asset *sAsset) {
 
 CHAR *Marble_Asset_GetId(Marble_Asset *sAsset) {
 	return sAsset ? sAsset->astrAssetId : NULL;
+}
+
+void Marble_Asset_SetId(Marble_Asset *sAsset, CHAR const *astrNewId) {
+	if (!sAsset || !astrNewId)
+		return;
+
+	strcpy_s(sAsset->astrAssetId, MARBLE_ASSETIDLEN, astrNewId);
 }
 
 /// <summary>

@@ -5,7 +5,7 @@
 typedef struct Marble_ColorTableAsset {
 	Marble_Asset;
 
-	struct Marble_Internal_ColorTableHead {
+	struct Marble_ColorTableAsset_Head {
 		DWORD dwNumOfEntries;
 		int   iColorFormat;
 	} sHead;
