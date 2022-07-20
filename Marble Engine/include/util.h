@@ -3,19 +3,36 @@
 #include <api.h>
 
 
-typedef struct Marble_Util_Vector {
-	void   **ptrpData;
-	size_t   stSize;
-	size_t   stCapacity;
-	size_t   stStartCapacity;
+typedef enum Marble_Util_VectorTypes {
+	Marble_Util_VectorType_Unknown = 0,
 
-	void (*onDestroy)(void **ptrObject);
+	Marble_Util_VectorType_VecOfPointers,
+	Marble_Util_VectorType_VecOfObjects,
+
+	__MARBLE_NUMVECTORTYPES__
+} Marble_Util_VectorType;
+
+typedef struct Marble_Util_Vector {
+	size_t stSize;
+	size_t stCapacity;
+	size_t stStartCapacity;
+	size_t stObjectSize;
+
+	int iVectorType;
+	union {
+		void  *ptrData;
+		void **ptrpData;
+	};
+
+	void *onDestroy;
+	void  (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes);
 } Marble_Util_Vector;
 
-extern int            Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCapacity, void (*onDestroy)(void **ptrpObject));
+extern int            Marble_Util_Vector_Create(int iVectorType, size_t stObjectSize, size_t stStartCapacity, void *onDestroy, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes), Marble_Util_Vector **ptrpVector);
 extern void           Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector);
 extern void           Marble_Util_Vector_Clear(Marble_Util_Vector **ptrpVector, _Bool blDoFree, _Bool blDoDownsize);
-extern void   inline  Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, void (*onDestroy)(void **ptrpObject));
+extern void   inline  Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, void *onDestroy);
+extern void   inline  Marble_Util_Vector_SetOnCopy(Marble_Util_Vector *sVector, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes));
 extern int    inline  Marble_Util_Vector_PushBack(Marble_Util_Vector *sVector, void *ptrObject);
 extern int    inline  Marble_Util_Vector_PushFront(Marble_Util_Vector *sVector, void *ptrObject);
 extern void   inline *Marble_Util_Vector_PopBack(Marble_Util_Vector *sVector, _Bool blDoFree);
@@ -55,7 +72,7 @@ extern int         Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermis
 extern void        Marble_Util_FileStream_Destroy(Marble_Util_FileStream **ptrpFileStream);
 extern void        Marble_Util_FileStream_Close(Marble_Util_FileStream *sFileStream);
 extern int         Marble_Util_FileStream_Goto(Marble_Util_FileStream *sFileStream, size_t stNewPos);
-extern int         Marble_Util_FileStream_ReadSize(Marble_Util_FileStream *sFileStream, size_t stSizeInBytes, void *ptrDest);
+extern int  inline Marble_Util_FileStream_ReadSize(Marble_Util_FileStream *sFileStream, size_t stSizeInBytes, void *ptrDest);
 extern int  inline Marble_Util_FileStream_ReadBYTE(Marble_Util_FileStream *sFileStream, uint8_t *bpDest);
 extern int  inline Marble_Util_FileStream_ReadWORD(Marble_Util_FileStream *sFileStream, uint16_t *wpDest);
 extern int  inline Marble_Util_FileStream_ReadDWORD(Marble_Util_FileStream *sFileStream, uint32_t *dwpDest);

@@ -7,8 +7,12 @@ static double const gl_dblDefCapacityMultiplier = 4.0f / 3.0f;
 
 static int Marble_Util_Vector_Internal_Reallocate(Marble_Util_Vector *sVector, size_t stNewCapacity) {
 	void *ptrNew = NULL;
-	if (ptrNew = realloc(sVector->ptrpData, stNewCapacity * sizeof(*sVector->ptrpData))) {
-		sVector->ptrpData   = ptrNew;
+	if (ptrNew = realloc(sVector->iVectorType == Marble_Util_VectorType_VecOfPointers ? sVector->ptrpData : sVector->ptrData, stNewCapacity * sVector->stObjectSize)) {
+		(void)(
+			sVector->iVectorType == Marble_Util_VectorType_VecOfPointers 
+				? (void)(sVector->ptrpData = ptrNew)
+				: (void)(sVector->ptrData == ptrNew)
+		);
 		sVector->stCapacity = stNewCapacity;
 
 		return Marble_ErrorCode_Ok;
@@ -17,33 +21,93 @@ static int Marble_Util_Vector_Internal_Reallocate(Marble_Util_Vector *sVector, s
 	return Marble_ErrorCode_MemoryReallocation;
 }
 
-static int Marble_Util_Vector_Internal_InitBuffer(void **ptrpBuffer, size_t stCapacity) { MARBLE_ERRNO
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpBuffer, sizeof(*ptrpBuffer) * stCapacity, TRUE, FALSE))
-		return iErrorCode;
+static int Marble_Util_Vector_Internal_InitBuffer(Marble_Util_Vector *sVector) {
+	/*switch (sVector->iVectorType) {
+		case Marble_Util_VectorType_VecOfPointers:
+			iErrorCode = Marble_System_AllocateMemory(
+				sVector->ptrpData, 
+				sizeof(*sVector->ptrpData) * sVector->stCapacity, 
+				TRUE, 
+				FALSE
+			);
 
-	return Marble_ErrorCode_Ok;
+			break;
+		case Marble_Util_VectorType_VecOfObjects:
+			iErrorCode = Marble_System_AllocateMemory(
+				&sVector->ptrData,
+				sVector->stObjectSize * sVector->stCapacity,
+				TRUE,
+				FALSE
+			);
+
+			break;
+	}
+
+	*/
+
+	return Marble_System_AllocateMemory(
+		sVector->iVectorType == Marble_Util_VectorType_VecOfPointers 
+			? (void **)&sVector->ptrpData 
+			: &sVector->ptrData
+		,
+		sVector->stObjectSize * sVector->stCapacity,
+		TRUE,
+		FALSE
+	);
 }
 
 static void Marble_Util_Vector_Internal_FreeElements(Marble_Util_Vector *sVector) {
-	if (sVector->onDestroy)
-		for (size_t stCount = 0; stCount < sVector->stSize; stCount++)
-			sVector->onDestroy(&sVector->ptrpData[stCount]);
+	if (!sVector || !sVector->onDestroy)
+		return;
+
+	void const *const ptrBase = sVector->iVectorType == Marble_Util_VectorType_VecOfPointers ? (void *)sVector->ptrpData : sVector->ptrData;
+
+	for (size_t stCount = 0; stCount < sVector->stSize; stCount++) {
+		void *ptrElem = ((char *)ptrBase) + sVector->stObjectSize * stCount;
+
+		(void)(
+			sVector->iVectorType == Marble_Util_VectorType_VecOfPointers
+				? ((void (*)(void **))sVector->onDestroy)((void **)ptrElem)
+				: ((void (*)(void *))sVector->onDestroy)(ptrElem)
+		);
+	}
 }
 
+static _Bool inline Marble_Util_Vector_Internal_IsValidVectorType(int iVectorType) {
+	return iVectorType > Marble_Util_VectorType_Unknown && iVectorType < __MARBLE_NUMVECTORTYPES__;
+}
 
-int Marble_Util_Vector_Create(Marble_Util_Vector **ptrpVector, size_t stStartCapacity, void (*onDestroy)(void **ptrpObject)) { MARBLE_ERRNO
+static void inline __Marble_Util_Vector_Internal_DefCopy__(void *ptrDest, void *ptrSrc, size_t stSizeInBytes) {
+	memcpy(ptrDest, ptrSrc, stSizeInBytes);
+}
+
+static void inline Marble_Util_Vector_Internal_ComputeMemmoveDestAndSrc(Marble_Util_Vector *sVector, size_t stIndex, _Bool blDoMoveBackward, char **ptrpBasePtr, void **ptrpDestPtr, void **ptrpSrcPtr) {
+	*ptrpBasePtr = sVector->iVectorType == Marble_Util_VectorType_VecOfPointers ? sVector->ptrpData : sVector->ptrData;
+
+	*ptrpSrcPtr  = *ptrpBasePtr + (stIndex + (size_t)blDoMoveBackward) * sVector->stObjectSize;
+	*ptrpDestPtr = *ptrpBasePtr + (stIndex + (size_t)!blDoMoveBackward) * sVector->stObjectSize;
+}
+ 
+
+int Marble_Util_Vector_Create(int iVectorType, size_t stObjectSize, size_t stStartCapacity, void *onDestroy, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes), Marble_Util_Vector **ptrpVector) { MARBLE_ERRNO
+	if (!ptrpVector || !Marble_Util_Vector_Internal_IsValidVectorType(iVectorType) || (iVectorType == Marble_Util_VectorType_VecOfObjects && !stObjectSize))
+		return Marble_ErrorCode_InternalParameter;
+
 	if (iErrorCode = Marble_System_AllocateMemory(ptrpVector, sizeof(**ptrpVector), FALSE, FALSE))
 		return iErrorCode;
 
 	stStartCapacity = stStartCapacity ? stStartCapacity : gl_stDefStartCapacity;
 
 	(*ptrpVector)->onDestroy       = onDestroy;
+	(*ptrpVector)->onCopy          = onCopy ? onCopy : &__Marble_Util_Vector_Internal_DefCopy__;
 	(*ptrpVector)->stCapacity      = stStartCapacity;
 	(*ptrpVector)->stStartCapacity = stStartCapacity;
 	(*ptrpVector)->stSize          = 0;
 
-	if (iErrorCode = Marble_Util_Vector_Internal_InitBuffer((void **)&(*ptrpVector)->ptrpData, (*ptrpVector)->stCapacity)) {
-		free(*ptrpVector);
+	(*ptrpVector)->iVectorType  = iVectorType;
+	(*ptrpVector)->stObjectSize = stObjectSize && iVectorType ^ Marble_Util_VectorType_VecOfPointers ? stObjectSize : sizeof(void *);
+	if (iErrorCode = Marble_Util_Vector_Internal_InitBuffer(*ptrpVector)) {
+		free(*ptrpVector); 
 		*ptrpVector = NULL;
 
 		return iErrorCode;
@@ -58,7 +122,10 @@ void Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector) {
 
 	Marble_Util_Vector_Internal_FreeElements(*ptrpVector);
 
-	free((*ptrpVector)->ptrpData);
+	switch ((*ptrpVector)->iVectorType) {
+		case Marble_Util_VectorType_VecOfPointers: free((*ptrpVector)->ptrpData); break;
+		case Marble_Util_VectorType_VecOfObjects:  free((*ptrpVector)->ptrData); break;
+	}
 	free(*ptrpVector);
 	*ptrpVector = NULL;
 }
@@ -72,13 +139,19 @@ void Marble_Util_Vector_Clear(Marble_Util_Vector **ptrpVector, _Bool blDoFree, _
 	(*ptrpVector)->stSize = 0;
 
 	if (blDoDownsize && Marble_Util_Vector_Internal_Reallocate(*ptrpVector, (*ptrpVector)->stStartCapacity))
-		Marble_Util_Vector_Destroy(ptrpVector);
+		return;
 
-	memset((*ptrpVector)->ptrpData, 0, sizeof(*(*ptrpVector)->ptrpData) * (*ptrpVector)->stStartCapacity);
+	memset((*ptrpVector)->ptrpData, 0, (*ptrpVector)->stObjectSize * (*ptrpVector)->stStartCapacity);
 }
 
-void Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, void (*onDestroy)(void **ptrpObject)) {
-	sVector->onDestroy = onDestroy;
+void Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, void *onDestroy) {
+	if (sVector)
+		sVector->onDestroy = onDestroy;
+}
+
+void Marble_Util_Vector_SetOnCopy(Marble_Util_Vector *sVector, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes)) {
+	if (sVector)
+		sVector->onCopy = onCopy;
 }
 
 int Marble_Util_Vector_PushBack(Marble_Util_Vector *sVector, void *ptrObject) {
@@ -102,12 +175,25 @@ int Marble_Util_Vector_Insert(Marble_Util_Vector *sVector, size_t stIndex, void 
 		if (iErrorCode = Marble_Util_Vector_Internal_Reallocate(sVector, sVector->stCapacity + (size_t)(gl_dblDefCapacityMultiplier * sVector->stCapacity)))
 			return iErrorCode;
 
+	char *ptrBase;
+	void *ptrDest, *ptrSrc;
+	Marble_Util_Vector_Internal_ComputeMemmoveDestAndSrc(sVector, stIndex, FALSE, &ptrBase, &ptrDest, &ptrSrc);
 	memmove(
-		&sVector->ptrpData[stIndex + 1], 
-		&sVector->ptrpData[stIndex], 
-		(sVector->stSize++ - stIndex) * sizeof(*sVector->ptrpData)
+		ptrDest, 
+		ptrSrc, 
+		(sVector->stSize++ - stIndex) *  sVector->stObjectSize
 	);
-	sVector->ptrpData[stIndex] = ptrObject;
+
+	switch (sVector->iVectorType) {
+		case Marble_Util_VectorType_VecOfPointers:
+			sVector->ptrpData[stIndex] = ptrObject;
+
+			break;
+		case Marble_Util_VectorType_VecOfObjects:
+			sVector->onCopy(ptrBase + stIndex * sVector->stObjectSize, ptrObject, sVector->stObjectSize);
+
+			break;
+	}
 
 	return Marble_ErrorCode_Ok;
 }
@@ -118,7 +204,7 @@ void *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, size_t stIndex, _Boo
 
 	void *ptrRet = sVector->ptrpData[stIndex];
 	if (sVector->onDestroy && blDoFree) {
-		sVector->onDestroy(&ptrRet);
+		//sVector->onDestroy(&ptrRet);
 		
 		/* 
 			* It's very likely that onDestroy will already zero *ptrRet* 
@@ -134,16 +220,19 @@ void *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, size_t stIndex, _Boo
 		* Overwrite deleted (thus, now invalid) index with the memory block that follows it until
 		* the end by moving the block by -1 indices.
 	*/
+	char *ptrBase;
+	void *ptrDest, *ptrSrc;
+	Marble_Util_Vector_Internal_ComputeMemmoveDestAndSrc(sVector, stIndex, TRUE, &ptrBase, &ptrDest, &ptrSrc);
 	memmove(
-		&sVector->ptrpData[stIndex],
-		&sVector->ptrpData[stIndex + 1], 
-		(sVector->stSize - stIndex) * sizeof(*sVector->ptrpData)
+		ptrDest,
+		ptrSrc, 
+		(sVector->stSize - stIndex) * sVector->stObjectSize
 	);
 	/*
 		* To avoid having the last element twice (due to memmove not actually moving, but copying
 		* blocks while supporting overlapping as opposed to memcpy), we just zero it.
 	*/
-	sVector->ptrpData[--sVector->stSize] = NULL;
+	memset(ptrBase + --sVector->stSize * sVector->stObjectSize, 0, sVector->stObjectSize);
 
 	return ptrRet;
 }
@@ -151,7 +240,7 @@ void *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, size_t stIndex, _Boo
 size_t Marble_Util_Vector_Find(Marble_Util_Vector *sVector, void *ptrObject, size_t stStartIndex, size_t stEndIndex) {
 	stStartIndex = stStartIndex <= 0 ? 0 : stStartIndex;
 	stEndIndex   = stEndIndex   <= 0 ? sVector->stSize - 1 : stEndIndex;
-	if (!sVector->stSize || stStartIndex >= stEndIndex)
+	if (!sVector || !sVector->stSize || stStartIndex >= stEndIndex)
 		goto ON_NOT_FOUND;
 
 	for (size_t stIndex = stStartIndex; stIndex < stEndIndex; stIndex++)
@@ -200,8 +289,8 @@ double Marble_Util_Clock_AsNanoseconds(Marble_Util_Clock *sClock) {
 
 #pragma region Marble_Util_FileStream
 static TCHAR inline const *const Marble_Util_Stream_Internal_GetStringFromPermissions(int iPermissions) {
-	_Bool blIsCreateFlag = iPermissions & Marble_Util_StreamPerm_Create;
-	_Bool blIsAppendFlag = iPermissions & Marble_Util_StreamPerm_Append;
+	_Bool const blIsCreateFlag = iPermissions & Marble_Util_StreamPerm_Create;
+	_Bool const blIsAppendFlag = iPermissions & Marble_Util_StreamPerm_Append;
 
 	switch (iPermissions & 0xFF) {
 		case Marble_Util_StreamPerm_Read:  return blIsAppendFlag ? TEXT("a+") : TEXT("r");
@@ -433,7 +522,7 @@ int Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *
 		* in case it does not already exist.
 	*/
 	if (!sHashTable->ptrpStorage[stBucketIndex])
-		if (iErrorCode = Marble_Util_Vector_Create(&sHashTable->ptrpStorage[stBucketIndex], 32, sHashTable->onDestroy))
+		if (iErrorCode = Marble_Util_Vector_Create(Marble_Util_VectorType_VecOfPointers, 0, 32, sHashTable->onDestroy, NULL, &sHashTable->ptrpStorage[stBucketIndex]))
 			return iErrorCode;
 
 	return Marble_Util_Vector_PushBack(sHashTable->ptrpStorage[stBucketIndex], ptrObject);

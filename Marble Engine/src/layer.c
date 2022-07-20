@@ -26,7 +26,7 @@ int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) {
 			return iErrorCode;
 		}
 
-		if (iErrorCode = Marble_Util_Vector_Create(&(*ptrpLayerstack)->sLayerStack, 32, (void (*)(void **))&Marble_Layer_Destroy)) {
+		if (iErrorCode = Marble_Util_Vector_Create(Marble_Util_VectorType_VecOfPointers, 0, 32, &Marble_Layer_Destroy, NULL, &(*ptrpLayerstack)->sLayerStack)) {
 			free(*ptrpLayerstack);
 			*ptrpLayerstack = NULL;
 
