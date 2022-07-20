@@ -121,7 +121,7 @@ void *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, size_t stIndex, _Boo
 		sVector->onDestroy(&ptrRet);
 		
 		/* 
-			* It's very likely that onDestroy will already zero <ptrRet> 
+			* It's very likely that onDestroy will already zero *ptrRet* 
 			* (all internal clean-up functions used for this container do);
 			* However, this API may be exposed to the user at some point, hence
 			* we have no control over what the function will do to the pointer itself,
@@ -362,17 +362,23 @@ static size_t inline Marble_Util_HashTable_Internal_Hash(Marble_Util_HashTable *
 
 /*
 	* Attempt to locate element; if the element can be located, the function will 
-	* return non-zero, both populating <stBucketIndex> and <stVecIndex>. If the element
-	* cannot be found, the function will return zero and <stVecIndex> will be 0.
+	* return non-zero, both populating *stBucketIndex* and *stVecIndex*. If the element
+	* cannot be found, the function will return zero and *stVecIndex* will be 0.
 */
 static _Bool Marble_Util_HashTable_Internal_Locate(Marble_Util_HashTable *sHashTable, CHAR const *strKey, void *ptrElement, size_t *stpBucketIndex, size_t *stpVecIndex) {
+	/* Compute bucket index (reuse this value later if the bucket does not exist) */
 	if (!sHashTable->ptrpStorage[*stpBucketIndex = Marble_Util_HashTable_Internal_Hash(sHashTable, strKey)]) {
 		*stpVecIndex = 0;
 
 		return FALSE;
 	}
 
-	return (_Bool)(*stpVecIndex = Marble_Util_Vector_Find(sHashTable->ptrpStorage[*stpBucketIndex], ptrElement, 0, 0) ^ (size_t)(-1));
+	/*
+		* If the bucket exists, we attempt to find it in there. If it could be found, *stpVecIndex*
+		* will hold its index and the function will return TRUE. If not, *stpVecIndex* will 
+		* be set to (size_t)(-1), and the function will return FALSE.
+	*/
+	return (_Bool)((*stpVecIndex = Marble_Util_Vector_Find(sHashTable->ptrpStorage[*stpBucketIndex], ptrElement, 0, 0)) ^ (size_t)(-1));
 }
 
 
@@ -422,7 +428,7 @@ int Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *
 			return Marble_ErrorCode_DuplicatesNotAllowed;
 
 	/* 
-		* <stBucketIndex> will always be populated with the hash index, hence we can just use
+		* *stBucketIndex* will always be populated with the hash index, hence we can just use
 		* it here without having to verify it. We may still have to create the bucket
 		* in case it does not already exist.
 	*/

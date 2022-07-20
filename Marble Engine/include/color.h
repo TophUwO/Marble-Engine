@@ -16,4 +16,6 @@ enum Marble_ColorFormat {
 extern size_t        Marble_Color_GetColorSizeByFormat(int iColorFormat);
 extern _Bool  inline Marble_Color_IsValidColorFormat(int iColorFormat);
 
+extern int inline Marble_ColorTable_GetColorByIndex(Marble_Asset *sColorTable, size_t stIndex, void *ptrColor);
+
 

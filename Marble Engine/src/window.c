@@ -226,6 +226,7 @@ void Marble_Window_Update(Marble_Window *sWindow, float fFrameTime) {
 /// <param name="iTileSize"> > Tile size in pixels</param>
 /// <returns>nothing</returns>
 void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeightInTiles, int iTileSize) {
+	sWindow = sWindow == Marble_DefWindow ? gl_sApplication.sMainWindow : sWindow;
 	if (!sWindow || !iWidthInTiles || !iHeightInTiles || !iTileSize)
 		return;
 

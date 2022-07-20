@@ -1,11 +1,7 @@
 #include <entrypoint.h>
 
 
-static Marble_Layer        *sGameLayer;
-static Marble_Renderer     *sRenderer;
-static Marble_Window       *sWindow;
-static Marble_AssetManager *sAssetManager;
-static Marble_LayerStack   *sLayerStack;
+static Marble_Layer *sGameLayer;
 struct GameLayerUserdata {
 	int unused;
 } sUserdata;
@@ -13,13 +9,13 @@ struct GameLayerUserdata {
 
 static int GameLayer_OnPush(Marble_Layer *sLayer) {
 	Marble_Asset *sAtlas = NULL;
-	Marble_Asset_CreateAndLoadFromFileExplicit(
+	Marble.Asset.CreateAndLoadFromFileExplicit(
 		Marble_AssetType_ColorTable,
 		TEXT("..\\res\\mba_ctab1.mbasset"),
 		NULL,
 		&sAtlas
 	);
-	Marble_Asset_Register(sAssetManager, sAtlas);
+	Marble.Asset.Register(Marble_DefAssetMan, sAtlas);
 
 	return Marble_ErrorCode_Ok;
 }
@@ -41,24 +37,15 @@ static int GameLayer_OnEvent(Marble_Layer *sLayer, Marble_Event *sEvent) {
 
 
 int Marble_Application_OnUserInit(void) {
-	Marble_Application_GetRenderer(&sRenderer); 
-	Marble_Application_GetMainWindow(&sWindow);
-	Marble_Application_GetAssetManager(&sAssetManager);
-	Marble_Application_GetLayerStack(&sLayerStack);
-
-	Marble_Layer_Create(TRUE, &sGameLayer);
-	Marble_Layer_SetUserdata(sGameLayer, &sUserdata);
 	struct Marble_Layer_Callbacks sCallbacks = {
 		.OnPush   = &GameLayer_OnPush,
 		.OnPop    = &GameLayer_OnPop,
 		.OnUpdate = &GameLayer_OnUpdate,
 		.OnEvent  = &GameLayer_OnEvent
 	};
-	Marble_Layer_SetCallbacks(sGameLayer, &sCallbacks);
-	Marble_Layer_Push(sLayerStack, sGameLayer, FALSE);
+	Marble.Layer.CreateAndPush(TRUE, &sCallbacks, &sUserdata, &sGameLayer, Marble_DefLayerStack, FALSE);
 
-	Marble_Window_SetSize(sWindow, 32, 32, 32);
-
+	Marble.Window.setSize(Marble_DefWindow, 32, 32, 32);
 	return Marble_ErrorCode_Ok;
 }
 

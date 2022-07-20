@@ -16,13 +16,6 @@ static void inline Marble_Layer_Internal_FixLayerCallbacks(Marble_Layer *sLayer)
 	sLayer->sCallbacks.OnEvent  = sLayer->sCallbacks.OnEvent  ? sLayer->sCallbacks.OnEvent  : &__Marble_Layer_Internal_DummyOnEvent__;
 }
 
-static void Marble_LayerStack_Internal_DestroyLayer(Marble_Layer **ptrpLayer) {
-	(*ptrpLayer)->sCallbacks.OnPop(*ptrpLayer);
-
-	free(*ptrpLayer);
-	*ptrpLayer = NULL;
-}
-
 
 int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) {
 	if (ptrpLayerstack) {
@@ -33,7 +26,7 @@ int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) {
 			return iErrorCode;
 		}
 
-		if (iErrorCode = Marble_Util_Vector_Create(&(*ptrpLayerstack)->sLayerStack, 32, (void (*)(void **))&Marble_LayerStack_Internal_DestroyLayer)) {
+		if (iErrorCode = Marble_Util_Vector_Create(&(*ptrpLayerstack)->sLayerStack, 32, (void (*)(void **))&Marble_Layer_Destroy)) {
 			free(*ptrpLayerstack);
 			*ptrpLayerstack = NULL;
 
@@ -71,7 +64,36 @@ int Marble_Layer_Create(_Bool blIsEnabled, Marble_Layer **ptrpLayer) { MARBLE_ER
 	return Marble_ErrorCode_Parameter;
 }
 
+int Marble_Layer_CreateAndPush(_Bool blIsEnabled, struct Marble_Layer_Callbacks const *sCallbacks, void *ptrUserdata, Marble_Layer **ptrpLayer, Marble_LayerStack *sLayerStack, _Bool blIsTopmost) { MARBLE_ERRNO
+	if (iErrorCode = Marble_Layer_Create(blIsEnabled, ptrpLayer))
+		return iErrorCode;
+
+	Marble_Layer_SetCallbacks(*ptrpLayer, sCallbacks);
+	Marble_Layer_SetUserdata(*ptrpLayer, ptrUserdata);
+	if (iErrorCode = Marble_Layer_Push(sLayerStack, *ptrpLayer, blIsTopmost)) {
+		Marble_Layer_Destroy(ptrpLayer);
+
+		return iErrorCode;
+	}
+
+	return iErrorCode;
+}
+
+void Marble_Layer_Destroy(Marble_Layer **ptrpLayer) {
+	if (!ptrpLayer || !*ptrpLayer)
+		return;
+
+	Marble_Layer_Pop((*ptrpLayer)->sRefLayerstack, *ptrpLayer, (*ptrpLayer)->blIsTopmost);
+
+	free(*ptrpLayer);
+	*ptrpLayer = NULL;
+}
+
 int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) { MARBLE_ERRNO
+	sLayerStack = sLayerStack == Marble_DefLayerStack ? gl_sApplication.sLayers : sLayerStack;
+	if (!sLayerStack || !sLayer)
+		return Marble_ErrorCode_Parameter;
+
 	Marble_Layer_Internal_FixLayerCallbacks(sLayer);
 	if (blIsTopmost)
 		iErrorCode = Marble_Util_Vector_PushBack(sLayerStack->sLayerStack, sLayer);
@@ -86,13 +108,21 @@ int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Boo
 			++sLayerStack->stLastLayer;
 	}
 
-	if (!iErrorCode)
-		iErrorCode = sLayer->sCallbacks.OnPush(sLayer);
+	if (!iErrorCode) {
+		if (iErrorCode = sLayer->sCallbacks.OnPush(sLayer))
+			return iErrorCode;
+
+		sLayer->blIsTopmost    = blIsTopmost;
+		sLayer->sRefLayerstack = sLayerStack;
+	}
 
 	return iErrorCode;
 }
 
 Marble_Layer *Marble_Layer_Pop(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) {
+	if (!sLayerStack || !sLayer)
+		return NULL;
+
 	size_t stIndex = Marble_Util_Vector_Find(
 		sLayerStack->sLayerStack, 
 		sLayer, 
@@ -112,6 +142,9 @@ Marble_Layer *Marble_Layer_Pop(Marble_LayerStack *sLayerStack, Marble_Layer *sLa
 		);
 		sLayer->sCallbacks.OnPop(sLayer);
 
+		sLayer->blIsTopmost    = FALSE;
+		sLayer->sRefLayerstack = NULL;
+
 		if (!blIsTopmost)
 			--sLayerStack->stLastLayer;
 
@@ -129,18 +162,21 @@ void *Marble_Layer_GetUserdata(Marble_Layer *sLayer) {
 }
 
 void *Marble_Layer_GetCallback(Marble_Layer *sLayer, int iHandlerType) {
-	if (sLayer) {
-		switch (iHandlerType) {
-			case Marble_LayerHandlerType_OnPush:   return sLayer->sCallbacks.OnPush;
-			case Marble_LayerHandlerType_OnPop:    return sLayer->sCallbacks.OnPop;
-			case Marble_LayerHandlerType_OnUpdate: return sLayer->sCallbacks.OnUpdate;
-			case Marble_LayerHandlerType_OnEvent:  return sLayer->sCallbacks.OnEvent;
-		}
-
+	if (!sLayer)
 		return NULL;
+
+	switch (iHandlerType) {
+		case Marble_LayerHandlerType_OnPush:   return sLayer->sCallbacks.OnPush;
+		case Marble_LayerHandlerType_OnPop:    return sLayer->sCallbacks.OnPop;
+		case Marble_LayerHandlerType_OnUpdate: return sLayer->sCallbacks.OnUpdate;
+		case Marble_LayerHandlerType_OnEvent:  return sLayer->sCallbacks.OnEvent;
 	}
 
 	return NULL;
+}
+
+_Bool Marble_Layer_IsEnabled(Marble_Layer *sLayer) {
+	return sLayer ? sLayer->blIsEnabled : FALSE;
 }
 
 void Marble_Layer_SetEnabled(Marble_Layer *sLayer, _Bool blIsEnabled) {
@@ -149,22 +185,22 @@ void Marble_Layer_SetEnabled(Marble_Layer *sLayer, _Bool blIsEnabled) {
 }
 
 void Marble_Layer_SetCallbacks(Marble_Layer *sLayer, struct Marble_Layer_Callbacks const *sCallbacks) {
-	if (sLayer) {
-		memcpy(&sLayer->sCallbacks, sCallbacks, sizeof(struct Marble_Layer_Callbacks));
+	if (!sLayer)
+		return;
 
-		Marble_Layer_Internal_FixLayerCallbacks(sLayer);
-	}
+	memcpy(&sLayer->sCallbacks, sCallbacks, sizeof(struct Marble_Layer_Callbacks));
+
+	Marble_Layer_Internal_FixLayerCallbacks(sLayer);
 }
 
 void *Marble_Layer_SetUserdata(Marble_Layer *sLayer, void *ptrUserdata) {
-	if (sLayer) {
-		void *ptrOldUserdata = sLayer->ptrUserdata;
+	if (!sLayer)
+		return NULL;
 
-		sLayer->ptrUserdata = ptrUserdata;
-		return ptrOldUserdata;
-	}
+	void *ptrOldUserdata = sLayer->ptrUserdata;
 
-	return NULL;
+	sLayer->ptrUserdata = ptrUserdata;
+	return ptrOldUserdata;
 }
 
 

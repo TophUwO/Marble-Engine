@@ -63,6 +63,7 @@ typedef struct Marble_Renderer {
 } Marble_Renderer;
 
 
+extern void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha);
 extern int  Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiveAPI, HWND hwRenderWindow);
 extern void Marble_Renderer_Destroy(Marble_Renderer **ptrpRenderer);
 extern void Marble_Renderer_BeginDraw(Marble_Renderer *sRenderer);

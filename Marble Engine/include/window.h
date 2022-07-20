@@ -24,6 +24,8 @@ typedef struct Marble_Window {
 extern int         Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWidth, DWORD dwHeight, _Bool blIsVSync);
 extern void        Marble_Window_Destroy(Marble_Window **ptrpWindow);
 extern void inline Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsFullscreen);
+extern void inline Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled);
 extern void        Marble_Window_Update(Marble_Window *sWindow, float fTimeStep);
+extern void        Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeightInTiles, int iTileSize);
 
 

@@ -101,3 +101,45 @@ int Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool 
 }
 
 
+#pragma region User API
+struct Marble_UserAPI Marble = {
+	.Renderer = {
+		.Clear = &Marble_Renderer_Clear
+	},
+
+	.Window = {
+		.setSize       = &Marble_Window_SetSize,
+		.setFullscreen = &Marble_Window_SetFullscreen,
+		.setVSync      = &Marble_Window_SetVSyncEnabled
+	},
+
+	.Layer = {
+		.Create        = &Marble_Layer_Create,
+		.CreateAndPush = &Marble_Layer_CreateAndPush,
+		.Destroy       = &Marble_Layer_Destroy,
+		.Push          = &Marble_Layer_Push,
+		.Pop           = &Marble_Layer_Pop,
+		.getUserdata   = &Marble_Layer_GetUserdata,
+		.getCallback   = &Marble_Layer_GetCallback,
+		.isEnabled     = &Marble_Layer_IsEnabled,
+		.setEnabled    = &Marble_Layer_SetEnabled,
+		.setCallbacks  = &Marble_Layer_SetCallbacks,
+		.setUserdata   = &Marble_Layer_SetUserdata
+	},
+
+	.Asset = {
+		.Create                        = &Marble_Asset_Create,
+		.CreateExplicit                = &Marble_Asset_CreateExplicit,
+		.CreateAndLoadFromFile         = &Marble_Asset_CreateAndLoadFromFile,
+		.CreateAndLoadFromFileExplicit = &Marble_Asset_CreateAndLoadFromFileExplicit,
+		.LoadFromFile                  = &Marble_Asset_LoadFromFile,
+		.Destroy                       = &Marble_Asset_Destroy,
+		.getType                       = &Marble_Asset_GetType,
+		.getId                         = &Marble_Asset_GetId,
+		.Register                      = &Marble_Asset_Register,
+		.Unregister                    = &Marble_Asset_Unregister
+	}
+};
+#pragma endregion
+
+

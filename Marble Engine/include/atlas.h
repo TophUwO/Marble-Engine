@@ -6,6 +6,7 @@
 
 typedef struct Marble_Atlas {
 	Marble_Asset;
+
 	int iAtlasType;
 } Marble_Atlas;
 

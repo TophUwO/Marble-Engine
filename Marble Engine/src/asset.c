@@ -17,7 +17,7 @@ static int Marble_Asset_Internal_ReadAssetDependency_Asset(Marble_Util_FileStrea
 	Marble_Util_FileStream_ReadBYTE(sFileStream, &blIsRequired);
 
 	Marble_Asset *sAsset = NULL;
-	if (iErrorCode = Marble_Asset_CreateAndLoadFromFile(wstrAssetPath, NULL, &sAsset))
+	if (iErrorCode = Marble_Asset_CreateAndLoadFromFile(wstrAssetPath, &sAsset))
 		return iErrorCode;
 
 	if (iErrorCode = Marble_Asset_Register(gl_sApplication.sAssets, sAsset)) {
@@ -30,12 +30,6 @@ static int Marble_Asset_Internal_ReadAssetDependency_Asset(Marble_Util_FileStrea
 }
 
 static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead) { MARBLE_ERRNO
-	static struct Marble_Asset_Internal_DependencyTableEntry { BYTE bCommand; BYTE bNumOfParams; } const gl_sAssetDepTableEntries[] = {
-		{ Marble_AssetDependency_Unknown, 0 },
-
-		{ Marble_AssetDependency_Asset,   2 }
-	};
-
 	Marble_Util_FileStream_Goto(sStream, sAssetHead->dwOffDepTable);
 
 	for (DWORD dwIndex = 0; dwIndex < sAssetHead->dwNumOfDeps; dwIndex++) {
@@ -58,28 +52,32 @@ ON_ERROR:
 }
 
 
-int Marble_Asset_Create(int iAssetType, void const *ptrCreateParams, Marble_Asset **ptrpAsset) { MARBLE_ERRNO
+int Marble_Asset_Create(Marble_Asset **ptrpAsset) {
+	return Marble_ErrorCode_UnimplementedFeature;
+}
+
+int Marble_Asset_CreateExplicit(int iAssetType, void const *ptrCreateParams, Marble_Asset **ptrpAsset) { MARBLE_ERRNO
 	extern int Marble_Asset_CreateImageAsset(Marble_Asset **ptrpImageAsset);
 	extern int Marble_Asset_CreateColorTableAsset(Marble_Asset **ptrpColorTable);
 
-	if (ptrpAsset) {
-		switch (iAssetType) {
-			case Marble_AssetType_Image:      iErrorCode = Marble_Asset_CreateImageAsset(ptrpAsset); break;
-			case Marble_AssetType_ColorTable: iErrorCode = Marble_Asset_CreateColorTableAsset(ptrpAsset); break;
-			default:
-				*ptrpAsset = NULL;
+	if (!ptrpAsset)
+		return Marble_ErrorCode_Parameter;
 
-				return Marble_ErrorCode_AssetType;
-		}
+	switch (iAssetType) {
+		case Marble_AssetType_Image:      iErrorCode = Marble_Asset_CreateImageAsset(ptrpAsset); break;
+		case Marble_AssetType_ColorTable: iErrorCode = Marble_Asset_CreateColorTableAsset(ptrpAsset); break;
+		default:
+			*ptrpAsset = NULL;
 
-		/* Free generic asset structure */
-		if (iErrorCode)
-			Marble_Asset_Destroy(ptrpAsset);
-
-		return iErrorCode;
+			return Marble_ErrorCode_AssetType;
 	}
+	(*ptrpAsset)->sRefAssetMan = NULL;
 
-	return Marble_ErrorCode_Parameter;
+	/* Free generic asset structure */
+	if (iErrorCode)
+		Marble_Asset_Destroy(ptrpAsset);
+
+	return iErrorCode;
 }
 
 void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
@@ -88,6 +86,9 @@ void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
 
 	if (!ptrpAsset || !*ptrpAsset)
 		return;
+
+	if ((*ptrpAsset)->sRefAssetMan)
+		Marble_Util_HashTable_Erase((*ptrpAsset)->sRefAssetMan->sHashTable, (*ptrpAsset)->astrAssetId, *ptrpAsset, FALSE);
 
 	switch ((*ptrpAsset)->iAssetType) {
 		case Marble_AssetType_Image:      Marble_ImageAsset_Destroy(*ptrpAsset);
@@ -130,11 +131,15 @@ int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath) { MARB
 	return iErrorCode;
 }
 
+int Marble_Asset_CreateAndLoadFromFile(TCHAR const *strPath, Marble_Asset **ptrpAsset) {
+	return Marble_ErrorCode_UnimplementedFeature;
+}
+
 int Marble_Asset_CreateAndLoadFromFileExplicit(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset) { MARBLE_ERRNO
 	if (!ptrpAsset || !strPath || !*strPath)
 		return Marble_ErrorCode_Parameter;
 
-	if (iErrorCode = Marble_Asset_Create(iAssetType, ptrCreateParams, ptrpAsset))
+	if (iErrorCode = Marble_Asset_CreateExplicit(iAssetType, ptrCreateParams, ptrpAsset))
 		return iErrorCode;
 
 	if (iErrorCode = Marble_Asset_LoadFromFile(*ptrpAsset, strPath)) {
@@ -146,12 +151,46 @@ int Marble_Asset_CreateAndLoadFromFileExplicit(int iAssetType, TCHAR const *strP
 	return Marble_ErrorCode_Ok;
 }
 
-int Marble_Asset_CreateAndLoadFromFile(TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset) {
-	return Marble_ErrorCode_UnimplementedFeature;
-}
-
 int Marble_Asset_GetType(Marble_Asset *sAsset) {
 	return sAsset ? sAsset->iAssetType : Marble_AssetType_Unknown;
+}
+
+CHAR *Marble_Asset_GetId(Marble_Asset *sAsset) {
+	return sAsset ? sAsset->astrAssetId : NULL;
+}
+
+/// <summary>
+/// int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset)
+/// 
+/// Attempt to register asset (i.e. transfer ownership of asset pointer from user to engine);
+/// If the asset does already exist or it cannot be registered, the ownership will not be
+/// transferred, meaning that the user will still have to take care of destroying the asset.
+/// </summary>
+/// <param name="Marble_AssetManager *sAssetManager"> > Asset manager to register asset in </param>
+/// <param name="Marble_Asset *sAsset"> > Asset to register </param>
+/// <returns>Non-zero on error; 0 on success. </returns>
+int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset) { MARBLE_ERRNO
+	sAssetManager = sAssetManager == Marble_DefAssetMan ? gl_sApplication.sAssets : sAssetManager;
+	if (!sAssetManager || !sAsset)
+		return Marble_ErrorCode_Parameter;
+
+	if (iErrorCode = Marble_Util_HashTable_Insert(sAssetManager->sHashTable, sAsset->astrAssetId, sAsset, FALSE))
+		return iErrorCode;
+
+	sAsset->sRefAssetMan = sAssetManager;
+	return Marble_ErrorCode_Ok;
+}
+
+int Marble_Asset_Unregister(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset, _Bool blDoFree) { MARBLE_ERRNO
+	sAssetManager = sAssetManager == Marble_DefAssetMan ? gl_sApplication.sAssets : sAssetManager;
+	if (!sAssetManager || !sAsset)
+		return Marble_ErrorCode_Parameter;
+
+	if (iErrorCode = Marble_Util_HashTable_Erase(sAssetManager->sHashTable, sAsset->astrAssetId, sAsset, FALSE))
+		return iErrorCode;
+
+	sAsset->sRefAssetMan = NULL;
+	return Marble_ErrorCode_Ok;
 }
 #pragma endregion
 
@@ -202,27 +241,6 @@ void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager) {
 		free(*ptrpAssetManager);
 		*ptrpAssetManager = NULL;
 	}
-}
-
-/// <summary>
-/// int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset)
-/// 
-/// Attempt to register asset (i.e. transfer ownership of asset pointer from user to engine);
-/// If the asset does already exist or it cannot be registered, the ownership will not be
-/// transferred, meaning that the user will still have to take care of destroying the asset.
-/// </summary>
-/// <param name="Marble_AssetManager *sAssetManager"> > Asset manager to register asset in </param>
-/// <param name="Marble_Asset *sAsset"> > Asset to register </param>
-/// <returns>Non-zero on error; 0 on success. </returns>
-int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset) {
-	if (sAsset && sAssetManager)
-		return Marble_Util_HashTable_Insert(sAssetManager->sHashTable, sAsset->astrAssetId, sAsset, FALSE);
-
-	return Marble_ErrorCode_Parameter;
-}
-
-int Marble_Asset_Unregister(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset, _Bool blDoFree) {
-	return Marble_ErrorCode_UnimplementedFeature;
 }
 #pragma endregion
 
