@@ -8,41 +8,32 @@ struct GameLayerUserdata {
 
 
 static int GameLayer_OnPush(Marble_Layer *sLayer) {
-	Marble_Asset *sAtlas = NULL;
-	Marble.Asset.CreateAndLoadFromFileExplicit(
-		Marble_AssetType_ColorTable,
-		TEXT("..\\res\\mba_ctab1.mbasset"),
-		NULL,
-		&sAtlas
-	);
-	Marble.Asset.Register(Marble_DefAssetMan, sAtlas);
-
 	Marble_Asset *sMap1 = NULL;
-	Marble_MapAsset_CreateParams sParams = { "mba_map1", 100, 100, 1 };
-	Marble.Asset.CreateAndLoadFromFileExplicit(
+	Marble_MapAsset_CreateParams sParams = { "map1", 24, 24, 1 };
+	int i = Marble.Asset.CreateAndLoadFromFileExplicit(
 		Marble_AssetType_Map,
-		TEXT("..\\res\\mba_map1.mbasset"),
+		TEXT("..\\res\\map1.mba"),
 		&sParams,
 		&sMap1
 	);
-	Marble.Asset.Register(Marble_DefAssetMan, sMap1);
+	Marble.Asset.Register(sMap1);
 
-	return Marble_ErrorCode_Ok;
+	return 0;
 }
 
 static int GameLayer_OnPop(Marble_Layer *sLayer) {
 
-	return Marble_ErrorCode_Ok;
+	return 0;
 }
 
 static int GameLayer_OnUpdate(Marble_Layer *sLayer, float fFrameTime) {
 
-	return Marble_ErrorCode_Ok;
+	return 0;
 }
 
 static int GameLayer_OnEvent(Marble_Layer *sLayer, Marble_Event *sEvent) {
 
-	return Marble_ErrorCode_Ok;
+	return 0;
 }
 
 
@@ -56,7 +47,7 @@ int Marble_Application_OnUserInit(void) {
 	Marble.Layer.CreateAndPush(TRUE, &sCallbacks, &sUserdata, &sGameLayer, Marble_DefLayerStack, FALSE);
 
 	Marble.Window.setSize(Marble_DefWindow, 32, 32, 32);
-	return Marble_ErrorCode_Ok;
+	return 0;
 }
 
 

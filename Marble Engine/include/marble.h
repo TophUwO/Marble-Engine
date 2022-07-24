@@ -1,18 +1,16 @@
 #pragma once
 
-#include <error.h>
 #include <event.h>
-#include <util.h>
 
 
-enum Marble_AssetType {
+typedef enum Marble_AssetTypes {
 	Marble_AssetType_Unknown,
 
 	Marble_AssetType_Atlas,
 	Marble_AssetType_ColorTable,
 	Marble_AssetType_Image,
 	Marble_AssetType_Map
-};
+} Marble_AssetType;
 
 
 typedef struct Marble_Layer        Marble_Layer;
@@ -20,7 +18,6 @@ typedef struct Marble_Asset        Marble_Asset;
 typedef struct Marble_Atlas        Marble_Atlas;
 typedef struct Marble_Renderer     Marble_Renderer;
 typedef struct Marble_Window       Marble_Window;
-typedef struct Marble_AssetManager Marble_AssetManager;
 typedef struct Marble_LayerStack   Marble_LayerStack;
 
 
@@ -41,7 +38,8 @@ typedef struct Marble_MapAsset_CreateParams {
 	
 	DWORD dwWidth; 
 	DWORD dwHeight;
-	DWORD dwNumOfLayers; 
+	DWORD dwNumOfLayers;
+	int   iTileFormat;
 } Marble_MapAsset_CreateParams;
 
 
@@ -73,15 +71,17 @@ MARBLE_API struct Marble_UserAPI {
 	struct {
 		int   (*const Create)(Marble_Asset **ptrpAsset);
 		int   (*const CreateExplicit)(int iAssetType, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
+		int   (*const LoadFromFile)(Marble_Asset *sAsset, TCHAR const *strPath);
 		int   (*const CreateAndLoadFromFile)(TCHAR const *strPath, Marble_Asset **ptrpAsset);
 		int   (*const CreateAndLoadFromFileExplicit)(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
-		int   (*const LoadFromFile)(Marble_Asset *sAsset, TCHAR const *strPath);
 		void  (*const Destroy)(Marble_Asset **ptrpAsset);
 		int   (*const getType)(Marble_Asset *sAsset);
-		CHAR *(*const getId)(Marble_Asset *sAsset);
-		void  (*const setId)(Marble_Asset *sAsset, CHAR const *astrNewId);
-		int   (*const Register)(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset);
-		int   (*const Unregister)(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset, _Bool blDoFree);
+		CHAR *(*const getID)(Marble_Asset *sAsset);
+		void  (*const setID)(Marble_Asset *sAsset, CHAR const *astrNewId);
+		int   (*const Register)(Marble_Asset *sAsset);
+		int   (*const Unregister)(Marble_Asset *sAsset, _Bool blDoFree);
+		int   (*const Obtain)(Marble_Asset *sAsset);
+		int   (*const Release)(Marble_Asset *sAsset);
 	} Asset;
 } Marble;
 

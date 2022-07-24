@@ -3,12 +3,12 @@
 
 int Marble_System_Cleanup(int iRetCode) {
 	extern void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack);
-	extern void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager);
+	extern void Marble_AssetManager_Destroy(void);
 
 	Marble_Window_Destroy(&gl_sApplication.sMainWindow);
 	Marble_Renderer_Destroy(&gl_sApplication.sRenderer);
-	Marble_AssetManager_Destroy(&gl_sApplication.sAssets);
 	Marble_LayerStack_Destroy(&gl_sApplication.sLayers);
+	Marble_AssetManager_Destroy();
 	CoUninitialize();
 
 #ifdef _DEBUG
@@ -97,11 +97,34 @@ int Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool 
 		return Marble_ErrorCode_MemoryAllocation;
 	}
 
+	printf("Allocator: Allocated memory of %i bytes, starting at address: 0x%p.\n", 
+		(int)stSize,
+		*ptrpMemoryPointer
+	);
+
 	return Marble_ErrorCode_Ok;
 }
 
 
 #pragma region User API
+/* 
+	* Wrapper functions for those functions that use some parameters 
+	* only internally but are of no use to the user.
+*/
+
+static int Marble_Asset_Internal_LoadFromFile_Impl(Marble_Asset *sAsset, TCHAR const *strPath) {
+	return Marble_Asset_LoadFromFile(sAsset, strPath, NULL);
+}
+
+static int Marble_Asset_Internal_CreateAndLoadFromFile_Impl(TCHAR const *strPath, Marble_Asset **ptrpAsset) {
+	return Marble_Asset_CreateAndLoadFromFile(strPath, ptrpAsset, NULL);
+}
+
+static int Marble_Asset_Internal_CreateAndLoadFromFileExplicit_Impl(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset) {
+	return Marble_Asset_CreateAndLoadFromFileExplicit(iAssetType, strPath, ptrCreateParams, ptrpAsset, NULL);
+}
+
+
 struct Marble_UserAPI Marble = {
 	.Renderer = {
 		.Clear = &Marble_Renderer_Clear
@@ -130,15 +153,17 @@ struct Marble_UserAPI Marble = {
 	.Asset = {
 		.Create                        = &Marble_Asset_Create,
 		.CreateExplicit                = &Marble_Asset_CreateExplicit,
-		.CreateAndLoadFromFile         = &Marble_Asset_CreateAndLoadFromFile,
-		.CreateAndLoadFromFileExplicit = &Marble_Asset_CreateAndLoadFromFileExplicit,
-		.LoadFromFile                  = &Marble_Asset_LoadFromFile,
+		.LoadFromFile                  = &Marble_Asset_Internal_LoadFromFile_Impl,
+		.CreateAndLoadFromFile         = &Marble_Asset_Internal_CreateAndLoadFromFile_Impl,
+		.CreateAndLoadFromFileExplicit = &Marble_Asset_Internal_CreateAndLoadFromFileExplicit_Impl,
 		.Destroy                       = &Marble_Asset_Destroy,
 		.getType                       = &Marble_Asset_GetType,
-		.getId                         = &Marble_Asset_GetId,
-		.setId                         = &Marble_Asset_SetId,
+		.getID                         = &Marble_Asset_GetId,
+		.setID                         = &Marble_Asset_SetId,
 		.Register                      = &Marble_Asset_Register,
-		.Unregister                    = &Marble_Asset_Unregister
+		.Unregister                    = &Marble_Asset_Unregister,
+		.Obtain                        = &Marble_Asset_Obtain,
+		.Release                       = &Marble_Asset_Release
 	}
 };
 #pragma endregion

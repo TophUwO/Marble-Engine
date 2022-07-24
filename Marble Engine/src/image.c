@@ -28,8 +28,8 @@ int Marble_ImageAsset_LoadFromFile(Marble_ImageAsset *sImageAsset, TCHAR const *
 
 		/* Open file */
 		Marble_IfError(
-			gl_sApplication.sAssets->sWICFactory->lpVtbl->CreateDecoderFromFilename(
-				gl_sApplication.sAssets->sWICFactory,
+			gl_sApplication.sAssets.sWICFactory->lpVtbl->CreateDecoderFromFilename(
+				gl_sApplication.sAssets.sWICFactory,
 				strPath,
 				NULL,
 				GENERIC_READ,
@@ -55,8 +55,8 @@ int Marble_ImageAsset_LoadFromFile(Marble_ImageAsset *sImageAsset, TCHAR const *
 
 		/* Create format converter */
 		Marble_IfError(
-			gl_sApplication.sAssets->sWICFactory->lpVtbl->CreateFormatConverter(
-				gl_sApplication.sAssets->sWICFactory,
+			gl_sApplication.sAssets.sWICFactory->lpVtbl->CreateFormatConverter(
+				gl_sApplication.sAssets.sWICFactory,
 				&sWICFmtConverter
 			), S_OK, {
 				sWICDecoder->lpVtbl->Release(sWICDecoder);

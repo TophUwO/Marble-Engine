@@ -3,25 +3,53 @@
 
 
 #pragma region Marble_Asset
-static void Marble_Asset_Internal_CopyAssetId(Marble_AssetHead *sAssetHead, CHAR *astrId) {
+static void inline Marble_Asset_Internal_ReadCommonAssetHead(Marble_Util_FileStream *sFileStream, Marble_AssetHead *sHead) {
+	Marble_Util_FileStream_ReadSize(sFileStream, sizeof(*sHead), sHead);
+}
+
+static _Bool inline Marble_Asset_Internal_CheckForDuplicate(CHAR const *astrAssetId, _Bool (*fnFind)(CHAR const *, void *), void **ptrpDupePtr) {
+	void *ptrDupe = Marble_Util_HashTable_Find(gl_sApplication.sAssets.sHashTable, astrAssetId, fnFind);
+
+	if (ptrpDupePtr)
+		*ptrpDupePtr = ptrDupe;
+
+	return (_Bool)ptrDupe;
+}
+
+static void inline Marble_Asset_Internal_CopyAssetId(Marble_AssetHead *sAssetHead, CHAR *astrId) {
 	memcpy_s(astrId, MARBLE_ASSETIDLEN, sAssetHead->astrAssetId, MARBLE_ASSETIDLEN);
 }
 
-static int Marble_Asset_Internal_ReadAssetDependency_Asset(Marble_Util_FileStream *sFileStream) { MARBLE_ERRNO
-	DWORD dwAssetPathLen      = 0;
-	WCHAR wstrAssetPath[1024] = { 0 };
-	_Bool blIsRequired        = FALSE;
+static void Marble_Asset_Internal_ReleaseChildAssets(Marble_Asset *sParent) {
+	if (!sParent || !sParent->sDependencies)
+		return;
+
+	for (size_t stIndex = 0; stIndex < sParent->sDependencies->stSize; stIndex++)
+		Marble_Asset_Release(Marble_Util_Vector_Get(sParent->sDependencies, stIndex));
+}
+
+static int Marble_Asset_Internal_ProcessAssetDependency_Asset(Marble_Asset *sParent, Marble_Util_FileStream *sFileStream) { MARBLE_ERRNO
+	DWORD  dwAssetPathLen        = 0;
+	CHAR   astrAssetPath[1024]   = { 0 };
+	WCHAR  wstrAssetPath[1024]   = { 0 };
+	_Bool  blIsDuplicate         = FALSE;
+	size_t stNumOfCharsConverted = 0;
 
 	Marble_Util_FileStream_ReadDWORD(sFileStream, &dwAssetPathLen);
-	Marble_Util_FileStream_ReadSize(sFileStream, dwAssetPathLen, &wstrAssetPath[0]);
-	Marble_Util_FileStream_ReadBYTE(sFileStream, &blIsRequired);
+	Marble_Util_FileStream_ReadSize(sFileStream, dwAssetPathLen, &astrAssetPath[0]);
 
 	Marble_Asset *sAsset = NULL;
-	if (iErrorCode = Marble_Asset_CreateAndLoadFromFile(wstrAssetPath, &sAsset))
+	mbstowcs_s(&stNumOfCharsConverted, wstrAssetPath, 1024, astrAssetPath, 1024);
+	if ((iErrorCode = Marble_Asset_CreateAndLoadFromFile(wstrAssetPath, &sAsset, &sAsset)) && iErrorCode ^ Marble_ErrorCode_DuplicatesNotAllowed)
+		return iErrorCode;
+	blIsDuplicate = iErrorCode == Marble_ErrorCode_DuplicatesNotAllowed;
+
+	Marble_Asset_Obtain(sAsset);
+	if (iErrorCode = Marble_Util_Vector_PushBack(sParent->sDependencies, sAsset))
 		return iErrorCode;
 
-	if (iErrorCode = Marble_Asset_Register(gl_sApplication.sAssets, sAsset)) {
-		Marble_Asset_Destroy(&sAsset);
+	if (!blIsDuplicate && (iErrorCode = Marble_Asset_Register(sAsset))) {
+		Marble_Asset_Release(sAsset);
 
 		return iErrorCode;
 	}
@@ -29,8 +57,20 @@ static int Marble_Asset_Internal_ReadAssetDependency_Asset(Marble_Util_FileStrea
 	return Marble_ErrorCode_Ok;
 }
 
-static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead) { MARBLE_ERRNO
-	Marble_Util_FileStream_Goto(sStream, sAssetHead->dwOffDepTable);
+static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Asset *sAsset, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead) { MARBLE_ERRNO
+	if (!sAssetHead->dwNumOfDeps)
+		return Marble_ErrorCode_Ok;
+
+	/* 
+		* Initialize dependency table; is used as some kind of cache,
+		* and will be traversed when the asset gets unloaded, decrementing
+		* the ref-count of all the assets this asset loaded throughout its
+		* life-time.
+		* The dependency table will only be created when the dependency table
+		* inside the file actually has entries.
+	*/
+	if (iErrorCode = Marble_Util_Vector_Create(Marble_Util_VectorType_VecOfPointers, 0, 16, NULL, NULL, &sAsset->sDependencies))
+		return iErrorCode;
 
 	for (DWORD dwIndex = 0; dwIndex < sAssetHead->dwNumOfDeps; dwIndex++) {
 		BYTE bCommand = 0;
@@ -38,17 +78,21 @@ static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Util_FileStream 
 
 		switch (bCommand) {
 			case Marble_AssetDependency_Asset: 
-				if (iErrorCode = Marble_Asset_Internal_ReadAssetDependency_Asset(sStream))
+				if (iErrorCode = Marble_Asset_Internal_ProcessAssetDependency_Asset(sAsset, sStream))
 					goto ON_ERROR;
 		}
 	}
 
-	return Marble_Util_FileStream_Goto(sStream, sAssetHead->dwOffData);
+	return Marble_ErrorCode_Ok;
 
 ON_ERROR:
-	/* TODO: unload all assets already loaded */
+	Marble_Asset_Internal_ReleaseChildAssets(sAsset);
 
 	return iErrorCode;
+}
+
+static _Bool Marble_Asset_Internal_FindCallbackFn(CHAR const *astrKey, Marble_Asset *sAsset) {
+	return astrKey && sAsset && !strcmp(astrKey, sAsset->astrAssetId);
 }
 
 
@@ -73,7 +117,6 @@ int Marble_Asset_CreateExplicit(int iAssetType, void const *ptrCreateParams, Mar
 
 			return Marble_ErrorCode_AssetType;
 	}
-	(*ptrpAsset)->sRefAssetMan = NULL;
 
 	if (ptrCreateParams)
 		Marble_Asset_SetId(*ptrpAsset, ((Marble_Asset_CreateParams *)ptrCreateParams)->astrId);
@@ -93,8 +136,10 @@ void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
 	if (!ptrpAsset || !*ptrpAsset)
 		return;
 
-	if ((*ptrpAsset)->sRefAssetMan)
-		Marble_Util_HashTable_Erase((*ptrpAsset)->sRefAssetMan->sHashTable, (*ptrpAsset)->astrAssetId, *ptrpAsset, FALSE);
+	Marble_Asset_Internal_ReleaseChildAssets(*ptrpAsset);
+	Marble_Util_Vector_Destroy(&(*ptrpAsset)->sDependencies);
+
+	//Marble_Util_HashTable_Erase((*ptrpAsset)->sRefAssetMan->sHashTable, (*ptrpAsset)->astrAssetId, FALSE);
 
 	switch ((*ptrpAsset)->iAssetType) {
 		case Marble_AssetType_Image:      Marble_ImageAsset_Destroy(*ptrpAsset);      break;
@@ -102,11 +147,17 @@ void Marble_Asset_Destroy(Marble_Asset **ptrpAsset) {
 		case Marble_AssetType_Map:        Marble_MapAsset_Destroy(*ptrpAsset);        break;
 	}
 
+	printf("Destroyed asset \"%s\" (type = %i) at address 0x%p.\n",
+		(*ptrpAsset)->astrAssetId,
+		(*ptrpAsset)->iAssetType,
+		*ptrpAsset
+	);
+
 	free(*ptrpAsset);
 	*ptrpAsset = NULL;
 }
 
-int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath) { MARBLE_ERRNO
+int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath, void **ptrpExistingAssetPtr) { MARBLE_ERRNO
 	extern int Marble_ImageAsset_LoadFromFile(Marble_Asset *sImage, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead);
 	extern int Marble_ColorTableAsset_LoadFromFile(Marble_Asset *sColorTable, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead);
 	extern int Marble_MapAsset_LoadFromFile(Marble_Asset *sMap, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead);
@@ -118,13 +169,14 @@ int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath) { MARB
 	if (iErrorCode = Marble_Util_FileStream_Open(strPath, Marble_Util_StreamPerm_Read, &sStream))
 		return iErrorCode;
 	
-	/* Read common asset head */
 	Marble_AssetHead sAssetHead = { 0 };
-	Marble_Util_FileStream_ReadSize(sStream, sizeof(sAssetHead), &sAssetHead);
+	Marble_Asset_Internal_ReadCommonAssetHead(sStream, &sAssetHead);
+	if (Marble_Asset_Internal_CheckForDuplicate(sAsset->astrAssetId, (_Bool (*)(CHAR const *, void *))&Marble_Asset_Internal_FindCallbackFn, ptrpExistingAssetPtr))
+		return Marble_ErrorCode_DuplicatesNotAllowed;
 	Marble_Asset_Internal_CopyAssetId(&sAssetHead, sAsset->astrAssetId);
 
-	/* Read dependency table and load all found deps */
-	if (iErrorCode = Marble_Asset_Internal_EvaluateDependencyTable(sStream, &sAssetHead))
+	/* Read dependency table and load all deps */
+	if (iErrorCode = Marble_Asset_Internal_EvaluateDependencyTable(sAsset, sStream, &sAssetHead))
 		return iErrorCode;
 
 	/* Load asset from file */
@@ -139,18 +191,32 @@ int Marble_Asset_LoadFromFile(Marble_Asset *sAsset, TCHAR const *strPath) { MARB
 	return iErrorCode;
 }
 
-int Marble_Asset_CreateAndLoadFromFile(TCHAR const *strPath, Marble_Asset **ptrpAsset) {
-	return Marble_ErrorCode_UnimplementedFeature;
+int Marble_Asset_CreateAndLoadFromFile(TCHAR const *strPath, Marble_Asset **ptrpAsset, void **ptrpExistingAssetPtr) { MARBLE_ERRNO
+	if (!ptrpAsset || !strPath || !*strPath)
+		return Marble_ErrorCode_Parameter;
+
+	Marble_Util_FileStream *sStream = NULL;
+	if (iErrorCode = Marble_Util_FileStream_Open(strPath, Marble_Util_StreamPerm_Read, &sStream))
+		return iErrorCode;
+
+	Marble_AssetHead sTmpHead = { 0 };
+	Marble_Asset_Internal_ReadCommonAssetHead(sStream, &sTmpHead);
+	Marble_Util_FileStream_Destroy(&sStream);
+
+	if (iErrorCode = Marble_Asset_CreateAndLoadFromFileExplicit(sTmpHead.dwMagic >> 16, strPath, NULL, ptrpAsset, ptrpExistingAssetPtr))
+		return iErrorCode;
+
+	return Marble_ErrorCode_Ok;
 }
 
-int Marble_Asset_CreateAndLoadFromFileExplicit(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset) { MARBLE_ERRNO
+int Marble_Asset_CreateAndLoadFromFileExplicit(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset, void **ptrpExistingAssetPtr) { MARBLE_ERRNO
 	if (!ptrpAsset || !strPath || !*strPath)
 		return Marble_ErrorCode_Parameter;
 
 	if (iErrorCode = Marble_Asset_CreateExplicit(iAssetType, ptrCreateParams, ptrpAsset))
 		return iErrorCode;
 
-	if (iErrorCode = Marble_Asset_LoadFromFile(*ptrpAsset, strPath)) {
+	if (iErrorCode = Marble_Asset_LoadFromFile(*ptrpAsset, strPath, NULL)) {
 		Marble_Asset_Destroy(ptrpAsset);
 
 		return iErrorCode;
@@ -183,39 +249,58 @@ void Marble_Asset_SetId(Marble_Asset *sAsset, CHAR const *astrNewId) {
 /// </summary>
 /// <param name="Marble_AssetManager *sAssetManager"> > Asset manager to register asset in </param>
 /// <param name="Marble_Asset *sAsset"> > Asset to register </param>
-/// <returns>Non-zero on error; 0 on success. </returns>
-int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset) { MARBLE_ERRNO
-	sAssetManager = sAssetManager == Marble_DefAssetMan ? gl_sApplication.sAssets : sAssetManager;
-	if (!sAssetManager || !sAsset)
-		return Marble_ErrorCode_Parameter;
+/// <returns>Non-zero on error; 0 on success.</returns>
+int Marble_Asset_Register(Marble_Asset *sAsset) { MARBLE_ERRNO
+	if (!gl_sApplication.sAssets.blIsInit || !sAsset)
+		return sAsset ? Marble_ErrorCode_Parameter : Marble_ErrorCode_ComponentInitState;
 
-	if (iErrorCode = Marble_Util_HashTable_Insert(sAssetManager->sHashTable, sAsset->astrAssetId, sAsset, FALSE))
+	if (Marble_Asset_Internal_CheckForDuplicate(sAsset->astrAssetId, (_Bool (*)(CHAR const *, void *))&Marble_Asset_Internal_FindCallbackFn, NULL))
+		return Marble_ErrorCode_DuplicatesNotAllowed;
+
+	if (iErrorCode = Marble_Util_HashTable_Insert(gl_sApplication.sAssets.sHashTable, sAsset->astrAssetId, sAsset, FALSE))
 		return iErrorCode;
 
-	sAsset->sRefAssetMan = sAssetManager;
 	return Marble_ErrorCode_Ok;
 }
 
-int Marble_Asset_Unregister(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset, _Bool blDoFree) { MARBLE_ERRNO
-	sAssetManager = sAssetManager == Marble_DefAssetMan ? gl_sApplication.sAssets : sAssetManager;
-	if (!sAssetManager || !sAsset)
-		return Marble_ErrorCode_Parameter;
+int Marble_Asset_Unregister(Marble_Asset *sAsset, _Bool blDoFree) {
+	if (!gl_sApplication.sAssets.blIsInit || !sAsset)
+		return sAsset ? Marble_ErrorCode_Parameter : Marble_ErrorCode_ComponentInitState;
 
-	if (iErrorCode = Marble_Util_HashTable_Erase(sAssetManager->sHashTable, sAsset->astrAssetId, sAsset, FALSE))
-		return iErrorCode;
+	Marble_Util_HashTable_Erase(gl_sApplication.sAssets.sHashTable, sAsset->astrAssetId, blDoFree);
 
-	sAsset->sRefAssetMan = NULL;
 	return Marble_ErrorCode_Ok;
+}
+
+int Marble_Asset_Obtain(Marble_Asset *sAsset) {
+	if (!sAsset)
+		return -1;
+
+	if (sAsset->iRefCount ^ -1)
+		return ++sAsset->iRefCount;
+
+	return -2;
+}
+
+int Marble_Asset_Release(Marble_Asset *sAsset) {
+	if (!sAsset)
+		return -1;
+
+	if (sAsset->iRefCount ^ -1) {
+		if (!--sAsset->iRefCount)
+			return Marble_Asset_Unregister(sAsset, TRUE);
+
+		return sAsset->iRefCount;
+	}
+
+	return -2;
 }
 #pragma endregion
 
 
 #pragma region Marble_AssetManager
-int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) { MARBLE_ERRNO
-	extern void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager);
-
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpAssetManager, sizeof(**ptrpAssetManager), FALSE, TRUE))
-		return iErrorCode;
+int Marble_AssetManager_Create(void) { MARBLE_ERRNO
+	extern void Marble_AssetManager_Destroy(void);
 
 	Marble_IfError(
 		CoCreateInstance(
@@ -223,9 +308,9 @@ int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) { MARBLE_
 			NULL,
 			CLSCTX_INPROC_SERVER,
 			&IID_IWICImagingFactory2,
-			&(*ptrpAssetManager)->sWICFactory
+			&gl_sApplication.sAssets.sWICFactory
 		), S_OK, {
-			Marble_AssetManager_Destroy(ptrpAssetManager);
+			Marble_AssetManager_Destroy();
 
 			return Marble_ErrorCode_CreateWICImagingFactory;
 		}
@@ -233,29 +318,28 @@ int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager) { MARBLE_
 
 	Marble_IfError(
 		Marble_Util_HashTable_Create(
-			&(*ptrpAssetManager)->sHashTable,
+			&gl_sApplication.sAssets.sHashTable,
 			64, 
 			(void (*)(void **))&Marble_Asset_Destroy
 		), Marble_ErrorCode_Ok, {
-			Marble_AssetManager_Destroy(ptrpAssetManager);
+			Marble_AssetManager_Destroy();
 
 			return iErrorCode;
 		}
 	);
 
+	gl_sApplication.sAssets.blIsInit = TRUE;
 	return Marble_ErrorCode_Ok;
 }
 
-void Marble_AssetManager_Destroy(Marble_AssetManager **ptrpAssetManager) {
-	if (ptrpAssetManager && *ptrpAssetManager) {
-		Marble_Util_HashTable_Destroy(&(*ptrpAssetManager)->sHashTable);
+void Marble_AssetManager_Destroy(void) {
+	if (!gl_sApplication.sAssets.blIsInit)
+		return;
 
-		if ((*ptrpAssetManager)->sWICFactory)
-			(*ptrpAssetManager)->sWICFactory->lpVtbl->Release((*ptrpAssetManager)->sWICFactory);
+	Marble_Util_HashTable_Destroy(&gl_sApplication.sAssets.sHashTable);
 
-		free(*ptrpAssetManager);
-		*ptrpAssetManager = NULL;
-	}
+	if (gl_sApplication.sAssets.sWICFactory)
+		gl_sApplication.sAssets.sWICFactory->lpVtbl->Release(gl_sApplication.sAssets.sWICFactory);
 }
 #pragma endregion
 

@@ -7,12 +7,8 @@ static double const gl_dblDefCapacityMultiplier = 4.0f / 3.0f;
 
 static int Marble_Util_Vector_Internal_Reallocate(Marble_Util_Vector *sVector, size_t stNewCapacity) {
 	void *ptrNew = NULL;
-	if (ptrNew = realloc(sVector->iVectorType == Marble_Util_VectorType_VecOfPointers ? sVector->ptrpData : sVector->ptrData, stNewCapacity * sVector->stObjectSize)) {
-		(void)(
-			sVector->iVectorType == Marble_Util_VectorType_VecOfPointers 
-				? (void)(sVector->ptrpData = ptrNew)
-				: (void)(sVector->ptrData == ptrNew)
-		);
+	if (ptrNew = realloc(sVector->ptrData, stNewCapacity * sVector->stObjectSize)) {
+		sVector->ptrpData   = ptrNew;
 		sVector->stCapacity = stNewCapacity;
 
 		return Marble_ErrorCode_Ok;
@@ -66,7 +62,7 @@ static void inline Marble_Util_Vector_Internal_ComputeMemmoveDestAndSrc(Marble_U
 }
  
 
-int Marble_Util_Vector_Create(int iVectorType, size_t stObjectSize, size_t stStartCapacity, void *onDestroy, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes), Marble_Util_Vector **ptrpVector) { MARBLE_ERRNO
+int Marble_Util_Vector_Create(int iVectorType, size_t stObjectSize, size_t stStartCapacity, void *onDestroy, void (*onCopy)(void *, void *, size_t), Marble_Util_Vector **ptrpVector) { MARBLE_ERRNO
 	if (!ptrpVector || !Marble_Util_Vector_Internal_IsValidVectorType(iVectorType) || (iVectorType == Marble_Util_VectorType_VecOfObjects && !stObjectSize))
 		return Marble_ErrorCode_InternalParameter;
 
@@ -126,7 +122,7 @@ void Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, void *onDestro
 		sVector->onDestroy = onDestroy;
 }
 
-void Marble_Util_Vector_SetOnCopy(Marble_Util_Vector *sVector, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes)) {
+void Marble_Util_Vector_SetOnCopy(Marble_Util_Vector *sVector, void (*onCopy)(void *, void *, size_t)) {
 	if (sVector)
 		sVector->onCopy = onCopy;
 }
@@ -167,7 +163,7 @@ int Marble_Util_Vector_Insert(Marble_Util_Vector *sVector, size_t stIndex, void 
 
 			break;
 		case Marble_Util_VectorType_VecOfObjects:
-			sVector->onCopy(ptrBase + stIndex * sVector->stObjectSize, ptrObject, sVector->stObjectSize);
+			sVector->onCopy((char *)ptrBase + stIndex * sVector->stObjectSize, ptrObject, sVector->stObjectSize);
 
 			break;
 	}
@@ -227,6 +223,13 @@ size_t Marble_Util_Vector_Find(Marble_Util_Vector *sVector, void *ptrObject, siz
 ON_NOT_FOUND:
 	return (size_t)(-1);
 }
+
+void *Marble_Util_Vector_Get(Marble_Util_Vector *sVector, size_t stIndex) {
+	if (!sVector || stIndex >= sVector->stSize)
+		return NULL;
+
+	return (char *)sVector->ptrData + sVector->stObjectSize * stIndex; // TODO: fix
+}
 #pragma endregion
 
 
@@ -270,8 +273,8 @@ static TCHAR inline const *const Marble_Util_Stream_Internal_GetStringFromPermis
 	_Bool const blIsAppendFlag = iPermissions & Marble_Util_StreamPerm_Append;
 
 	switch (iPermissions & 0xFF) {
-		case Marble_Util_StreamPerm_Read:  return blIsAppendFlag ? TEXT("a+") : TEXT("r");
-		case Marble_Util_StreamPerm_Write: return TEXT("w");
+		case Marble_Util_StreamPerm_Read:  return blIsAppendFlag ? TEXT("a+") : TEXT("rb");
+		case Marble_Util_StreamPerm_Write: return TEXT("wb");
 		case Marble_Util_StreamPerm_Read | Marble_Util_StreamPerm_Write: 
 			return blIsCreateFlag ? TEXT("w+") : TEXT("r+");
 		case 0:
@@ -336,7 +339,7 @@ int Marble_Util_FileStream_ReadSize(Marble_Util_FileStream *sFileStream, size_t 
 	if (!sFileStream || !ptrDest || !stSizeInBytes)
 		return Marble_ErrorCode_Parameter;
 
-	if (fread(ptrDest, stSizeInBytes, 1, sFileStream->flpFilePointer) ^ 1)
+	if (fread(ptrDest, 1, stSizeInBytes, sFileStream->flpFilePointer) ^ stSizeInBytes)
 		return Marble_ErrorCode_ReadFromFile;
 
 	return Marble_ErrorCode_Ok;
@@ -431,12 +434,31 @@ static size_t inline Marble_Util_HashTable_Internal_Hash(Marble_Util_HashTable *
 	* return non-zero, both populating *stBucketIndex* and *stVecIndex*. If the element
 	* cannot be found, the function will return zero and *stVecIndex* will be 0.
 */
-static _Bool Marble_Util_HashTable_Internal_Locate(Marble_Util_HashTable *sHashTable, CHAR const *strKey, void *ptrElement, size_t *stpBucketIndex, size_t *stpVecIndex) {
+static _Bool Marble_Util_HashTable_Internal_Locate(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrElement, size_t *stpBucketIndex, size_t *stpVecIndex, _Bool (*fnFind)(CHAR const *, void *), void **ptrpFoundPtr) {
 	/* Compute bucket index (reuse this value later if the bucket does not exist) */
-	if (!sHashTable->ptrpStorage[*stpBucketIndex = Marble_Util_HashTable_Internal_Hash(sHashTable, strKey)]) {
+	Marble_Util_Vector *sRefBucket = NULL;
+	if (!(sRefBucket = sHashTable->ptrpStorage[*stpBucketIndex = Marble_Util_HashTable_Internal_Hash(sHashTable, astrKey)])) {
 		*stpVecIndex = 0;
 
 		return FALSE;
+	}
+
+	/*
+		* If no pointer has been passed, we are, instead, looking for an
+		* element of a specific key.
+		* In this case, it is required to pass a "find" function which analyzes
+		* the data in the bucket to find if an element satisfies a condition
+		* that declares the element "found", e.g. a key match, an ID match, etc.
+	*/
+	if (!ptrElement) {
+		if (!fnFind || !ptrpFoundPtr)
+			return FALSE;
+
+		for (size_t stIndex = 0; stIndex < sRefBucket->stSize; stIndex++)
+			if (fnFind(astrKey, *ptrpFoundPtr = sRefBucket->ptrpData[stIndex]))
+				return TRUE;
+
+		return *ptrpFoundPtr = NULL;
 	}
 
 	/*
@@ -448,7 +470,7 @@ static _Bool Marble_Util_HashTable_Internal_Locate(Marble_Util_HashTable *sHashT
 }
 
 
-int Marble_Util_HashTable_Create(Marble_Util_HashTable **ptrpHashTable, size_t stNumOfBuckets, void (*onDestroy)(void **ptrpObject)) { MARBLE_ERRNO
+int Marble_Util_HashTable_Create(Marble_Util_HashTable **ptrpHashTable, size_t stNumOfBuckets, void (*onDestroy)(void **)) { MARBLE_ERRNO
 	if (!ptrpHashTable)
 		return Marble_ErrorCode_InternalParameter;
 
@@ -481,7 +503,7 @@ void Marble_Util_HashTable_Destroy(Marble_Util_HashTable **ptrpHashTable) {
 	*ptrpHashTable = NULL;
 }
 
-void Marble_Util_HashTable_SetOnDestroy(Marble_Util_HashTable *sHashTable, void (*onDestroy)(void **ptrpObject)) {
+void Marble_Util_HashTable_SetOnDestroy(Marble_Util_HashTable *sHashTable, void (*onDestroy)(void **)) {
 	if (sHashTable)
 		sHashTable->onDestroy = onDestroy;
 }
@@ -489,7 +511,7 @@ void Marble_Util_HashTable_SetOnDestroy(Marble_Util_HashTable *sHashTable, void 
 int Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blAllowDuplicate) { MARBLE_ERRNO
 	size_t stBucketIndex = 0, stVecIndex = 0;
 
-	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, ptrObject, &stBucketIndex, &stVecIndex))
+	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, ptrObject, &stBucketIndex, &stVecIndex, NULL, NULL))
 		if (!blAllowDuplicate)
 			return Marble_ErrorCode_DuplicatesNotAllowed;
 
@@ -505,16 +527,27 @@ int Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *
 	return Marble_Util_Vector_PushBack(sHashTable->ptrpStorage[stBucketIndex], ptrObject);
 }
 
-int Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blDoFree) {
+void *Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool blDoFree) {
 	size_t stBucketIndex = 0, stVecIndex = 0;
 	
-	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, ptrObject, &stBucketIndex, &stVecIndex)) {
+	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, NULL, &stBucketIndex, &stVecIndex, NULL, NULL)) {
 		void *ptrElem = Marble_Util_Vector_Erase(sHashTable->ptrpStorage[stBucketIndex], stVecIndex, blDoFree);
 
-		return Marble_ErrorCode_Ok;
+		return ptrElem;
 	}
 
-	return Marble_ErrorCode_ElementNotFound;
+	return NULL;
+}
+
+void *Marble_Util_HashTable_Find(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool (*fnFind)(CHAR const *, void *)) {
+	if (!sHashTable || !astrKey || !*astrKey || !fnFind)
+		return FALSE;
+
+	void *ptrRet = NULL;
+	size_t stBucketIndex, stVecIndex;
+	Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, NULL, &stBucketIndex, &stVecIndex, fnFind, &ptrRet);
+
+	return ptrRet;
 }
 #pragma endregion
 
@@ -531,7 +564,7 @@ int Marble_Util_Array2D_Create(size_t stElementSize, size_t stWidth, size_t stHe
 	(*ptrpArray)->stHeight   = stHeight;
 	(*ptrpArray)->stElemSize = stElementSize;
 
-	if (iErrorCode = Marble_System_AllocateMemory((void **)&(*ptrpArray)->ptrpData, stWidth * stHeight * stElementSize, TRUE, FALSE)) {
+	if (iErrorCode = Marble_System_AllocateMemory(&(*ptrpArray)->ptrData, stWidth * stHeight * stElementSize, TRUE, FALSE)) {
 		Marble_Util_Array2D_Destroy(ptrpArray);
 
 		return iErrorCode;
@@ -544,7 +577,7 @@ void Marble_Util_Array2D_Destroy(Marble_Util_Array2D **ptrpArray) {
 	if (!ptrpArray || !*ptrpArray)
 		return;
 
-	free((*ptrpArray)->ptrpData);
+	free((*ptrpArray)->ptrData);
 	free(*ptrpArray);
 	*ptrpArray = NULL;
 }
@@ -553,7 +586,8 @@ void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[
 	if (!sArray || staDimIndices[0] >= sArray->stWidth || staDimIndices[1] >= sArray->stHeight)
 		return NULL;
 
-	return ((void ***)sArray->ptrpData)[staDimIndices[0]][staDimIndices[1]];
+	return (void *)((char *)sArray->ptrData + (staDimIndices[0] * sArray->stHeight + staDimIndices[1]));
+	//return ((void ***)sArray->ptrpData)[staDimIndices[0]][staDimIndices[1]];
 }
 #pragma endregion
 

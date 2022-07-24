@@ -205,6 +205,12 @@
     <Text Include="..\..\Notes\asset_types.txt" />
     <Text Include="..\..\Notes\old_vec_test.txt" />
     <Text Include="..\..\Notes\script_commands.txt" />
+    <Text Include="..\..\Notes\TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Marble Tools\baselib.py" />
+    <None Include="..\..\Marble Tools\gen_colortable.py" />
+    <None Include="..\..\Marble Tools\gen_map.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

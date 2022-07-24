@@ -77,14 +77,14 @@ static void inline Marble_Application_Internal_CreateLayerStack(int *ipErrorCode
 }
 
 static void inline Marble_Application_Internal_CreateAssetManager(int *ipErrorCode) {
-	extern int Marble_AssetManager_Create(Marble_AssetManager **ptrpAssetManager);
+	extern int Marble_AssetManager_Create(void);
 
 	if (*ipErrorCode)
 		return;
 
 	printf("init: asset manager\n");
 
-	if (*ipErrorCode = Marble_AssetManager_Create(&gl_sApplication.sAssets))
+	if (*ipErrorCode = Marble_AssetManager_Create())
 		Marble_System_RaiseFatalError(*ipErrorCode);
 }
 
@@ -180,7 +180,7 @@ MARBLE_API int Marble_Application_Initialize(HINSTANCE hiInstance, PSTR astrComm
 
 MARBLE_API int Marble_Application_Run(void) {
 	gl_sApplication.sAppState.iState = Marble_AppState_Running;
-
+ 
 	MSG sMessage = { 0 };
 	while (TRUE) {
 		LARGE_INTEGER uTime;
@@ -207,13 +207,11 @@ CLEANUP:
 		_stprintf_s(
 			caBuffer, 
 			1024, 
-			TEXT(
-				"Application has to abruptly quit due to the occurence of\n"
-				L"a fatal error:\n\n"
-				L"Code: %i\n"
-				L"String: %s\n"
-				L"Desc: %s\n"
-			), 
+			TEXT("Application has to abruptly quit due to the occurence of\n")
+			TEXT("a fatal error:\n\n")
+			TEXT("Code: %i\n")
+			TEXT("String: %s\n")
+			TEXT("Desc: %s\n"),
 			gl_sApplication.sAppState.iParameter, 
 			Marble_Error_ToString(gl_sApplication.sAppState.iParameter),
 			Marble_Error_ToDesc(gl_sApplication.sAppState.iParameter)
@@ -222,47 +220,6 @@ CLEANUP:
 	}
 
 	return Marble_System_Cleanup(gl_sApplication.sAppState.iParameter);
-}
-
-
-int Marble_Application_GetRenderer(Marble_Renderer **ptrpRenderer) {
-	if (gl_sApplication.sRenderer && ptrpRenderer) {
-		*ptrpRenderer = gl_sApplication.sRenderer;
-
-		return Marble_ErrorCode_Ok;
-	}
-
-	return Marble_ErrorCode_InitState;
-}
-
-int Marble_Application_GetMainWindow(Marble_Window **ptrpWindow) {
-	if (gl_sApplication.sMainWindow && ptrpWindow) {
-		*ptrpWindow = gl_sApplication.sMainWindow;
-
-		return Marble_ErrorCode_Ok;
-	}
-
-	return Marble_ErrorCode_InitState;
-}
-
-int Marble_Application_GetAssetManager(Marble_AssetManager **ptrpAssetManager) {
-	if (gl_sApplication.sAssets && ptrpAssetManager) {
-		*ptrpAssetManager = gl_sApplication.sAssets;
-
-		return Marble_ErrorCode_Ok;
-	}
-
-	return Marble_ErrorCode_InitState;
-}
-
-int Marble_Application_GetLayerStack(Marble_LayerStack **ptrpLayerStack) {
-	if (gl_sApplication.sLayers && ptrpLayerStack) {
-		*ptrpLayerStack = gl_sApplication.sLayers;
-
-		return Marble_ErrorCode_Ok;
-	}
-
-	return Marble_ErrorCode_InitState;
 }
 
 

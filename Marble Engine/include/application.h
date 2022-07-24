@@ -50,7 +50,7 @@ extern struct Marble_Application {
 
 	Marble_Window       *sMainWindow;
 	Marble_Renderer     *sRenderer;
-	Marble_AssetManager *sAssets;
+	Marble_AssetManager  sAssets;
 	Marble_LayerStack   *sLayers;
 } gl_sApplication;
 

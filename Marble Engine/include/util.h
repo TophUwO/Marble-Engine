@@ -25,14 +25,14 @@ typedef struct Marble_Util_Vector {
 	};
 
 	void *onDestroy;
-	void  (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes);
+	void  (*onCopy)(void *, void *, size_t);
 } Marble_Util_Vector;
 
-extern int            Marble_Util_Vector_Create(int iVectorType, size_t stObjectSize, size_t stStartCapacity, void *onDestroy, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes), Marble_Util_Vector **ptrpVector);
+extern int            Marble_Util_Vector_Create(int iVectorType, size_t stObjectSize, size_t stStartCapacity, void *onDestroy, void (*onCopy)(void *, void *, size_t), Marble_Util_Vector **ptrpVector);
 extern void           Marble_Util_Vector_Destroy(Marble_Util_Vector **ptrpVector);
 extern void           Marble_Util_Vector_Clear(Marble_Util_Vector **ptrpVector, _Bool blDoFree, _Bool blDoDownsize);
 extern void   inline  Marble_Util_Vector_SetOnDestroy(Marble_Util_Vector *sVector, void *onDestroy);
-extern void   inline  Marble_Util_Vector_SetOnCopy(Marble_Util_Vector *sVector, void (*onCopy)(void *ptrDest, void *ptrSrc, size_t stSizeInBytes));
+extern void   inline  Marble_Util_Vector_SetOnCopy(Marble_Util_Vector *sVector, void (*onCopy)(void *, void *, size_t));
 extern int    inline  Marble_Util_Vector_PushBack(Marble_Util_Vector *sVector, void *ptrObject);
 extern int    inline  Marble_Util_Vector_PushFront(Marble_Util_Vector *sVector, void *ptrObject);
 extern void   inline *Marble_Util_Vector_PopBack(Marble_Util_Vector *sVector, _Bool blDoFree);
@@ -40,6 +40,7 @@ extern void   inline *Marble_Util_Vector_PopFront(Marble_Util_Vector *sVector, _
 extern int            Marble_Util_Vector_Insert(Marble_Util_Vector *sVector, size_t stIndex, void *ptrObject);
 extern void          *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, size_t stIndex, _Bool blDoFree);
 extern size_t         Marble_Util_Vector_Find(Marble_Util_Vector *sVector, void *ptrObject, size_t stStartIndex, size_t stEndIndex);
+extern void   inline *Marble_Util_Vector_Get(Marble_Util_Vector *sVector, size_t stIndex);
 
 
 typedef struct Marble_Util_Clock {
@@ -86,11 +87,12 @@ typedef struct Marble_Util_HashTable {
 	void (*onDestroy)(void **ptrpObject);
 } Marble_Util_HashTable;
 
-extern int         Marble_Util_HashTable_Create(Marble_Util_HashTable **ptrpHashTable, size_t stNumOfBuckets, void (*onDestroy)(void **ptrpObject));
+extern int         Marble_Util_HashTable_Create(Marble_Util_HashTable **ptrpHashTable, size_t stNumOfBuckets, void (*onDestroy)(void **));
 extern void        Marble_Util_HashTable_Destroy(Marble_Util_HashTable **ptrpHashTable);
-extern void inline Marble_Util_HashTable_SetOnDestroy(Marble_Util_HashTable *sHashTable, void (*onDestroy)(void **ptrpObject));
+extern void inline Marble_Util_HashTable_SetOnDestroy(Marble_Util_HashTable *sHashTable, void (*onDestroy)(void **));
 extern int         Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blAllowDuplicate);
-extern int         Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blDoFree);
+extern void       *Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool blDoFree);
+extern void       *Marble_Util_HashTable_Find(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool (*fnFind)(CHAR const *, void *));
 
 
 typedef struct Marble_Util_Array2D {
@@ -98,7 +100,7 @@ typedef struct Marble_Util_Array2D {
 	size_t  stHeight;
 	size_t  stElemSize;
 
-	void **ptrpData;
+	void *ptrData;
 } Marble_Util_Array2D;
 
 extern int   Marble_Util_Array2D_Create(size_t stElementSize, size_t stWidth, size_t stHeight, Marble_Util_Array2D **ptrpArray);
