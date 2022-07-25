@@ -170,11 +170,9 @@
   <ItemGroup>
     <ClCompile Include="..\src\application.c" />
     <ClCompile Include="..\src\asset.c" />
-    <ClCompile Include="..\src\atlas.c" />
     <ClCompile Include="..\src\color.c" />
     <ClCompile Include="..\src\error.c" />
     <ClCompile Include="..\src\event.c" />
-    <ClCompile Include="..\src\image.c" />
     <ClCompile Include="..\src\layer.c" />
     <ClCompile Include="..\src\level.c" />
     <ClCompile Include="..\src\main.c" />
@@ -187,7 +185,6 @@
     <ClInclude Include="..\include\api.h" />
     <ClInclude Include="..\include\application.h" />
     <ClInclude Include="..\include\asset.h" />
-    <ClInclude Include="..\include\atlas.h" />
     <ClInclude Include="..\include\color.h" />
     <ClInclude Include="..\include\def.h" />
     <ClInclude Include="..\include\entrypoint.h" />
@@ -203,6 +200,7 @@
   <ItemGroup>
     <Text Include="..\..\Notes\asset_deps.txt" />
     <Text Include="..\..\Notes\asset_types.txt" />
+    <Text Include="..\..\Notes\old_asset_create.txt" />
     <Text Include="..\..\Notes\old_vec_test.txt" />
     <Text Include="..\..\Notes\script_commands.txt" />
     <Text Include="..\..\Notes\TODO.txt" />

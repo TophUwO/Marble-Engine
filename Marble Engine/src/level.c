@@ -100,7 +100,7 @@ static int Marble_MapAsset_Internal_LoadLayer(struct Marble_MapAsset_MapLayer *s
 }
 
 
-int Marble_Asset_CreateMapAsset(void const *ptrCreateParams, Marble_Asset **ptrpMapAsset) { MARBLE_ERRNO
+int Marble_MapAsset_Create(void const *ptrCreateParams, Marble_Asset **ptrpMapAsset) { MARBLE_ERRNO
 	if (iErrorCode = Marble_System_AllocateMemory(ptrpMapAsset, sizeof(Marble_MapAsset), TRUE, FALSE))
 		return iErrorCode;
 
@@ -145,8 +145,8 @@ void Marble_MapAsset_Destroy(Marble_MapAsset *sMapAsset) {
 	}
 }
 
-int Marble_MapAsset_LoadFromFile(Marble_MapAsset *sMap, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead) { MARBLE_ERRNO
-	if (!sMap || !strPath || !sStream || !sAssetHead)
+int Marble_MapAsset_LoadFromFile(Marble_MapAsset *sMap, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead) { MARBLE_ERRNO
+	if (!sMap || !sStream || !sAssetHead)
 		return Marble_ErrorCode_Parameter;
 
 	Marble_Util_FileStream_ReadSize(sStream, sizeof sMap->sHead, &sMap->sHead);

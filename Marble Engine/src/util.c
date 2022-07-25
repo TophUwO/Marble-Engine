@@ -177,7 +177,11 @@ void *Marble_Util_Vector_Erase(Marble_Util_Vector *sVector, size_t stIndex, _Boo
 
 	void *ptrRet = sVector->ptrpData[stIndex];
 	if (sVector->onDestroy && blDoFree) {
-		//sVector->onDestroy(&ptrRet);
+		(void)(
+			sVector->iVectorType == Marble_Util_VectorType_VecOfPointers 
+				? ((void (*)(void **))sVector->onDestroy)(&ptrRet)
+				: ((void (*)(void *))sVector->onDestroy)(ptrRet)
+		);
 		
 		/* 
 			* It's very likely that onDestroy will already zero *ptrRet* 
@@ -527,10 +531,11 @@ int Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *
 	return Marble_Util_Vector_PushBack(sHashTable->ptrpStorage[stBucketIndex], ptrObject);
 }
 
-void *Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool blDoFree) {
+void *Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool (*fnFind)(CHAR const *, void *), _Bool blDoFree) {
 	size_t stBucketIndex = 0, stVecIndex = 0;
 	
-	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, NULL, &stBucketIndex, &stVecIndex, NULL, NULL)) {
+	void *ptrFoundPtr = NULL;
+	if (Marble_Util_HashTable_Internal_Locate(sHashTable, astrKey, NULL, &stBucketIndex, &stVecIndex, fnFind, &ptrFoundPtr)) {
 		void *ptrElem = Marble_Util_Vector_Erase(sHashTable->ptrpStorage[stBucketIndex], stVecIndex, blDoFree);
 
 		return ptrElem;

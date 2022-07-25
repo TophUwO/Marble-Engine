@@ -111,17 +111,26 @@ int Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool 
 	* Wrapper functions for those functions that use some parameters 
 	* only internally but are of no use to the user.
 */
-
-static int Marble_Asset_Internal_LoadFromFile_Impl(Marble_Asset *sAsset, TCHAR const *strPath) {
-	return Marble_Asset_LoadFromFile(sAsset, strPath, NULL);
+static void Marble_Asset_Internal_Destroy_Impl(Marble_Asset **ptrpAsset) {
+	Marble_Asset_Destroy(ptrpAsset, FALSE);
 }
 
-static int Marble_Asset_Internal_CreateAndLoadFromFile_Impl(TCHAR const *strPath, Marble_Asset **ptrpAsset) {
-	return Marble_Asset_CreateAndLoadFromFile(strPath, ptrpAsset, NULL);
+static int Marble_Asset_Internal_Create_Impl(int iAssetType, CHAR const *strID, void const *ptrCreateParams, Marble_Asset **ptrpAsset) {
+	return Marble_Asset_Create(
+		iAssetType,
+		strID,
+		ptrCreateParams,
+		ptrpAsset,
+		NULL
+	);
 }
 
-static int Marble_Asset_Internal_CreateAndLoadFromFileExplicit_Impl(int iAssetType, TCHAR const *strPath, void const *ptrCreateParams, Marble_Asset **ptrpAsset) {
-	return Marble_Asset_CreateAndLoadFromFileExplicit(iAssetType, strPath, ptrCreateParams, ptrpAsset, NULL);
+static int Marble_Asset_Internal_LoadFromFile_Impl(TCHAR const *strPath, Marble_Asset **ptrpAsset) {
+	return Marble_Asset_LoadFromFile(
+		strPath,
+		ptrpAsset,
+		NULL
+	);
 }
 
 
@@ -151,19 +160,15 @@ struct Marble_UserAPI Marble = {
 	},
 
 	.Asset = {
-		.Create                        = &Marble_Asset_Create,
-		.CreateExplicit                = &Marble_Asset_CreateExplicit,
-		.LoadFromFile                  = &Marble_Asset_Internal_LoadFromFile_Impl,
-		.CreateAndLoadFromFile         = &Marble_Asset_Internal_CreateAndLoadFromFile_Impl,
-		.CreateAndLoadFromFileExplicit = &Marble_Asset_Internal_CreateAndLoadFromFileExplicit_Impl,
-		.Destroy                       = &Marble_Asset_Destroy,
-		.getType                       = &Marble_Asset_GetType,
-		.getID                         = &Marble_Asset_GetId,
-		.setID                         = &Marble_Asset_SetId,
-		.Register                      = &Marble_Asset_Register,
-		.Unregister                    = &Marble_Asset_Unregister,
-		.Obtain                        = &Marble_Asset_Obtain,
-		.Release                       = &Marble_Asset_Release
+		.Create       = &Marble_Asset_Internal_Create_Impl,
+		.LoadFromFile = &Marble_Asset_Internal_LoadFromFile_Impl,
+		.Destroy      = &Marble_Asset_Internal_Destroy_Impl,
+		.getType      = &Marble_Asset_GetType,
+		.getID        = &Marble_Asset_GetId,
+		.Register     = &Marble_Asset_Register,
+		.Unregister   = &Marble_Asset_Unregister,
+		.Obtain       = &Marble_Asset_Obtain,
+		.Release      = &Marble_Asset_Release
 	}
 };
 #pragma endregion

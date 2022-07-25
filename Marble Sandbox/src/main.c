@@ -3,20 +3,17 @@
 
 static Marble_Layer *sGameLayer;
 struct GameLayerUserdata {
-	int unused;
+	Marble_Asset *sMap1;
+	Marble_Asset *sCT1;
 } sUserdata;
 
 
 static int GameLayer_OnPush(Marble_Layer *sLayer) {
-	Marble_Asset *sMap1 = NULL;
-	Marble_MapAsset_CreateParams sParams = { "map1", 24, 24, 1 };
-	int i = Marble.Asset.CreateAndLoadFromFileExplicit(
-		Marble_AssetType_Map,
+	Marble.Asset.LoadFromFile(
 		TEXT("..\\res\\map1.mba"),
-		&sParams,
-		&sMap1
+		&sUserdata.sMap1
 	);
-	Marble.Asset.Register(sMap1);
+	Marble.Asset.Register(sUserdata.sMap1);
 
 	return 0;
 }

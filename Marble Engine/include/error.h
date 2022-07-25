@@ -39,6 +39,7 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_AtlasType,
 	Marble_ErrorCode_HeadValidation,
 	Marble_ErrorCode_AssetType,
+	Marble_ErrorCode_AssetID,
 	Marble_ErrorCode_CreateWICImagingFactory,
 	Marble_ErrorCode_CreateWICDecoder,
 	Marble_ErrorCode_WICDecoderGetFrame,

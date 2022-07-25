@@ -13,7 +13,7 @@ typedef struct Marble_ColorTableAsset {
 } Marble_ColorTableAsset;
 
 
-int Marble_Asset_CreateColorTableAsset(Marble_Asset **ptrpColorTable) { MARBLE_ERRNO
+int Marble_ColorTableAsset_Create(void const *ptrCreateParams, Marble_ColorTableAsset **ptrpColorTable) { MARBLE_ERRNO
 	if (iErrorCode = Marble_System_AllocateMemory(ptrpColorTable, sizeof(Marble_ColorTableAsset), TRUE, FALSE))
 		return iErrorCode;
 	
@@ -29,7 +29,7 @@ void Marble_ColorTableAsset_Destroy(Marble_ColorTableAsset *ptrColorTable) {
 	Marble_Util_Vector_Destroy(&ptrColorTable->sColorTable);
 }
 
-int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, TCHAR const *strPath, Marble_Util_FileStream *sStream, Marble_AssetHead *sAssetHead) { MARBLE_ERRNO
+int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead) { MARBLE_ERRNO
 	Marble_IfError(
 		iErrorCode = Marble_Util_FileStream_ReadSize(
 			sStream, 

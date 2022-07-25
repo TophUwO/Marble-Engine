@@ -91,7 +91,7 @@ extern int         Marble_Util_HashTable_Create(Marble_Util_HashTable **ptrpHash
 extern void        Marble_Util_HashTable_Destroy(Marble_Util_HashTable **ptrpHashTable);
 extern void inline Marble_Util_HashTable_SetOnDestroy(Marble_Util_HashTable *sHashTable, void (*onDestroy)(void **));
 extern int         Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, void *ptrObject, _Bool blAllowDuplicate);
-extern void       *Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool blDoFree);
+extern void       *Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool (*fnFind)(CHAR const *, void *), _Bool blDoFree);
 extern void       *Marble_Util_HashTable_Find(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool (*fnFind)(CHAR const *, void *));
 
 
@@ -102,6 +102,8 @@ typedef struct Marble_Util_Array2D {
 
 	void *ptrData;
 } Marble_Util_Array2D;
+
+#define MARBLE_ARRAY2D_INDICES(x, y) ((size_t[2]){ (size_t)(x), (size_t)(y) })
 
 extern int   Marble_Util_Array2D_Create(size_t stElementSize, size_t stWidth, size_t stHeight, Marble_Util_Array2D **ptrpArray);
 extern void  Marble_Util_Array2D_Destroy(Marble_Util_Array2D **ptrpArray);

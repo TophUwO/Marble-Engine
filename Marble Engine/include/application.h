@@ -5,7 +5,6 @@
 #include <window.h>
 #include <renderer.h>
 #include <asset.h>
-#include <atlas.h>
 #include <color.h>
 
 
