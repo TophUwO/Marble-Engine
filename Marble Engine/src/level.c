@@ -76,14 +76,22 @@ static void inline Marble_MapAsset_Internal_DecodeTilesetAndIndex(void *ptrTile,
 }
 
 static int Marble_MapAsset_Internal_InitializeContainer(Marble_MapAsset *sAsset) { MARBLE_ERRNO
-	if (iErrorCode = Marble_System_AllocateMemory(&sAsset->sLayers, sAsset->sHead.dwNumOfLayers * sizeof(struct Marble_MapAsset_MapLayer), TRUE, FALSE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		&sAsset->sLayers, 
+		sAsset->sHead.dwNumOfLayers * sizeof(struct Marble_MapAsset_MapLayer), 
+		TRUE, 
+		FALSE
+	));
 
 	for (DWORD dwIndex = 0; dwIndex < sAsset->sHead.dwNumOfLayers; dwIndex++) {
 		struct Marble_MapAsset_MapLayer *sLayer = &sAsset->sLayers[dwIndex];
 
-		if (iErrorCode = Marble_Util_Array2D_Create(sizeof(DWORD), sAsset->sHead.dwWidth, sAsset->sHead.dwHeight, &sLayer->sTiles))
-			return iErrorCode;
+		MB_IFNOK_RET_CODE(Marble_Util_Array2D_Create(
+			sizeof(DWORD), 
+			sAsset->sHead.dwWidth, 
+			sAsset->sHead.dwHeight, 
+			&sLayer->sTiles
+		));
 
 		sLayer->dwLayerId = dwIndex;
 	}
@@ -101,8 +109,12 @@ static int Marble_MapAsset_Internal_LoadLayer(struct Marble_MapAsset_MapLayer *s
 
 
 int Marble_MapAsset_Create(void const *ptrCreateParams, Marble_Asset **ptrpMapAsset) { MARBLE_ERRNO
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpMapAsset, sizeof(Marble_MapAsset), TRUE, FALSE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpMapAsset, 
+		sizeof(Marble_MapAsset), 
+		TRUE, 
+		FALSE
+	));
 
 	(*ptrpMapAsset)->iAssetType = Marble_AssetType_Map;
 
@@ -132,9 +144,6 @@ int Marble_MapAsset_Create(void const *ptrCreateParams, Marble_Asset **ptrpMapAs
 }
 
 void Marble_MapAsset_Destroy(Marble_MapAsset *sMapAsset) {
-	if (!sMapAsset)
-		return;
-
 	free(sMapAsset->sTSIEntries);
 
 	if (sMapAsset->sLayers) {
@@ -146,20 +155,20 @@ void Marble_MapAsset_Destroy(Marble_MapAsset *sMapAsset) {
 }
 
 int Marble_MapAsset_LoadFromFile(Marble_MapAsset *sMap, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead) { MARBLE_ERRNO
-	if (!sMap || !sStream || !sAssetHead)
-		return Marble_ErrorCode_Parameter;
-
 	Marble_Util_FileStream_ReadSize(sStream, sizeof sMap->sHead, &sMap->sHead);
-	if (iErrorCode = Marble_System_AllocateMemory(&sMap->sTSIEntries, sizeof *sMap->sTSIEntries * sMap->sHead.dwNumOfTSIEntries, TRUE, FALSE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		&sMap->sTSIEntries, 
+		sizeof *sMap->sTSIEntries * sMap->sHead.dwNumOfTSIEntries, 
+		TRUE,
+		FALSE
+	));
 
 	DWORD dwIndex = 0;
 	for (; dwIndex < sMap->sHead.dwNumOfTSIEntries; dwIndex++)
 		Marble_Util_FileStream_ReadSize(sStream, sizeof *sMap->sTSIEntries, &sMap->sTSIEntries[dwIndex]);
 
 	for (dwIndex = 0; dwIndex < sMap->sHead.dwNumOfLayers; dwIndex++)
-		if (iErrorCode = Marble_MapAsset_Internal_LoadLayer(&sMap->sLayers[dwIndex], sStream))
-			return iErrorCode;
+		MB_IFNOK_RET_CODE(Marble_MapAsset_Internal_LoadLayer(&sMap->sLayers[dwIndex], sStream));
 
 	return Marble_ErrorCode_Ok;
 }

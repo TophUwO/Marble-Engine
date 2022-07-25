@@ -66,9 +66,12 @@ int Marble_Util_Vector_Create(int iVectorType, size_t stObjectSize, size_t stSta
 	if (!ptrpVector || !Marble_Util_Vector_Internal_IsValidVectorType(iVectorType) || (iVectorType == Marble_Util_VectorType_VecOfObjects && !stObjectSize))
 		return Marble_ErrorCode_InternalParameter;
 
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpVector, sizeof(**ptrpVector), FALSE, FALSE))
-		return iErrorCode;
-
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpVector, 
+		sizeof **ptrpVector, 
+		FALSE, 
+		FALSE
+	));
 	stStartCapacity = stStartCapacity ? stStartCapacity : gl_stDefStartCapacity;
 
 	(*ptrpVector)->onDestroy       = onDestroy;
@@ -145,8 +148,10 @@ void *Marble_Util_Vector_PopFront(Marble_Util_Vector *sVector, _Bool blDoFree) {
 
 int Marble_Util_Vector_Insert(Marble_Util_Vector *sVector, size_t stIndex, void *ptrObject) { MARBLE_ERRNO
 	if (sVector->stSize >= sVector->stCapacity)
-		if (iErrorCode = Marble_Util_Vector_Internal_Reallocate(sVector, sVector->stCapacity + (size_t)(gl_dblDefCapacityMultiplier * sVector->stCapacity)))
-			return iErrorCode;
+		MB_IFNOK_RET_CODE(Marble_Util_Vector_Internal_Reallocate(
+			sVector, 
+			sVector->stCapacity + (size_t)(gl_dblDefCapacityMultiplier * sVector->stCapacity)
+		));
 
 	char *ptrBase;
 	void *ptrDest, *ptrSrc;
@@ -294,11 +299,14 @@ int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_U
 	if (!strPath || !*strPath || !ptrpFileStream)
 		return Marble_ErrorCode_Parameter;
 
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpFileStream, sizeof(**ptrpFileStream), FALSE, FALSE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpFileStream, 
+		sizeof **ptrpFileStream, 
+		FALSE, 
+		FALSE
+	));
 
 	_tfopen_s(&(*ptrpFileStream)->flpFilePointer, strPath, Marble_Util_Stream_Internal_GetStringFromPermissions((*ptrpFileStream)->iPermissions = iPermissions));
-
 	if (!(*ptrpFileStream)->flpFilePointer) {
 		Marble_Util_FileStream_Destroy(ptrpFileStream);
 
@@ -372,7 +380,8 @@ int Marble_Util_FileStream_ReadQWORD(Marble_Util_FileStream *sFileStream, uint64
 
 
 static uint32_t inline Marble_Util_HashTable_Internal_MurmurHash(CHAR const *astrKey) {
-	/* https://github.com/jwerle/murmurhash.c/blob/master/murmurhash.c */
+	/* Source:  https://github.com/jwerle/murmurhash.c/blob/master/murmurhash.c */
+	/* License: https://mit-license.org/ */
 
 	uint32_t c1 = 0xcc9e2d51;
 	uint32_t c2 = 0x1b873593;
@@ -478,16 +487,25 @@ int Marble_Util_HashTable_Create(Marble_Util_HashTable **ptrpHashTable, size_t s
 	if (!ptrpHashTable)
 		return Marble_ErrorCode_InternalParameter;
 
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpHashTable, sizeof(**ptrpHashTable), FALSE, FALSE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpHashTable, 
+		sizeof **ptrpHashTable, 
+		FALSE, 
+		FALSE
+	));
 
 	(*ptrpHashTable)->onDestroy     = onDestroy;
 	(*ptrpHashTable)->stBucketCount = stNumOfBuckets ? stNumOfBuckets : MARBLE_DEFNUMOFBUCKETS;
-	if (iErrorCode = Marble_System_AllocateMemory((void **)&(*ptrpHashTable)->ptrpStorage, sizeof(*(*ptrpHashTable)->ptrpStorage) * (*ptrpHashTable)->stBucketCount, TRUE, FALSE)) {
+	MB_IFNOK_DO_BODY(Marble_System_AllocateMemory(
+		(void **)&(*ptrpHashTable)->ptrpStorage, 
+		sizeof *(*ptrpHashTable)->ptrpStorage * (*ptrpHashTable)->stBucketCount, 
+		TRUE, 
+		FALSE
+	), {
 		Marble_Util_HashTable_Destroy(ptrpHashTable);
 
 		return iErrorCode;
-	}
+	});
 
 	return Marble_ErrorCode_Ok;
 }
@@ -525,10 +543,26 @@ int Marble_Util_HashTable_Insert(Marble_Util_HashTable *sHashTable, CHAR const *
 		* in case it does not already exist.
 	*/
 	if (!sHashTable->ptrpStorage[stBucketIndex])
-		if (iErrorCode = Marble_Util_Vector_Create(Marble_Util_VectorType_VecOfPointers, 0, 32, sHashTable->onDestroy, NULL, &sHashTable->ptrpStorage[stBucketIndex]))
-			return iErrorCode;
+		MB_IFNOK_RET_CODE(Marble_Util_Vector_Create(
+			Marble_Util_VectorType_VecOfPointers, 
+			0, 
+			32, 
+			sHashTable->onDestroy,
+			NULL, 
+			&sHashTable->ptrpStorage[stBucketIndex]
+		));
 
-	return Marble_Util_Vector_PushBack(sHashTable->ptrpStorage[stBucketIndex], ptrObject);
+	/*
+		* We destroy our vector in case we fail to insert our element into it; this is because
+		* we want to always revert what we did if any sub-action of our action fails. This particular
+		* step, however, is debatable, as we might still have to recreate this vector as soon another 
+		* element gets hashed into this position again; might as well just leave the vector valid.
+	*/
+	MB_IFNOK_DO_BODY(Marble_Util_Vector_PushBack(sHashTable->ptrpStorage[stBucketIndex], ptrObject),
+		Marble_Util_Vector_Destroy(&sHashTable->ptrpStorage[stBucketIndex]);
+	);
+
+	return iErrorCode;
 }
 
 void *Marble_Util_HashTable_Erase(Marble_Util_HashTable *sHashTable, CHAR const *astrKey, _Bool (*fnFind)(CHAR const *, void *), _Bool blDoFree) {
@@ -562,20 +596,25 @@ int Marble_Util_Array2D_Create(size_t stElementSize, size_t stWidth, size_t stHe
 	if (!ptrpArray || !stElementSize || !stWidth || !stHeight)
 		return Marble_ErrorCode_InternalParameter;
 
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpArray, sizeof(**ptrpArray), FALSE, FALSE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpArray, 
+		sizeof **ptrpArray,
+		FALSE, 
+		FALSE
+	));
 
 	(*ptrpArray)->stWidth    = stWidth;
 	(*ptrpArray)->stHeight   = stHeight;
 	(*ptrpArray)->stElemSize = stElementSize;
 
-	if (iErrorCode = Marble_System_AllocateMemory(&(*ptrpArray)->ptrData, stWidth * stHeight * stElementSize, TRUE, FALSE)) {
-		Marble_Util_Array2D_Destroy(ptrpArray);
+	MB_IFNOK_DO_BODY(Marble_System_AllocateMemory(
+		&(*ptrpArray)->ptrData, 
+		stWidth * stHeight * stElementSize, 
+		TRUE, 
+		FALSE
+	), Marble_Util_Array2D_Destroy(ptrpArray));
 
-		return iErrorCode;
-	}
-
-	return Marble_ErrorCode_Ok;
+	return iErrorCode;
 }
 
 void Marble_Util_Array2D_Destroy(Marble_Util_Array2D **ptrpArray) {
@@ -592,7 +631,6 @@ void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[
 		return NULL;
 
 	return (void *)((char *)sArray->ptrData + (staDimIndices[0] * sArray->stHeight + staDimIndices[1]));
-	//return ((void ***)sArray->ptrpData)[staDimIndices[0]][staDimIndices[1]];
 }
 #pragma endregion
 

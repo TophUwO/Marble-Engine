@@ -14,9 +14,12 @@ typedef struct Marble_ColorTableAsset {
 
 
 int Marble_ColorTableAsset_Create(void const *ptrCreateParams, Marble_ColorTableAsset **ptrpColorTable) { MARBLE_ERRNO
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpColorTable, sizeof(Marble_ColorTableAsset), TRUE, FALSE))
-		return iErrorCode;
-	
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpColorTable, 
+		sizeof(Marble_ColorTableAsset), 
+		TRUE, 
+		FALSE
+	));
 	(*ptrpColorTable)->iAssetType = Marble_AssetType_ColorTable;
 	
 	return Marble_ErrorCode_Ok;
@@ -30,46 +33,45 @@ void Marble_ColorTableAsset_Destroy(Marble_ColorTableAsset *ptrColorTable) {
 }
 
 int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead) { MARBLE_ERRNO
-	Marble_IfError(
-		iErrorCode = Marble_Util_FileStream_ReadSize(
-			sStream, 
-			sizeof(sColorTable->sHead),
-			&sColorTable->sHead
-		), 
-		Marble_ErrorCode_Ok, 
-		goto ON_ERROR
-	);
+	MB_IFNOK_RET_CODE(Marble_Util_FileStream_ReadSize(
+		sStream, 
+		sizeof sColorTable->sHead,
+		&sColorTable->sHead
+	));
 	
 	size_t stEntrySize;
-	if (iErrorCode = Marble_ColorTable_InitializeContainer(sColorTable, sColorTable->sHead.iColorFormat, &stEntrySize))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_ColorTable_InitializeContainer(
+		sColorTable, 
+		sColorTable->sHead.iColorFormat, 
+		&stEntrySize
+	));
 
 	for (DWORD dwIndex = 0; dwIndex < sColorTable->sHead.dwNumOfEntries; dwIndex++) {
 		BYTE baBuffer[64] = { 0 };
-
-		if (iErrorCode = Marble_Util_FileStream_ReadSize(sStream, stEntrySize, baBuffer))
-			return iErrorCode;
+		MB_IFNOK_RET_CODE(Marble_Util_FileStream_ReadSize(
+			sStream, 
+			stEntrySize, 
+			baBuffer
+		));
 	
 		Marble_Util_Vector_PushBack(sColorTable->sColorTable, baBuffer);
 	}
 	
-ON_ERROR:
 	return iErrorCode;
 }
 
 int Marble_ColorTable_GetColorByIndex(Marble_ColorTableAsset *sColorTable, size_t stIndex, void *ptrColor) {
-	if (sColorTable) {
-		if (sColorTable->sColorTable->stSize > stIndex) {
-			ptrColor = sColorTable->sColorTable->ptrpData[stIndex];
+	if (!sColorTable)
+		return Marble_ErrorCode_Parameter;
 
-			return Marble_ErrorCode_Ok;
-		}
+	if (sColorTable->sColorTable->stSize > stIndex) {
+		ptrColor = sColorTable->sColorTable->ptrpData[stIndex];
 
-		ptrColor = NULL;
-		return Marble_ErrorCode_ArraySubscript;
+		return Marble_ErrorCode_Ok;
 	}
 
-	return Marble_ErrorCode_Parameter;
+	*(DWORD *)ptrColor = 0;
+	return Marble_ErrorCode_ArraySubscript;
 }
 
 int Marble_ColorTable_InitializeContainer(Marble_ColorTableAsset *sColorTable, int iColorFormat, size_t *stpColorEntrySize) { MARBLE_ERRNO

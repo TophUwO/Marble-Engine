@@ -21,9 +21,6 @@ static _Bool inline Marble_Asset_Internal_AssetAlreadyLoaded(CHAR const *strId, 
 }
 
 static void inline Marble_Asset_Internal_SetID(Marble_Asset *sAsset, CHAR const *strNewID) {
-	if (!sAsset || !strNewID)
-		return;
-
 	strcpy_s(sAsset->astrAssetID, MARBLE_ASSETIDLEN, strNewID);
 }
 
@@ -39,14 +36,19 @@ static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Asset *sParentAs
 		return Marble_ErrorCode_Ok;
 
 	/* Create asset vector in case there are asset dependencies to load */
-	if (iErrorCode = Marble_Util_Vector_Create(Marble_Util_VectorType_VecOfPointers, 0, 8, NULL, NULL, &sParentAsset->sDependencies))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_Util_Vector_Create(
+		Marble_Util_VectorType_VecOfPointers, 
+		0, 
+		8, 
+		NULL, 
+		NULL, 
+		&sParentAsset->sDependencies
+	));
 
 	/* Traverse asset dependency table */
 	for (DWORD dwIndex = 0; dwIndex < sCommonAssetHead->dwNumOfDeps; dwIndex++) {
 		BYTE bCommand = 0;
-		if (iErrorCode = Marble_Util_FileStream_ReadBYTE(sStream, &bCommand))
-			return iErrorCode;
+		MB_IFNOK_RET_CODE(Marble_Util_FileStream_ReadBYTE(sStream, &bCommand));
 
 		switch (bCommand) {
 			case 1: {
@@ -59,7 +61,7 @@ static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Asset *sParentAs
 				if (!*strPath) {
 					iErrorCode = Marble_ErrorCode_AssetID;
 
-					goto CLEANUP;
+					goto lbl_CLEANUP;
 				}
 
 				size_t stNumOfCharsConverted = 0;
@@ -72,18 +74,21 @@ static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Asset *sParentAs
 				);
 
 				Marble_Asset *sAsset = NULL;
-				iErrorCode = Marble_Asset_LoadFromFile(wstrPath, &sAsset, &sAsset);
+				MB_IFNOK_GOTO_LBL(Marble_Asset_LoadFromFile(
+						wstrPath, 
+						&sAsset, 
+						&sAsset
+				), lbl_CLEANUP);
 				_Bool const blIsDupe = iErrorCode == Marble_ErrorCode_AssetID;
 
 				Marble_Asset_Obtain(sAsset);
 				Marble_Util_Vector_PushBack(sParentAsset->sDependencies, sAsset);
 				if (!blIsDupe && (iErrorCode = Marble_Asset_Register(sAsset)))
-					goto CLEANUP;
-			} 
-
+					goto lbl_CLEANUP;
+			}
 		}
 
-	CLEANUP:
+	lbl_CLEANUP:
 		if (iErrorCode) {
 			printf("AssetManager: Dependency command %i (index: %u) failed; error: %i (%S).\n",
 				bCommand,
@@ -104,15 +109,14 @@ int Marble_Asset_Create(int iAssetType, CHAR const *strID, void const *ptrCreate
 	extern int Marble_ColorTableAsset_Create(void const *ptrCreateParams, Marble_Asset **ptrpColorTable);
 	extern int Marble_MapAsset_Create(void const *ptrCreateParams, Marble_Asset **ptrpMapAsset);
 
-	if (!ptrpAsset) return Marble_ErrorCode_Parameter;
-	if (!Marble_Asset_Internal_IsValidAssetType(iAssetType))
-		return Marble_ErrorCode_AssetType;
-	if (!Marble_Asset_Internal_IsValidAssetID(strID, ptrpExistingAssetPtr))
-		return Marble_ErrorCode_AssetID;
+	if (!ptrpAsset)
+		return Marble_ErrorCode_Parameter;
+	MB_IFNTRUE_RET_CODE(Marble_Asset_Internal_IsValidAssetType(iAssetType), Marble_ErrorCode_AssetType);
+	MB_IFNTRUE_RET_CODE(Marble_Asset_Internal_IsValidAssetID(strID, ptrpExistingAssetPtr), Marble_ErrorCode_AssetID);
 
 	switch (iAssetType) {
 		case Marble_AssetType_ColorTable: iErrorCode = Marble_ColorTableAsset_Create(ptrCreateParams, ptrpAsset); break;
-		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_Create(ptrCreateParams, ptrpAsset); break;
+		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_Create(ptrCreateParams, ptrpAsset);        break;
 		default:
 			iErrorCode = Marble_ErrorCode_UnimplementedFeature;
 	}
@@ -129,39 +133,56 @@ int Marble_Asset_LoadFromFile(TCHAR const *strPath, Marble_Asset **ptrpAsset, Ma
 	extern int Marble_ColorTableAsset_LoadFromFile(Marble_Asset *sColorTable, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead);
 	extern int Marble_MapAsset_LoadFromFile(Marble_Asset *sMap, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead);
 
-	if (!ptrpAsset) return Marble_ErrorCode_Parameter;
-	
+	if (!ptrpAsset)
+		return Marble_ErrorCode_Parameter;
+	_Bool blWasCreated = FALSE;
+
 	Marble_Util_FileStream *sStream = NULL;
-	if (iErrorCode = Marble_Util_FileStream_Open(strPath, Marble_Util_StreamPerm_Read, &sStream))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_Util_FileStream_Open(
+		strPath, 
+		Marble_Util_StreamPerm_Read, 
+		&sStream
+	));
 
 	Marble_CommonAssetHead sCommonHead = { 0 };
-	if (iErrorCode = Marble_Util_FileStream_ReadSize(sStream, sizeof(sCommonHead), &sCommonHead))
-		return iErrorCode;
+	MB_IFNOK_GOTO_LBL(Marble_Util_FileStream_ReadSize(
+		sStream, 
+		sizeof(sCommonHead), 
+		&sCommonHead
+	), lbl_CLEANUP);
 
 	/* Create asset if it has not been created yet */
-	_Bool blWasCreated = FALSE;
 	if (!*ptrpAsset) {
-		if (iErrorCode = Marble_Asset_Create(sCommonHead.dwMagic >> 16, sCommonHead.astrAssetID, NULL, ptrpAsset, ptrpExistingAssetPtr))
-			return iErrorCode;
-
 		blWasCreated = TRUE;
+
+		MB_IFNOK_GOTO_LBL(Marble_Asset_Create(
+			sCommonHead.dwMagic >> 16, 
+			sCommonHead.astrAssetID, 
+			NULL, 
+			ptrpAsset, 
+			ptrpExistingAssetPtr
+		), lbl_CLEANUP);
 	}
 
-	if (iErrorCode = Marble_Asset_Internal_EvaluateDependencyTable(*ptrpAsset, sStream, &sCommonHead))
-		goto ON_ERROR;
+
+	MB_IFNOK_GOTO_LBL(Marble_Asset_Internal_EvaluateDependencyTable(
+		*ptrpAsset, 
+		sStream, 
+		&sCommonHead
+	), lbl_CLEANUP);
+
 	Marble_Util_FileStream_Goto(sStream, sCommonHead.dwOffAssetHead);
 
 	switch (sCommonHead.dwMagic >> 16) {
 		case Marble_AssetType_ColorTable: iErrorCode = Marble_ColorTableAsset_LoadFromFile(*ptrpAsset, sStream, &sCommonHead); break;
-		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_LoadFromFile(*ptrpAsset, sStream, &sCommonHead); break;
+		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_LoadFromFile(*ptrpAsset, sStream, &sCommonHead);        break;
 	}
 
-ON_ERROR:
+lbl_CLEANUP:
 	if (iErrorCode && blWasCreated) {
 		Marble_Asset_Destroy(ptrpAsset, TRUE);
 
-		printf("AssetManager: Failed to create asset \"%s\"; error: %i (%S)\n.",
+		printf("AssetManager: Failed to create asset \"%s\"; error: %i (%S).\n",
 			sCommonHead.astrAssetID,
 			iErrorCode,
 			Marble_Error_ToString(iErrorCode)
@@ -222,13 +243,15 @@ CHAR *Marble_Asset_GetId(Marble_Asset *sAsset) {
 /// <param name="Marble_Asset *sAsset"> > Asset to register </param>
 /// <returns>Non-zero on error; 0 on success.</returns>
 int Marble_Asset_Register(Marble_Asset *sAsset) { MARBLE_ERRNO
-	if (!gl_sApplication.sAssets.blIsInit)
-		return Marble_ErrorCode_ComponentInitState;
-	else if (!sAsset)
-		return Marble_ErrorCode_Parameter;
+	if (!sAsset || !gl_sApplication.sAssets.blIsInit)
+		return sAsset ? Marble_ErrorCode_Parameter : Marble_ErrorCode_ComponentInitState;
 
-	if (iErrorCode = Marble_Util_HashTable_Insert(gl_sApplication.sAssets.sHashTable, sAsset->astrAssetID, sAsset, FALSE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_Util_HashTable_Insert(
+		gl_sApplication.sAssets.sHashTable, 
+		sAsset->astrAssetID, 
+		sAsset, 
+		FALSE
+	));
 
 	printf("AssetManager: Successfully registered asset \"%s\" (type = %i).\n",
 		sAsset->astrAssetID,
@@ -239,10 +262,8 @@ int Marble_Asset_Register(Marble_Asset *sAsset) { MARBLE_ERRNO
 }
 
 int Marble_Asset_Unregister(Marble_Asset *sAsset, _Bool blDoFree) {
-	if (!gl_sApplication.sAssets.blIsInit)
-		return Marble_ErrorCode_ComponentInitState;
-	else if (!sAsset)
-		return Marble_ErrorCode_Parameter;
+	if (!sAsset || !gl_sApplication.sAssets.blIsInit)
+		return sAsset ? Marble_ErrorCode_Parameter : Marble_ErrorCode_ComponentInitState;
 
 	Marble_Util_HashTable_Erase(gl_sApplication.sAssets.sHashTable, sAsset->astrAssetID, &Marble_Asset_Internal_FindFn, blDoFree);
 
@@ -251,17 +272,17 @@ int Marble_Asset_Unregister(Marble_Asset *sAsset, _Bool blDoFree) {
 
 int Marble_Asset_Obtain(Marble_Asset *sAsset) {
 	if (!sAsset)
-		return -1;
+		return Marble_ErrorCode_Parameter;
 
 	if (sAsset->iRefCount ^ -1)
-		return ++sAsset->iRefCount;
+		++sAsset->iRefCount;
 
-	return -2;
+	return Marble_ErrorCode_Ok;
 }
 
 int Marble_Asset_Release(Marble_Asset *sAsset) {
 	if (!sAsset)
-		return -1;
+		return Marble_ErrorCode_Parameter;
 
 	if (sAsset->iRefCount ^ -1) {
 		printf("AssetManager: Releasing asset \"%s\" (type = %i); current ref-count: %i.\n",
@@ -272,11 +293,9 @@ int Marble_Asset_Release(Marble_Asset *sAsset) {
 
 		if (!--sAsset->iRefCount)
 			return Marble_Asset_Unregister(sAsset, TRUE);
-
-		return sAsset->iRefCount;
 	}
 
-	return -2;
+	return Marble_ErrorCode_Ok;
 }
 #pragma endregion
 
@@ -285,34 +304,34 @@ int Marble_Asset_Release(Marble_Asset *sAsset) {
 int Marble_AssetManager_Create(void) { MARBLE_ERRNO
 	extern void Marble_AssetManager_Destroy(void);
 
-	Marble_IfError(
-		CoCreateInstance(
-			&CLSID_WICImagingFactory,
-			NULL,
-			CLSCTX_INPROC_SERVER,
-			&IID_IWICImagingFactory2,
-			&gl_sApplication.sAssets.sWICFactory
-		), S_OK, {
-			Marble_AssetManager_Destroy();
+	/* 
+		* If asset manager is already initialized, block further
+		* attempts to (re-)initialize. 
+	*/
+	if (gl_sApplication.sAssets.blIsInit)
+		return Marble_ErrorCode_ComponentInitState;
 
-			return Marble_ErrorCode_CreateWICImagingFactory;
-		}
-	);
+	MB_IFNOK_GOTO_LBL(CoCreateInstance(
+		&CLSID_WICImagingFactory,
+		NULL,
+		CLSCTX_INPROC_SERVER,
+		&IID_IWICImagingFactory2,
+		&gl_sApplication.sAssets.sWICFactory
+	), lbl_ERROR);
 
-	Marble_IfError(
-		Marble_Util_HashTable_Create(
-			&gl_sApplication.sAssets.sHashTable,
-			64, 
-			(void (*)(void **))&Marble_Asset_Destroy
-		), Marble_ErrorCode_Ok, {
-			Marble_AssetManager_Destroy();
-
-			return iErrorCode;
-		}
-	);
+	MB_IFNOK_GOTO_LBL(Marble_Util_HashTable_Create(
+		&gl_sApplication.sAssets.sHashTable,
+		64, 
+		(void (*)(void **))&Marble_Asset_Destroy
+	), lbl_ERROR);
 
 	gl_sApplication.sAssets.blIsInit = TRUE;
 	return Marble_ErrorCode_Ok;
+
+lbl_ERROR:
+	Marble_AssetManager_Destroy();
+
+	return iErrorCode;
 }
 
 void Marble_AssetManager_Destroy(void) {
@@ -322,7 +341,6 @@ void Marble_AssetManager_Destroy(void) {
 	gl_sApplication.sAssets.blIsInit = FALSE;
 
 	Marble_Util_HashTable_Destroy(&gl_sApplication.sAssets.sHashTable);
-
 	if (gl_sApplication.sAssets.sWICFactory)
 		gl_sApplication.sAssets.sWICFactory->lpVtbl->Release(gl_sApplication.sAssets.sWICFactory);
 }

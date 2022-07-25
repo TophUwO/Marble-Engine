@@ -17,66 +17,70 @@ static void inline Marble_Layer_Internal_FixLayerCallbacks(Marble_Layer *sLayer)
 }
 
 
-int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) {
-	if (ptrpLayerstack) {
-		int iErrorCode = Marble_ErrorCode_Ok;
-		if (iErrorCode = Marble_System_AllocateMemory(ptrpLayerstack, sizeof(**ptrpLayerstack), FALSE, TRUE)) {
-			*ptrpLayerstack = NULL;
+void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack) {
+	if (!ptrpLayerstack)
+		return;
 
-			return iErrorCode;
-		}
+	Marble_Util_Vector_Destroy(&(*ptrpLayerstack)->sLayerStack);
 
-		if (iErrorCode = Marble_Util_Vector_Create(Marble_Util_VectorType_VecOfPointers, 0, 32, &Marble_Layer_Destroy, NULL, &(*ptrpLayerstack)->sLayerStack)) {
-			free(*ptrpLayerstack);
-			*ptrpLayerstack = NULL;
-
-			return iErrorCode;
-		}
-		(*ptrpLayerstack)->stLastLayer = 0;
-
-		return Marble_ErrorCode_Ok;
-	}
-
-	return Marble_ErrorCode_Parameter;
+	free(*ptrpLayerstack);
+	*ptrpLayerstack = NULL;
 }
 
-void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack) {
-	if (ptrpLayerstack && *ptrpLayerstack) {
-		Marble_Util_Vector_Destroy(&(*ptrpLayerstack)->sLayerStack);
+int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) { MARBLE_ERRNO
+	if (!ptrpLayerstack)
+		return Marble_ErrorCode_Parameter;
 
-		free(*ptrpLayerstack);
-		*ptrpLayerstack = NULL;
-	}
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpLayerstack, 
+		sizeof **ptrpLayerstack, 
+		FALSE, 
+		TRUE
+	));
+
+	MB_IFNOK_DO_BODY(Marble_Util_Vector_Create(
+		Marble_Util_VectorType_VecOfPointers, 
+		0, 
+		32, 
+		&Marble_Layer_Destroy, 
+		NULL, 
+		&(*ptrpLayerstack)->sLayerStack
+	), { Marble_LayerStack_Destroy(ptrpLayerstack); return iErrorCode; });
+
+	(*ptrpLayerstack)->stLastLayer = 0;
+	return Marble_ErrorCode_Ok;
 }
 
 
 int Marble_Layer_Create(_Bool blIsEnabled, Marble_Layer **ptrpLayer) { MARBLE_ERRNO
-	if (ptrpLayer) {
-		if (iErrorCode = Marble_System_AllocateMemory(ptrpLayer, sizeof(**ptrpLayer), FALSE, TRUE))
-			return iErrorCode;
+	if (!ptrpLayer)
+		return Marble_ErrorCode_Parameter;
 
-		(*ptrpLayer)->dwLayerId   = InterlockedIncrement(&gl_dwCurrentLayerId);
-		(*ptrpLayer)->blIsEnabled = blIsEnabled;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpLayer, 
+		sizeof **ptrpLayer, 
+		FALSE, 
+		TRUE
+	));
 
-		return Marble_ErrorCode_Ok;
-	}
+	(*ptrpLayer)->dwLayerId   = InterlockedIncrement(&gl_dwCurrentLayerId);
+	(*ptrpLayer)->blIsEnabled = blIsEnabled;
 
-	return Marble_ErrorCode_Parameter;
+	return Marble_ErrorCode_Ok;
 }
 
 int Marble_Layer_CreateAndPush(_Bool blIsEnabled, struct Marble_Layer_Callbacks const *sCallbacks, void *ptrUserdata, Marble_Layer **ptrpLayer, Marble_LayerStack *sLayerStack, _Bool blIsTopmost) { MARBLE_ERRNO
-	if (iErrorCode = Marble_Layer_Create(blIsEnabled, ptrpLayer))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_Layer_Create(blIsEnabled, ptrpLayer));
 
 	Marble_Layer_SetCallbacks(*ptrpLayer, sCallbacks);
 	Marble_Layer_SetUserdata(*ptrpLayer, ptrUserdata);
-	if (iErrorCode = Marble_Layer_Push(sLayerStack, *ptrpLayer, blIsTopmost)) {
+	MB_IFNOK_DO_BODY(Marble_Layer_Push(sLayerStack, *ptrpLayer, blIsTopmost), {
 		Marble_Layer_Destroy(ptrpLayer);
 
 		return iErrorCode;
-	}
+	});
 
-	return iErrorCode;
+	return Marble_ErrorCode_Ok;
 }
 
 void Marble_Layer_Destroy(Marble_Layer **ptrpLayer) {
@@ -90,9 +94,9 @@ void Marble_Layer_Destroy(Marble_Layer **ptrpLayer) {
 }
 
 int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) { MARBLE_ERRNO
-	sLayerStack = sLayerStack == Marble_DefLayerStack ? gl_sApplication.sLayers : sLayerStack;
 	if (!sLayerStack || !sLayer)
 		return Marble_ErrorCode_Parameter;
+	sLayerStack = sLayerStack == Marble_DefLayerStack ? gl_sApplication.sLayers : sLayerStack;
 
 	Marble_Layer_Internal_FixLayerCallbacks(sLayer);
 	if (blIsTopmost)
@@ -109,8 +113,7 @@ int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Boo
 	}
 
 	if (!iErrorCode) {
-		if (iErrorCode = sLayer->sCallbacks.OnPush(sLayer))
-			return iErrorCode;
+		MB_IFNOK_RET_CODE(sLayer->sCallbacks.OnPush(sLayer));
 
 		sLayer->blIsTopmost    = blIsTopmost;
 		sLayer->sRefLayerstack = sLayerStack;

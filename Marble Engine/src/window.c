@@ -117,17 +117,20 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWidth, DWORD dwHeight, _Bool blIsVSync) { MARBLE_ERRNO
 	static TCHAR const *const gl_sWindowClassName = TEXT("Marble_Window");
 
-	if (iErrorCode = Marble_System_AllocateMemory(ptrpWindow, sizeof(**ptrpWindow), FALSE, TRUE))
-		return iErrorCode;
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		ptrpWindow, 
+		sizeof **ptrpWindow, 
+		FALSE, 
+		TRUE
+	));
 
 	(*ptrpWindow)->hwWindow = NULL;
 	size_t stTitleLen = _tcslen(strTitle);
-	if (iErrorCode = Marble_System_AllocateMemory(&(*ptrpWindow)->sWndData.strTitle, sizeof(*strTitle) * (stTitleLen + 1), TRUE, TRUE)) {
-		free(*ptrpWindow);
-		*ptrpWindow = NULL;
+	MB_IFNOK_DO_BODY(Marble_System_AllocateMemory(&(*ptrpWindow)->sWndData.strTitle, sizeof *strTitle * (stTitleLen + 1), TRUE, TRUE), {
+		Marble_Window_Destroy(ptrpWindow);
 
 		return iErrorCode;
-	}
+	});
 	_tcscpy_s((*ptrpWindow)->sWndData.strTitle, stTitleLen + 1, strTitle);
 
 	(*ptrpWindow)->sWndData.sWindowSize    = (SIZE){ (SHORT)dwWidth, (SHORT)dwHeight };
@@ -136,7 +139,7 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 	(*ptrpWindow)->sWndData.dwWindowStyle  = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
 
 	WNDCLASSEX sWindowClass = {
-		.cbSize        = sizeof(sWindowClass),
+		.cbSize        = sizeof sWindowClass,
 		.hInstance     = gl_sApplication.hiInstance,
 		.lpszClassName = gl_sWindowClassName,
 		.lpfnWndProc   = (WNDPROC)&Marble_Window_Internal_WindowProcedure,
@@ -179,12 +182,13 @@ int Marble_Window_Create(Marble_Window **ptrpWindow, TCHAR *strTitle, DWORD dwWi
 }
 
 void Marble_Window_Destroy(Marble_Window **ptrpWindow) {
-	if (ptrpWindow && *ptrpWindow) {
-		free((*ptrpWindow)->sWndData.strTitle);
+	if (!ptrpWindow || !*ptrpWindow)
+		return;
 
-		free(*ptrpWindow);
-		*ptrpWindow = NULL;
-	}
+	free((*ptrpWindow)->sWndData.strTitle);
+
+	free(*ptrpWindow);
+	*ptrpWindow = NULL;
 }
 
 void Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled) {
@@ -193,11 +197,12 @@ void Marble_Window_SetVSyncEnabled(Marble_Window *sWindow, _Bool blIsEnabled) {
 }
 
 void Marble_Window_SetFullscreen(Marble_Window *sWindow, _Bool blIsFullscreen) {
-	if (sWindow) {
-		sWindow->sWndData.blIsFullscreen = blIsFullscreen;
+	if (!sWindow)
+		return;
 
-		PostMessage(sWindow->hwWindow, WM_KEYDOWN, (WPARAM)VK_F11, 0);
-	}
+	sWindow->sWndData.blIsFullscreen = blIsFullscreen;
+
+	PostMessage(sWindow->hwWindow, WM_KEYDOWN, (WPARAM)VK_F11, 0);
 }
 
 void Marble_Window_Update(Marble_Window *sWindow, float fFrameTime) {

@@ -1,5 +1,6 @@
 #pragma once
 
+
 #if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__))
 	#define MARBLE_PLATFORM_WINDOWS
 	#if (defined(__GNUC__) || defined(__MINGW32__))

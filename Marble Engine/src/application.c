@@ -190,7 +190,7 @@ MARBLE_API int Marble_Application_Run(void) {
 
 		while (PeekMessage(&sMessage, NULL, 0, 0, PM_REMOVE)) {
 			if (sMessage.message == WM_QUIT || sMessage.message == MARBLE_WM_FATAL)
-				goto CLEANUP;
+				goto lbl_CLEANUP;
 
 			TranslateMessage(&sMessage);
 			DispatchMessage(&sMessage);
@@ -200,8 +200,8 @@ MARBLE_API int Marble_Application_Run(void) {
 			Marble_Application_Internal_UpdateAndRender(fFrameTime);
 	}
 	
-CLEANUP:
-	if (gl_sApplication.sAppState.blIsFatal == TRUE) {
+lbl_CLEANUP:
+	if (gl_sApplication.sAppState.blIsFatal) {
 		TCHAR caBuffer[1024] = { 0 };
 
 		_stprintf_s(
@@ -209,9 +209,9 @@ CLEANUP:
 			1024, 
 			TEXT("Application has to abruptly quit due to the occurence of\n")
 			TEXT("a fatal error:\n\n")
-			TEXT("Code: %i\n")
-			TEXT("String: %s\n")
-			TEXT("Desc: %s\n"),
+			TEXT("Code:\t%i\n")
+			TEXT("String:\t%s\n")
+			TEXT("Desc:\t%s\n"),
 			gl_sApplication.sAppState.iParameter, 
 			Marble_Error_ToString(gl_sApplication.sAppState.iParameter),
 			Marble_Error_ToDesc(gl_sApplication.sAppState.iParameter)

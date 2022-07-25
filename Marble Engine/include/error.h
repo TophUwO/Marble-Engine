@@ -3,6 +3,12 @@
 #include <api.h>
 
 
+#define MB_IFNTRUE_RET_CODE(expr, code)      { if (!(expr)) { return (int)code; } }
+#define MB_IFNOK_RET_CODE(expr)              { if (iErrorCode = (int)(expr)) { return iErrorCode; } }
+#define MB_IFNOK_GOTO_LBL(expr, label)       { if (iErrorCode = (int)(expr)) { goto label; } }
+#define MB_IFNOK_DO_BODY(expr, body)         { if (iErrorCode = (int)(expr)) { body; } }
+
+
 typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_Ok = 0,
 	Marble_ErrorCode_Unknown,
@@ -36,7 +42,7 @@ typedef enum Marble_ErrorCodes {
 	Marble_ErrorCode_CreateDXGISwapchain,
 	Marble_ErrorCode_GetDXGIBackbuffer,
 	Marble_ErrorCode_CreateBitmapFromDxgiSurface,
-	Marble_ErrorCode_AtlasType,
+	Marble_ErrorCode_ResizeRendererBuffers,
 	Marble_ErrorCode_HeadValidation,
 	Marble_ErrorCode_AssetType,
 	Marble_ErrorCode_AssetID,

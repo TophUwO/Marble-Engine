@@ -4,9 +4,9 @@
 
 
 typedef enum Marble_AssetTypes {
-	Marble_AssetType_Unknown,
-	Marble_AssetType_Any = Marble_AssetType_Unknown,
+	Marble_AssetType_Unknown = 0,
 
+	/* Magic numbers for debug purposes only */
 	Marble_AssetType_ColorTable = 2,
 	Marble_AssetType_Map = 4,
 
