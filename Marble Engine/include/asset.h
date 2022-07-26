@@ -23,7 +23,14 @@ typedef struct Marble_AssetManager {
 
 // TODO: proper struct packing
 typedef struct Marble_CommonAssetHead {
-	DWORD dwMagic;                        /* magic number "mb" + asset type id (2 + 2 bytes) */
+	union { /* magic number "mb" + asset type id (2 + 2 bytes) */
+		DWORD dwMagic;
+
+		struct {
+			WORD uMagic;
+			WORD uAssetType;
+		};
+	};
 	/*
 	* dwFlags reference
 	* 

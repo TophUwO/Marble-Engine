@@ -173,7 +173,7 @@ int Marble_Asset_LoadFromFile(TCHAR const *strPath, Marble_Asset **ptrpAsset, Ma
 
 	Marble_Util_FileStream_Goto(sStream, sCommonHead.dwOffAssetHead);
 
-	switch (sCommonHead.dwMagic >> 16) {
+	switch (sCommonHead.uAssetType) {
 		case Marble_AssetType_ColorTable: iErrorCode = Marble_ColorTableAsset_LoadFromFile(*ptrpAsset, sStream, &sCommonHead); break;
 		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_LoadFromFile(*ptrpAsset, sStream, &sCommonHead);        break;
 	}
