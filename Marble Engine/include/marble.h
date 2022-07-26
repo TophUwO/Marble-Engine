@@ -70,6 +70,7 @@ MARBLE_API struct Marble_UserAPI {
 		int   (*const Unregister)(Marble_Asset *sAsset, _Bool blDoFree);
 		int   (*const Obtain)(Marble_Asset *sAsset);
 		int   (*const Release)(Marble_Asset *sAsset);
+		int   (*const Render)(Marble_Asset *sAsset, Marble_Renderer *sRenderer);
 	} Asset;
 } Marble;
 

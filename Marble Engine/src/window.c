@@ -1,6 +1,14 @@
 #include <application.h>
 
 
+static void inline Marble_Window_Internal_ComputeRenderOrigin(Marble_Window *sWindow) {
+	RECT sClientRect = { 0 };
+	GetClientRect(sWindow->hwWindow, &sClientRect);
+
+	sWindow->sRefRenderer->iXOrigin = sClientRect.right  / 2 - sWindow->sWndData.sClientSize.cx / 2;
+	sWindow->sRefRenderer->iYOrigin = sClientRect.bottom / 2 - sWindow->sWndData.sClientSize.cy / 2;
+}
+
 static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UINT uiMessage, WPARAM wParam, LPARAM lParam) {
 	extern int Marble_Application_Internal_OnEvent(void *ptrEvent);
 
@@ -57,6 +65,7 @@ static LRESULT CALLBACK Marble_Window_Internal_WindowProcedure(HWND hwWindow, UI
 					ShowWindow(hwWindow, SW_SHOW);
 				}
 
+				Marble_Window_Internal_ComputeRenderOrigin(sWindowData);
 				return Marble_ErrorCode_Ok;
 			}
 
@@ -258,12 +267,14 @@ void Marble_Window_SetSize(Marble_Window *sWindow, int iWidthInTiles, int iHeigh
 		AdjustWindowRect(&sWindowRect, sWindow->sWndData.dwWindowStyle, FALSE);
 
 		/* Calculate window and client sizes */
+		sWindow->sWndData.iTileSize   = iTileSize;
 		sWindow->sWndData.sClientSize = (SIZE){ (SHORT)(iWidthInTiles * fScale) * iTileSize, (SHORT)(iHeightInTiles * fScale) * iTileSize };
 		sWindow->sWndData.sWindowSize = (SIZE){ abs(sWindowRect.right - sWindowRect.left), abs(sWindowRect.bottom - sWindowRect.top) };
 	}
 
 	/* Resize window and renderer */
 	MoveWindow(sWindow->hwWindow, 0, 0, sWindow->sWndData.sWindowSize.cx, sWindow->sWndData.sWindowSize.cy, TRUE);
+	Marble_Window_Internal_ComputeRenderOrigin(sWindow);
 }
 
 

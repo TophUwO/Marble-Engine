@@ -55,6 +55,14 @@ int Marble_ColorTableAsset_LoadFromFile(Marble_ColorTableAsset *sColorTable, Mar
 		));
 	
 		Marble_Util_Vector_PushBack(sColorTable->sColorTable, baBuffer);
+
+		printf("ColorTable: Loaded color (%i): R: %i (%g) / G: %i (%g) / B: %i (%g) / A: %i (%g).\n",
+			dwIndex,
+			baBuffer[1], baBuffer[1] / 255.0,
+			baBuffer[2], baBuffer[2] / 255.0,
+			baBuffer[3], baBuffer[3] / 255.0,
+			baBuffer[0], baBuffer[0] / 255.0
+		);
 	}
 	
 	return iErrorCode;
@@ -65,7 +73,7 @@ int Marble_ColorTable_GetColorByIndex(Marble_ColorTableAsset *sColorTable, size_
 		return Marble_ErrorCode_Parameter;
 
 	if (sColorTable->sColorTable->stSize > stIndex) {
-		ptrColor = sColorTable->sColorTable->ptrpData[stIndex];
+		memcpy(ptrColor, (CHAR *)sColorTable->sColorTable->ptrData + 4 * stIndex, 4);
 
 		return Marble_ErrorCode_Ok;
 	}

@@ -71,8 +71,8 @@ typedef struct Marble_MapAsset {
 	* byte 1 ... 3: tile index
 */
 static void inline Marble_MapAsset_Internal_DecodeTilesetAndIndex(void *ptrTile, DWORD *dwpTilesetIndexPtr, DWORD *dwpTileIndexPtr) {
-	*dwpTilesetIndexPtr = *(DWORD *)ptrTile >> 24;
-	*dwpTileIndexPtr    = *(DWORD *)ptrTile & 0xFFFFFF;
+	*dwpTilesetIndexPtr = *(DWORD *)ptrTile & 0xFF;
+	*dwpTileIndexPtr    = (*(DWORD *)ptrTile & 0xFFFFFF) >> 8;
 }
 
 static int Marble_MapAsset_Internal_InitializeContainer(Marble_MapAsset *sAsset) { MARBLE_ERRNO
@@ -103,8 +103,41 @@ static void inline Marble_MapAsset_Internal_DestroyLayer(struct Marble_MapAsset_
 	Marble_Util_Array2D_Destroy(&sLayer->sTiles);
 }
 
-static int Marble_MapAsset_Internal_LoadLayer(struct Marble_MapAsset_MapLayer *sLayer, Marble_Util_FileStream *sStream) {
-	return Marble_ErrorCode_UnimplementedFeature;
+static int Marble_MapAsset_Internal_LoadLayer(Marble_MapAsset *sMap, struct Marble_MapAsset_MapLayer *sLayer, Marble_Util_FileStream *sStream) { MARBLE_ERRNO
+	MB_IFNOK_RET_CODE(Marble_Util_FileStream_ReadDWORD(sStream, &sLayer->dwLayerId));
+	MB_IFNOK_RET_CODE(Marble_Util_FileStream_ReadDWORD(sStream, &sLayer->iLayerType));
+
+	MB_IFNOK_RET_CODE(Marble_Util_Array2D_Create(
+		sizeof(DWORD), 
+		sMap->sHead.dwWidth, 
+		sMap->sHead.dwHeight, 
+		&sLayer->sTiles
+	));
+
+	for (DWORD dwXPos = 0; dwXPos < sMap->sHead.dwWidth; dwXPos++)
+		for (DWORD dwYPos = 0; dwYPos < sMap->sHead.dwHeight; dwYPos++) {
+			DWORD dwTile = 0;
+
+			MB_IFNOK_RET_CODE(Marble_Util_FileStream_ReadDWORD(sStream, &dwTile));
+			MB_IFNOK_RET_CODE(Marble_Util_Array2D_Put(sLayer->sTiles, &dwTile, sizeof dwTile, (size_t []){ dwXPos, dwYPos }));
+
+			printf("Loaded tile (%i, %i): TSI: %i / I: %i\n",
+				dwXPos,
+				dwYPos,
+				dwTile & 0xFF,
+				(dwTile & 0xFFFFFF00) >> 8
+			);
+		}
+
+	printf("Read map \"%s\" (layer: %i / type: %i) (%ix%i tiles).\n",
+		sMap->astrAssetID,
+		sLayer->dwLayerId,
+		sLayer->iLayerType,
+		sMap->sHead.dwWidth,
+		sMap->sHead.dwHeight
+	);
+
+	return Marble_ErrorCode_Ok;
 }
 
 
@@ -162,13 +195,81 @@ int Marble_MapAsset_LoadFromFile(Marble_MapAsset *sMap, Marble_Util_FileStream *
 		TRUE,
 		FALSE
 	));
+	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
+		&sMap->sLayers,
+		sizeof *sMap->sLayers * sMap->sHead.dwNumOfLayers,
+		TRUE,
+		FALSE
+	));
 
 	DWORD dwIndex = 0;
 	for (; dwIndex < sMap->sHead.dwNumOfTSIEntries; dwIndex++)
 		Marble_Util_FileStream_ReadSize(sStream, sizeof *sMap->sTSIEntries, &sMap->sTSIEntries[dwIndex]);
 
 	for (dwIndex = 0; dwIndex < sMap->sHead.dwNumOfLayers; dwIndex++)
-		MB_IFNOK_RET_CODE(Marble_MapAsset_Internal_LoadLayer(&sMap->sLayers[dwIndex], sStream));
+		MB_IFNOK_RET_CODE(Marble_MapAsset_Internal_LoadLayer(sMap, &sMap->sLayers[dwIndex], sStream));
+
+	return Marble_ErrorCode_Ok;
+}
+
+int Marble_MapAsset_Render(Marble_MapAsset *sMap, Marble_Renderer *sRenderer) {
+	sRenderer = sRenderer == Marble_DefRenderer ? gl_sApplication.sRenderer : sRenderer;
+
+	if (!sMap || !sRenderer)
+		return Marble_ErrorCode_Parameter;
+
+	for (DWORD dwLayerIndex = 0; dwLayerIndex < sMap->sHead.dwNumOfLayers; dwLayerIndex++) {
+		int iXPos = sRenderer->iXOrigin;
+
+		for (DWORD dwTileX = 0; dwTileX < sMap->sHead.dwWidth; dwTileX++) {
+			int iYPos = sRenderer->iYOrigin;
+
+			for (DWORD dwTileY = 0; dwTileY < sMap->sHead.dwHeight; dwTileY++) {
+				DWORD dwTile = 0;
+				Marble_Util_Array2D_Get(sMap->sLayers[dwLayerIndex].sTiles, (size_t [2]){ dwTileX, dwTileY }, &dwTile, sizeof(DWORD));
+
+				Marble_Asset *sDep = sMap->sDependencies->ptrpData[dwTile & 0xFF];
+				D2D1_RECT_F  sRect = {
+					(float)iXPos, 
+					(float)iYPos, 
+					(float)iXPos + gl_sApplication.sMainWindow->sWndData.iTileSize,
+					(float)iYPos + gl_sApplication.sMainWindow->sWndData.iTileSize
+				};
+
+				DWORD dwColor = 0;
+				Marble_ColorTable_GetColorByIndex(sDep, (dwTile & 0xFFFFFF00) >> 8, &dwColor);
+				D2D1_COLOR_F sColor = { 
+					(dwColor >> 8 & 0xFF) / 255.0f, 
+					(dwColor >> 16 & 0xFF) / 255.0f,
+					(dwColor >> 24 & 0xFF) / 255.0f,
+					1.0f
+				};
+				D2D1_BRUSH_PROPERTIES sProps = {
+					.opacity   = 1.0f,
+					.transform = 0
+				};
+				ID2D1SolidColorBrush *sBrush = NULL;
+				D2DWr_DeviceContext_CreateSolidColorBrush(
+					sRenderer->sD2DRenderer.sD2DDevContext,
+					&sColor,
+					&sProps,
+					&sBrush
+				);
+
+				D2DWr_DeviceContext_FillRectangle(
+					sRenderer->sD2DRenderer.sD2DDevContext,
+					&sRect,
+					sBrush
+				);
+
+				D2DWr_SolidColorBrush_Release(sBrush);
+
+				iYPos += gl_sApplication.sMainWindow->sWndData.iTileSize;
+			}
+
+			iXPos += gl_sApplication.sMainWindow->sWndData.iTileSize;
+		}
+	}
 
 	return Marble_ErrorCode_Ok;
 }

@@ -297,6 +297,19 @@ int Marble_Asset_Release(Marble_Asset *sAsset) {
 
 	return Marble_ErrorCode_Ok;
 }
+
+int Marble_Asset_Render(Marble_Asset *sAsset, Marble_Renderer *sRenderer) { MARBLE_ERRNO
+	extern int Marble_MapAsset_Render(Marble_Asset *sMap, Marble_Renderer *sRenderer);
+
+	if (!sAsset || !sRenderer)
+		return Marble_ErrorCode_Parameter;
+
+	switch (sAsset->iAssetType) {
+		case Marble_AssetType_Map: iErrorCode = Marble_MapAsset_Render(sAsset, sRenderer); break;
+	}
+
+	return iErrorCode;
+}
 #pragma endregion
 
 

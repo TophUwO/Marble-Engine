@@ -66,5 +66,6 @@ extern int   Marble_Asset_Register(Marble_Asset *sAsset);
 extern int   Marble_Asset_Unregister(Marble_Asset *sAsset, _Bool blDoFree);
 extern int   Marble_Asset_Obtain(Marble_Asset *sAsset);
 extern int   Marble_Asset_Release(Marble_Asset *sAsset);
+extern int   Marble_Asset_Render(Marble_Asset *sAsset, Marble_Renderer *sRenderer);
 
 

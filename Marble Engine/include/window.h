@@ -17,6 +17,7 @@ typedef struct Marble_Window {
 		_Bool    blIsMinimized;
 		uint64_t uqwLastTitleUpdate;
 		DWORD    dwWindowStyle;
+		int      iTileSize;
 	} sWndData;
 } Marble_Window;
 

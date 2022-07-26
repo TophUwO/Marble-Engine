@@ -24,6 +24,7 @@ static int GameLayer_OnPop(Marble_Layer *sLayer) {
 }
 
 static int GameLayer_OnUpdate(Marble_Layer *sLayer, float fFrameTime) {
+	Marble.Asset.Render(sUserdata.sMap1, Marble_DefRenderer);
 
 	return 0;
 }

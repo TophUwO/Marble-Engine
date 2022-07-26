@@ -168,7 +168,8 @@ struct Marble_UserAPI Marble = {
 		.Register     = &Marble_Asset_Register,
 		.Unregister   = &Marble_Asset_Unregister,
 		.Obtain       = &Marble_Asset_Obtain,
-		.Release      = &Marble_Asset_Release
+		.Release      = &Marble_Asset_Release,
+		.Render       = &Marble_Asset_Render
 	}
 };
 #pragma endregion

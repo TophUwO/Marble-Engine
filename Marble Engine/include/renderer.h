@@ -56,6 +56,8 @@ typedef struct Marble_TextFormat {
 
 typedef struct Marble_Renderer {
 	int iActiveRendererAPI;
+    int iXOrigin;
+    int iYOrigin;
 
 	union {
 		Marble_Direct2DRenderer sD2DRenderer;

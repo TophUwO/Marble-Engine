@@ -102,23 +102,17 @@ static int Marble_Application_Internal_UpdateAndRender(float fFrameTime) {
 	Marble_Renderer_BeginDraw(gl_sApplication.sRenderer);
 
 	Marble_Renderer_Clear(gl_sApplication.sRenderer, 0.0f, 0.0f, 0.0f, 1.0f);
-	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers->sLayerStack->stSize; stIndex++) {
-		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers->sLayerStack->ptrpData[stIndex];
 
-		if (sLayer->blIsEnabled)
-			sLayer->sCallbacks.OnUpdate(sLayer, fFrameTime);
-	}
+	//RECT sClientRect = { 0 };
+	//GetClientRect(gl_sApplication.sMainWindow->hwWindow, &sClientRect);
 
-	RECT sClientRect = { 0 };
-	GetClientRect(gl_sApplication.sMainWindow->hwWindow, &sClientRect);
-
-	float fRectXPos = sClientRect.right  / 2.0f - gl_sApplication.sMainWindow->sWndData.sClientSize.cx / 2.0f;
-	float fRectYPos = sClientRect.bottom / 2.0f - gl_sApplication.sMainWindow->sWndData.sClientSize.cy / 2.0f;
+	//float fRectXPos = sClientRect.right  / 2.0f - gl_sApplication.sMainWindow->sWndData.sClientSize.cx / 2.0f;
+	//float fRectYPos = sClientRect.bottom / 2.0f - gl_sApplication.sMainWindow->sWndData.sClientSize.cy / 2.0f;
 	D2D1_RECT_F sRect = {
-		fRectXPos,
-		fRectYPos,
-		fRectXPos + gl_sApplication.sMainWindow->sWndData.sClientSize.cx,
-		fRectYPos + gl_sApplication.sMainWindow->sWndData.sClientSize.cy,
+		gl_sApplication.sRenderer->iXOrigin,
+		gl_sApplication.sRenderer->iYOrigin,
+		gl_sApplication.sRenderer->iXOrigin + gl_sApplication.sMainWindow->sWndData.sClientSize.cx,
+		gl_sApplication.sRenderer->iYOrigin + gl_sApplication.sMainWindow->sWndData.sClientSize.cy
 	};
 	D2D1_BRUSH_PROPERTIES sBrushProps = {
 		.opacity = 1.0f
@@ -129,6 +123,13 @@ static int Marble_Application_Internal_UpdateAndRender(float fFrameTime) {
 	D2DWr_DeviceContext_FillRectangle(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sRect, (ID2D1Brush *)sBrush);
 
 	D2DWr_SolidColorBrush_Release(sBrush);
+
+	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers->sLayerStack->stSize; stIndex++) {
+		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers->sLayerStack->ptrpData[stIndex];
+
+		if (sLayer->blIsEnabled)
+			sLayer->sCallbacks.OnUpdate(sLayer, fFrameTime);
+	}
 
 	Marble_Renderer_EndDraw(gl_sApplication.sRenderer);
 	Marble_Window_Update(gl_sApplication.sMainWindow, fFrameTime);

@@ -107,6 +107,7 @@ typedef struct Marble_Util_Array2D {
 
 extern int   Marble_Util_Array2D_Create(size_t stElementSize, size_t stWidth, size_t stHeight, Marble_Util_Array2D **ptrpArray);
 extern void  Marble_Util_Array2D_Destroy(Marble_Util_Array2D **ptrpArray);
-extern void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[2]);
+extern int   Marble_Util_Array2D_Put(Marble_Util_Array2D *sArray, void *ptrData, size_t stSizeInBytes, size_t staIndices[2]);
+extern void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[2], void *ptrData, size_t stSizeInBytes);
 
 

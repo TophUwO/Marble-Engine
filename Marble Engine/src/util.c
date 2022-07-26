@@ -297,7 +297,7 @@ static TCHAR inline const *const Marble_Util_Stream_Internal_GetStringFromPermis
 
 int Marble_Util_FileStream_Open(TCHAR const *strPath, int iPermissions, Marble_Util_FileStream **ptrpFileStream) { MARBLE_ERRNO
 	if (!strPath || !*strPath || !ptrpFileStream)
-		return Marble_ErrorCode_Parameter;
+		return Marble_ErrorCode_InternalParameter;
 
 	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
 		ptrpFileStream, 
@@ -626,11 +626,20 @@ void Marble_Util_Array2D_Destroy(Marble_Util_Array2D **ptrpArray) {
 	*ptrpArray = NULL;
 }
 
-void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[2]) {
+int Marble_Util_Array2D_Put(Marble_Util_Array2D *sArray, void *ptrData, size_t stSizeInBytes, size_t staIndices[2]) {
+	if (!sArray || staIndices[0] >= sArray->stWidth || staIndices[1] >= sArray->stHeight)
+		return Marble_ErrorCode_InternalParameter;
+
+	memcpy((char *)sArray->ptrData + (staIndices[0] * sArray->stHeight + staIndices[1]) * sArray->stElemSize, ptrData, stSizeInBytes);
+	return Marble_ErrorCode_Ok;
+}
+
+void *Marble_Util_Array2D_Get(Marble_Util_Array2D *sArray, size_t staDimIndices[2], void *ptrData, size_t stSizeInBytes) {
 	if (!sArray || staDimIndices[0] >= sArray->stWidth || staDimIndices[1] >= sArray->stHeight)
 		return NULL;
 
-	return (void *)((char *)sArray->ptrData + (staDimIndices[0] * sArray->stHeight + staDimIndices[1]));
+	memcpy(ptrData, (void *)((char *)sArray->ptrData + (staDimIndices[0] * sArray->stHeight + staDimIndices[1]) * sArray->stElemSize), stSizeInBytes);
+	return ptrData;
 }
 #pragma endregion
 
