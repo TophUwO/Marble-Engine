@@ -1,7 +1,7 @@
 #include <application.h>
 
 
-void marble_layer_internal_destroy(
+void marble_layer_destroy(
 	struct marble_layer **pps_layer
 );
 
@@ -268,7 +268,7 @@ int marble_application_createlayer(
 	
 	ecode = marble_layer_internal_push(ps_layer, istopmost);
 	if (ecode != MARBLE_EC_OK) {
-		marble_layer_internal_destroy(&ps_layer);
+		marble_layer_destroy(&ps_layer);
 
 		*p_layerid = -1;
 		return ecode;
@@ -288,7 +288,7 @@ int marble_application_createlayer(
  * 
  * Returns nothing.
  */
-void marble_layer_internal_destroy(
+void marble_layer_destroy(
 	struct marble_layer **pps_layer /* layer to destroy */
 ) { MB_ERRNO
 	if (pps_layer == NULL || *pps_layer == NULL || gl_app.ms_layerstack.m_isinit == false)

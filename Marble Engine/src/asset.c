@@ -1,7 +1,7 @@
 #include <application.h>
 
 
-void marble_asset_internal_destroy(
+void marble_asset_destroy(
 	struct marble_asset **pps_asset
 );
 
@@ -326,7 +326,7 @@ static int marble_asset_internal_create(
 	if (ecode == MARBLE_EC_OK)
 		marble_asset_internal_setid(*pps_asset, pz_id);
 	else
-		marble_asset_internal_destroy(pps_asset);
+		marble_asset_destroy(pps_asset);
 
 	return ecode;
 }
@@ -344,7 +344,7 @@ static int marble_asset_internal_create(
  */
 static int marble_asset_internal_loadfromfile(
 	char const *pz_path,                       /* path to asset file */
-	struct marble_asset **pps_asset,			 /* pointer to newly-created asset */
+	struct marble_asset **pps_asset,           /* pointer to newly-created asset */
 	struct marble_asset **pps_existingassetptr /* pointer to existing asset */
 ) { MB_ERRNO
 	if (pps_asset == NULL)
@@ -404,7 +404,7 @@ static int marble_asset_internal_loadfromfile(
 
 lbl_CLEANUP:
 	if (ecode && wascreated) {
-		marble_asset_internal_destroy(pps_asset);
+		marble_asset_destroy(pps_asset);
 
 		printf("AssetManager: Failed to create asset \"%s\"; error: %i (%s).\n",
 			s_commonhead.mz_strid,
@@ -433,7 +433,7 @@ int marble_application_loadasset(
 
 	ecode = marble_asset_internal_register(ps_asset);
 	if (ecode != MARBLE_EC_OK)
-		marble_asset_internal_destroy(&ps_asset);
+		marble_asset_destroy(&ps_asset);
 
 	return ecode;
 }
@@ -443,7 +443,7 @@ int marble_application_loadasset(
  * 
  * Returns nothing.
  */
-void marble_asset_internal_destroy(
+void marble_asset_destroy(
 	struct marble_asset **pps_asset /* asset to destroy */
 ) {
 	if (pps_asset == NULL || *pps_asset == NULL)

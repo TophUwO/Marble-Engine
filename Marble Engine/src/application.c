@@ -6,12 +6,12 @@ struct marble_application gl_app = { NULL };
 
 
 #pragma region ASSETMAN
-extern void marble_asset_internal_destroy(void **pp_asset);
+extern void marble_asset_destroy(struct marble_asset **pps_asset);
 
 
 /* 
  * Uninitializes asset manager component.
- * 
+ *
  * Returns nothing.
  */
 static void marble_application_internal_uninitassetman(void) {
@@ -45,7 +45,7 @@ static int marble_application_internal_initassetman(void) { MB_ERRNO
 	/* Create asset registry. */
 	ecode = marble_util_htable_create(
 		128,
-		(void (*)(void **))&marble_asset_internal_destroy,
+		(void (*)(void **))&marble_asset_destroy,
 		&gl_app.ms_assets.mps_table
 	);
 	if (ecode != MARBLE_EC_OK)
@@ -64,7 +64,7 @@ lbl_CLEANUP:
 
 
 #pragma region LAYERSTACK
-extern void marble_layer_internal_destroy(struct marble_layer **pps_layer);
+extern void marble_layer_destroy(struct marble_layer **pps_layer);
 
 
 /*
@@ -108,7 +108,7 @@ static int marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
 	
 	ecode = marble_util_vec_create(
 		0,
-		(void (*)(void **))&marble_layer_internal_destroy,
+		(void (*)(void **))&marble_layer_destroy,
 		&gl_app.ms_layerstack.mps_vec
 	);
 	if (ecode != MARBLE_EC_OK) {

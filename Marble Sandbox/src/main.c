@@ -13,7 +13,7 @@ int MB_CALLBACK marble_callback_submitsettings(char const *pz_cmdline, struct ma
 
 		.m_width    = 32,
 		.m_height   = 32,
-		.m_tilesize = 32
+		.m_tilesize = 24
 	};
 
 	return 0;
