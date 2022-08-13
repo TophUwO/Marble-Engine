@@ -1,51 +1,49 @@
 #include <entrypoint.h>
 
 
-static Marble_Layer *sGameLayer;
-struct GameLayerUserdata {
-	Marble_Asset *sMap1;
-	Marble_Asset *sCT1;
-} sUserdata;
+struct layer1_userdata {
+	int m_selfid;
+} s_userdata;
 
 
-static int GameLayer_OnPush(Marble_Layer *sLayer) {
-	Marble.Asset.LoadFromFile(
-		TEXT("..\\res\\map1.mba"),
-		&sUserdata.sMap1
-	);
-	Marble.Asset.Register(sUserdata.sMap1);
+int MB_CALLBACK marble_callback_submitsettings(char const *pz_cmdline, struct marble_app_settings *ps_settings) {
+	*ps_settings = (struct marble_app_settings){
+		.m_xpos     = MB_DEFAULT,
+		.m_ypos     = MB_DEFAULT,
 
-	return 0;
-}
-
-static int GameLayer_OnPop(Marble_Layer *sLayer) {
-
-	return 0;
-}
-
-static int GameLayer_OnUpdate(Marble_Layer *sLayer, float fFrameTime) {
-	Marble.Asset.Render(sUserdata.sMap1, Marble_DefRenderer);
-
-	return 0;
-}
-
-static int GameLayer_OnEvent(Marble_Layer *sLayer, Marble_Event *sEvent) {
-
-	return 0;
-}
-
-
-int Marble_Application_OnUserInit(void) {
-	struct Marble_Layer_Callbacks sCallbacks = {
-		.OnPush   = &GameLayer_OnPush,
-		.OnPop    = &GameLayer_OnPop,
-		.OnUpdate = &GameLayer_OnUpdate,
-		.OnEvent  = &GameLayer_OnEvent
+		.m_width    = 32,
+		.m_height   = 32,
+		.m_tilesize = 32
 	};
-	Marble.Layer.CreateAndPush(TRUE, &sCallbacks, &sUserdata, &sGameLayer, Marble_DefLayerStack, FALSE);
 
-	Marble.Window.setSize(Marble_DefWindow, 32, 32, 32);
 	return 0;
+}
+
+int MB_CALLBACK marble_layer1_onpush(int layerid, void *p_userdata) {
+
+	return 0;
+}
+
+int MB_CALLBACK marble_layer1_onupdate(int layerid, float frametime, void *p_userdata) {
+	// TODO: any updates that have to be carried out.
+
+	return 0;
+}
+
+int MB_CALLBACK marble_callback_userinit(char const *pz_cmdline) {
+	struct marble_layer_callbacks s_callbacks = {
+		.cb_onpush   = &marble_layer1_onpush,
+		.cb_onupdate = &marble_layer1_onupdate
+	};
+
+	return marble_application_createlayer(
+		true,
+		false,
+		&s_callbacks,
+		&s_userdata,
+		"game_layer",
+		&s_userdata.m_selfid
+	);
 }
 
 

@@ -3,76 +3,148 @@
 #include <dxgi1_2.h>
 #include <d3d11.h>
 #include <d2dwr.h>
-#include <dwritewr.h>
+
+#include <api.h>
 
 
-enum Marble_RendererAPI {
-	Marble_RendererAPI_Direct2D = 1
+/* 
+ * Renderer API IDs 
+ * 
+ * Tells the system how to treat the renderer. Internally,
+ * the renderer is abstracted away to support multiple
+ * rendering APIs.
+*/
+enum marble_renderer_api {
+	MARBLE_RENDERAPI_UNKNOWN = 0, /* reserved */
+
+	MARBLE_RENDERAPI_DIRECT2D,    /* Direct2D renderer */
+
+	__MARBLE_NUMRENDERAPIS__      /* for internal use */
 };
 
-typedef enum Marble_FontWeight {
-    Marble_FontWeight_Thin       = 100,
-    Marble_FontWeight_ExtraLight = 200,
-    Marble_FontWeight_UltraLight = 200,
-    Marble_FontWeight_Light      = 300,
-    Marble_FontWeight_SemiLight  = 350,
-    Marble_FontWeight_Normal     = 400,
-    Marble_FontWeight_Regular    = 400,
-    Marble_FontWeight_Medium     = 500,
-    Marble_FontWeight_DemiBold   = 600,
-    Marble_FontWeight_SemiBold   = 600,
-    Marble_FontWeight_Bold       = 700,
-    Marble_FontWeight_ExtraBold  = 800,
-    Marble_FontWeight_UltraBold  = 800,
-    Marble_FontWeight_Black      = 900,
-    Marble_FontWeight_Heavy      = 900,
-    Marble_FontWeight_ExtraBlack = 950,
-    Marble_FontWeight_UltraBlack = 950
-} Marble_FontWeight;
 
-typedef enum Marble_FontStyle {
-    Marble_FontStyle_Normal,
-    Marble_FontStyle_Oblique,
-    Marble_FontStyle_Italic
-} Marble_FontStyle;
+/* Direct2D renderer structure */
+struct marble_renderer_d2d {
+	ID2D1Factory1      *mp_d2dfactory; /* Direct2D factory */
+	ID2D1DeviceContext *mp_devicectxt; /* Device Context; acts as render target */
+	IDXGISwapChain1    *mps_swapchain; /* Direct3D11 swapchain */
+	ID2D1Device        *mp_device;     /* Direct2D device */
+	ID2D1Bitmap1       *mp_bitmap;     /* Direct2D backbuffer */
+};
 
+/* Generic renderer structure */
+struct marble_renderer {
+	enum marble_renderer_api m_api; /* API */
 
-typedef struct Marble_Direct2DRenderer {
-	ID2D1Factory1      *sD2DFactory;
-	ID2D1DeviceContext *sD2DDevContext;
-	IDXGISwapChain1    *sDXGISwapchain;
-	ID2D1Device        *sD2DDevice;
-	ID2D1Bitmap1       *sD2DBitmap;
-	IDWriteFactory     *sDWriteFactory;
-} Marble_Direct2DRenderer;
+    float m_orix;   /* x-Origin of drawing area */
+    float m_oriy;   /* y-Origin of drawing area */
+	bool  m_isinit; /* Is renderer ready? */
 
-typedef struct Marble_TextFormat {
-    int iRendererAPI;
-
-    union {
-        IDWriteTextFormat *sDWriteTextFormat;
-    };
-} Marble_TextFormat;
-
-typedef struct Marble_Renderer {
-	int iActiveRendererAPI;
-    int iXOrigin;
-    int iYOrigin;
-
+	/* Collection of renderer API structures */
 	union {
-		Marble_Direct2DRenderer sD2DRenderer;
+		/* Direct2D renderer instance */
+		struct marble_renderer_d2d ms_d2drenderer;
 	};
-} Marble_Renderer;
+};
 
 
-extern void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha);
-extern int  Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiveAPI, HWND hwRenderWindow);
-extern void Marble_Renderer_Destroy(Marble_Renderer **ptrpRenderer);
-extern void Marble_Renderer_BeginDraw(Marble_Renderer *sRenderer);
-extern void Marble_Renderer_EndDraw(Marble_Renderer *sRenderer);
-extern int  Marble_Renderer_Present(Marble_Renderer **ptrpRenderer);
-extern void Marble_Renderer_Resize(Marble_Renderer **ptrpRenderer, UINT uiNewWidth, UINT uiNewHeight);
-extern int  Marble_Renderer_CreateTextFormat(Marble_Renderer *sRenderer, WCHAR const *wstrFamily, float fSize, Marble_FontWeight eWeight, Marble_FontStyle eStyle, Marble_TextFormat **ptrpTextFormat);
-extern void Marble_Renderer_DestroyTextFormat(Marble_TextFormat **ptrpTextFormat);
+/*
+ * Creates a renderer.
+ * 
+ * A renderer is always associated and owned by a window.
+ * 
+ * If the renderer could be created successfully, the return value
+ * is 0, otherwise non-zero.
+ */
+extern int marble_renderer_create(
+	enum marble_renderer_api api, /* API the renderer will use */
+	/* window handle the renderer will be associated with */
+	HWND p_target,
+	/*
+	 * Pointer to a pointer to a "marble_renderer" structure that will receive
+	 * a pointer to the freshly-created renderer structure.
+	 * After "marble_renderer_create()" returned successfully, the renderer
+	 * is ready to be used.
+	 */
+	struct marble_renderer **pps_renderer
+);
+
+/*
+ * Unitializes a render and release all the resources it used.
+ * 
+ * Returns nothing.
+ */
+extern void marble_renderer_destroy(
+	struct marble_renderer **pps_renderer /* pointer to the renderer instance */
+);
+
+/*
+ * Prepares a renderer for drawing.
+ * This function must be used in conjunction with "marble_renderer_enddraw()",
+ * or else the state of the render may be indeterminate, causing unstable
+ * behavior.
+ * 
+ * Returns nothing.
+ */
+extern void marble_renderer_begindraw(
+	struct marble_renderer *ps_renderer /* renderer instance */
+);
+
+/*
+ * Finalizes drawing.
+ * This function must be used in conjunction with "marble_renderer_begindraw()",
+ * or else the state of the render may be indeterminate, causing unstable
+ * behavior.
+ * 
+ * Returns nothing.
+ */
+extern void marble_renderer_enddraw(
+	struct marble_renderer *ps_renderer /* renderer instance */
+);
+
+/*
+ * Presents a frame to the window manager.
+ * 
+ * Note: If the device became unusable during the last call to "marble_renderer_enddraw()",
+ *       the renderer needs to be recreated. If this fails, the function will return non-zero
+ *       and the renderer instance passed to this function will become invalid. In such a
+ *       case, "marble_renderer_destroy()" is automatically called.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+extern int marble_renderer_present(
+	struct marble_renderer **pps_renderer /* pointer to the renderer instance */
+);
+
+/*
+ * Resizes the internal buffers of a renderer.
+ * 
+ * Note: The function may fail to do so, invalidating the renderer. In
+ *       this case, the renderer must be recreated. If this fails, the
+ *       renderer instance passed to this function will 
+ *       become invalid. However, "marble_renderer_destroy()"
+ *       is automatically called.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+extern int marble_renderer_resize(
+	struct marble_renderer *ps_renderer, /* pointer to the renderer instance */
+	uint32_t newwidth,                   /* new width, in pixels */
+	uint32_t newheight                   /* new height, in pixels */
+);
+
+
+/*
+ * Fills the render area with the color specified in RGBA.
+ * 
+ * Returns nothing.
+ */
+extern void marble_renderer_clear(
+	struct marble_renderer *ps_renderer, /* renderer instance */
+	float red,                           /* red component (0.0 ... 1.0) */
+	float green,                         /* green component (0.0 ... 1.0) */
+	float blue,                          /* blue component (0.0 ... 1.0) */
+	float alpha                          /* alpha component (0.0 ... 1.0) */
+);
 
 

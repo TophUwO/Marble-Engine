@@ -21,7 +21,7 @@ HRESULT WINAPI D2DWr_RenderTarget_CreateBitmapFromWicBitmap(ID2D1RenderTarget *s
 	return sRenderTarget->CreateBitmapFromWicBitmap(sSourceBitmap, sBitmapProps, ptrpBitmap);
 }
 
-HRESULT WINAPI D2DWr_RenderTarget_CreateCompatibleRenderTarget(ID2D1RenderTarget *sRenderTarget, D2D1_SIZE_F const *sDesiredSize, D2D1_SIZE_U const *sDesiredPixelSize, D2D_PxFmt const *sDesiredPixelFormat, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS eOptions, ID2D1BitmapRenderTarget **ptrpCompBitmapRenderTarget) {
+HRESULT WINAPI D2DWr_RenderTarget_CreateCompatibleRenderTarget(ID2D1RenderTarget *sRenderTarget, D2D1_SIZE_F const *sDesiredSize, D2D1_SIZE_U const *sDesiredPixelSize, D2D1_PIXEL_FORMAT const *sDesiredPixelFormat, D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS eOptions, ID2D1BitmapRenderTarget **ptrpCompBitmapRenderTarget) {
 	return sRenderTarget->CreateCompatibleRenderTarget(sDesiredSize, sDesiredPixelSize, sDesiredPixelFormat, eOptions, ptrpCompBitmapRenderTarget);
 }
 
@@ -121,7 +121,7 @@ HRESULT WINAPI D2DWr_RenderTarget_Flush(ID2D1RenderTarget *sRenderTarget, D2D1_T
 	return sRenderTarget->Flush(uqwpTag1, uqwpTag2);
 }
 
-D2D_AAMode WINAPI D2DWr_RenderTarget_GetAntialiasMode(ID2D1RenderTarget *sRenderTarget) {
+D2D1_ANTIALIAS_MODE WINAPI D2DWr_RenderTarget_GetAntialiasMode(ID2D1RenderTarget *sRenderTarget) {
 	return sRenderTarget->GetAntialiasMode();
 }
 
@@ -133,7 +133,7 @@ UINT32 WINAPI D2DWr_RenderTarget_GetMaximumBitmapSize(ID2D1RenderTarget *sRender
 	return sRenderTarget->GetMaximumBitmapSize();
 }
 
-D2D_PxFmt WINAPI D2DWr_RenderTarget_GetPixelFormat(ID2D1RenderTarget *sRenderTarget) {
+D2D1_PIXEL_FORMAT WINAPI D2DWr_RenderTarget_GetPixelFormat(ID2D1RenderTarget *sRenderTarget) {
 	return sRenderTarget->GetPixelFormat();
 }
 
@@ -149,7 +149,7 @@ void WINAPI D2DWr_RenderTarget_GetTags(ID2D1RenderTarget *sRenderTarget, D2D1_TA
 	sRenderTarget->GetTags(uqwpTag1, uqwpTag2);
 }
 
-D2D_TxtAAMode WINAPI D2DWr_RenderTarget_GetTextAntialiasMode(ID2D1RenderTarget *sRenderTarget) {
+D2D1_TEXT_ANTIALIAS_MODE WINAPI D2DWr_RenderTarget_GetTextAntialiasMode(ID2D1RenderTarget *sRenderTarget) {
 	return sRenderTarget->GetTextAntialiasMode();
 }
 
@@ -173,7 +173,7 @@ void WINAPI D2DWr_RenderTarget_PopLayer(ID2D1RenderTarget *sRenderTarget) {
 	sRenderTarget->PopLayer();
 }
 
-void WINAPI D2DWr_RenderTarget_PushAxisAlignedClip(ID2D1RenderTarget *sRenderTarget, D2D1_RECT_F const *sClipRect, D2D_AAMode eAntialiasingMode) {
+void WINAPI D2DWr_RenderTarget_PushAxisAlignedClip(ID2D1RenderTarget *sRenderTarget, D2D1_RECT_F const *sClipRect, D2D1_ANTIALIAS_MODE eAntialiasingMode) {
 	sRenderTarget->PushAxisAlignedClip(sClipRect, eAntialiasingMode);
 }
 
@@ -189,7 +189,7 @@ void WINAPI D2DWr_RenderTarget_SaveDrawingState(ID2D1RenderTarget *sRenderTarget
 	sRenderTarget->SaveDrawingState(sDrawingStateBlock);
 }
 
-void WINAPI D2DWr_RenderTarget_SetAntialiasMode(ID2D1RenderTarget *sRenderTarget, D2D_AAMode eAntialiasingMode) {
+void WINAPI D2DWr_RenderTarget_SetAntialiasMode(ID2D1RenderTarget *sRenderTarget, D2D1_ANTIALIAS_MODE eAntialiasingMode) {
 	sRenderTarget->SetAntialiasMode(eAntialiasingMode);
 }
 
@@ -201,7 +201,7 @@ void WINAPI D2DWr_RenderTarget_SetTags(ID2D1RenderTarget *sRenderTarget, D2D1_TA
 	sRenderTarget->SetTags(uqwTag1, uqwTag2);
 } 
 
-void WINAPI D2DWr_RenderTarget_SetTextAntialiasMode(ID2D1RenderTarget *sRenderTarget, D2D_TxtAAMode eTextAntialiasingMode) {
+void WINAPI D2DWr_RenderTarget_SetTextAntialiasMode(ID2D1RenderTarget *sRenderTarget, D2D1_TEXT_ANTIALIAS_MODE eTextAntialiasingMode) {
 	sRenderTarget->SetTextAntialiasMode(eTextAntialiasingMode);
 }
 

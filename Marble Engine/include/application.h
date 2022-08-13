@@ -1,78 +1,148 @@
 #pragma once
 
-#include <layer.h>
+#pragma warning (disable: 4201) /* non-standard unnamed struct/union */
+#pragma warning (disable: 5105) /* macro expansion producing preproc symbol is UB */
+
+#include <system.h>
+#include <marble.h>
 #include <util.h>
 #include <window.h>
 #include <renderer.h>
 #include <asset.h>
-#include <color.h>
 
 
-#define Marble_IfError(expr, equal, body) if ((expr) != equal) { body; }
 /*
-	* Macro used to initialize error code variable. Will always be put on the
-	* line as the function head.
-*/
-#define MARBLE_ERRNO                      int iErrorCode = Marble_ErrorCode_Ok;
+ * Macro used to initialize COM error code variable.
+ * Will always be put on the line as the function head.
+ */
+#define MB_COMERRNO HRESULT hres = S_OK;
 
 /* User-defined custom window messages */
-#define MARBLE_WM_START (WM_USER)
-#define MARBLE_WM_FATAL (MARBLE_WM_START + 1)
+#define MB_WM_START (WM_USER)
+#define MB_WM_FATAL (MB_WM_START + 1)
 
 
-enum Marble_Internal_AppState {
-	Marble_AppState_Init,
-	Marble_AppState_Running,
-	Marble_AppState_Shutdown,
-	Marble_AppState_ForcedShutdown
+/* application state IDs */
+enum marble_app_stateid {
+	MARBLE_APPSTATE_UNKNOWN = 0, /* reserved */
+
+	MARBLE_APPSTATE_INIT,        /* during initialization */
+	MARBLE_APPSTATE_RUNNING,     /* running */
+	MARBLE_APPSTATE_SHUTDOWN,    /* during an orderly shutdown */
+	/*
+	 * during a shutdown initiated by
+	 * a fatal application error
+	 */
+	MARBLE_APPSTATE_FORCEDSHUTDOWN
+};
+
+
+/* Layer structure */
+struct marble_layer {
+	char  maz_stringid[MB_STRINGIDMAX]; /* string ID; used for debugging */
+	void *mp_userdata;                  /* userdata */
+	int   m_id;                         /* integer ID */
+	bool  m_isenabled;                  /* active? */
+	bool  m_istopmost;                  /* topmost layer? */
+	bool  m_ispushed;                   /* on the layer stack? */
+
+	/*
+	 * Layer callbacks
+	 * 
+	 * Contains functions that will be executed
+	 * whenever a layer is being updated, i.e. once per
+	 * frame, or an application event occurs.
+	 * Additional layer functions can be defined to 
+	 * allow executing code when a layer is being pushed
+	 * and popped from the internal layer stack.
+	 */
+	struct marble_layer_callbacks ms_cbs;
 };
 
 
 /*
-	* Marble's application instance; acts as a 
-	* singleton and holds the ownership to all
-	* objects and components created by or submitted
-	* to the engine.
-*/
-extern struct Marble_Application {
-	HINSTANCE     hiInstance;
-	PSTR          astrCommandLine;
-	LARGE_INTEGER uPerfFreq;
-	LARGE_INTEGER uFTLast;
-	HANDLE        htMainThread;
-	uint32_t      ui32HashSeed;
-	struct Marble_Application_AppState {
-		int   iState;
-		_Bool blIsFatal;
-		int   iParameter;
-	} sAppState;
+ * Marble's application instance; acts as a 
+ * singleton and holds the ownership to all
+ * objects and components created by or submitted
+ * to the engine.
+ */
+extern struct marble_application {
+	HINSTANCE     mp_inst;       /* instance to the application */
+	HANDLE        mp_mainthrd;   /* handle to main thread */
+	LARGE_INTEGER m_perfcounter; /* performance counter; used for HTPs */
+	uint32_t      m_hashseed;    /* hash seed; used for hashing functions */
+	/* structure holding state information about the application */
+	struct marble_app_state {
+		enum marble_app_stateid m_id; /* state id */
 
-	Marble_Window       *sMainWindow;
-	Marble_Renderer     *sRenderer;
-	Marble_AssetManager  sAssets;
-	Marble_LayerStack   *sLayers;
-} gl_sApplication;
+		bool m_isfatal; /* fatal error occurred? */
+		int  m_param;   /* additional parameter */
+	} ms_state;
 
-extern int                Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData);
-extern TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType);
-extern Marble_EventType   Marble_Event_GetMouseEventType(UINT udwMessage);
+	struct marble_window   *mps_window;   /* main window */
+	struct marble_renderer *mps_renderer; /* renderer associated with main window */
+	/* 
+	 * Layer stack
+	 * 
+	 * Keeps layers organized and therefore controls
+	 * in which order the application updates.
+	 */
+	struct marble_layerstack {
+		bool m_isinit; /* Is the layer stack present? */
+		/* vector structure holding the layer pointers */
+		struct marble_util_vec *mps_vec;
 
-extern int  Marble_System_Internal_CreateDebugConsole(void);
-extern int  Marble_System_Cleanup(int iRetCode);
-extern void Marble_System_InitiateShutdown(int iRetCode);
-extern void Marble_System_RaiseFatalError(int iErrorCode);
-extern void Marble_System_SetAppState(_Bool blIsFatal, int iParameter, int iAppState);
-extern void Marble_System_ClearAppState(void);
+		size_t m_lastlayer; /* greatest non-overlay layer index */
+	} ms_layerstack;
+	/*
+	 * Asset manager
+	 * 
+	 * Responsible for keeping and cleaning-up all assets that
+	 * has been submitted to or created by Marble throughout
+	 * its life-time.
+	 */
+	struct marble_app_assetman {
+		bool m_isinit; /* Is the asset manager present? */
 
-/// <summary>
-/// Simple memory allocator, able to choose between malloc() and calloc() automatically (using *blNeedZeroed*) with the
-/// possibility to throw a fatal error if the function should fail (as indicated by *blIsFatalOnFailure*).
-/// </summary>
-/// <param name="ptrpMemoryPointer"> > Pointer to receive the pointer to the allocated portion of memory </param>
-/// <param name="stSize"> > Size in bytes</param>
-/// <param name="blNeedZeroed"> > Should the memory block be zeroed? </param>
-/// <param name="blIsFatalOnFailure"> > In case the allocation fails, should the function raise a fatal error?</param>
-/// <returns>0 on success, non-zero on failure.</returns>
-extern int  Marble_System_AllocateMemory(void **ptrpMemoryPointer, size_t stSize, _Bool blNeedZeroed, _Bool blIsFatalOnFailure);
+		struct marble_util_htable *mps_table; /* asset storage */
+	} ms_assets;
+} gl_app;
+
+
+/*
+ * Sets app-state.
+ * 
+ * This function is currently only used for
+ * debugging purposes.
+ * 
+ * Returns nothing.
+ */
+extern void marble_application_setstate(
+	bool isfatal, 
+	int param, 
+	enum marble_app_stateid newid
+);
+
+
+/*
+ * Raises a fatal error.
+ * 
+ * The application will forcefully quit the next time
+ * the message queue is traversed.
+ * 
+ * Returns nothing.
+ */
+void inline marble_application_raisefatalerror(
+	int errorcode /* error code that will be returned to host environment */
+) {
+	marble_application_setstate(
+		true,
+		errorcode,
+		MARBLE_APPSTATE_FORCEDSHUTDOWN
+	);
+
+	/* Ask our main thread to quit. */
+	PostThreadMessage(GetThreadId(gl_app.mp_mainthrd), MB_WM_FATAL, 0, 0);
+}
 
 

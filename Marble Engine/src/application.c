@@ -1,226 +1,473 @@
 #include <application.h>
 
 
-struct Marble_Application gl_sApplication = { NULL };
+uint64_t gl_pfreq = 0;
+struct marble_application gl_app = { NULL };
 
 
+#pragma region ASSETMAN
+extern void marble_asset_internal_destroy(void **pp_asset);
+
+
+/* 
+ * Uninitializes asset manager component.
+ * 
+ * Returns nothing.
+ */
+static void marble_application_internal_uninitassetman(void) {
+	if (gl_app.ms_assets.m_isinit == false)
+		return;
+
+	gl_app.ms_assets.m_isinit = FALSE;
+
+	/*
+	 * Destroy asset registry.
+	 * Destroying the registry automatically calls
+	 * "marble_asset_internal_destroy()" on the 
+	 * contents.
+	 */
+	marble_util_htable_destroy(&gl_app.ms_assets.mps_table);
+}
+
+/*
+ * Initializes asset manager component.
+ * 
+ * Returns 0 on success, non-zero on error.
+ */
+static int marble_application_internal_initassetman(void) { MB_ERRNO
+	/* 
+	* If asset manager is already initialized, block further
+	* attempts to (re-)initialize. 
+	*/
+	if (gl_app.ms_assets.m_isinit == true)
+		return MARBLE_EC_COMPSTATE;
+	
+	/* Create asset registry. */
+	ecode = marble_util_htable_create(
+		128,
+		(void (*)(void **))&marble_asset_internal_destroy,
+		&gl_app.ms_assets.mps_table
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_CLEANUP;
+	
+	/* Change component state to "initialized" (= active). */
+	gl_app.ms_assets.m_isinit = true;
+	
+lbl_CLEANUP:
+	if (ecode != MARBLE_EC_OK)
+		marble_application_internal_uninitassetman();
+	
+	return ecode;
+}
+#pragma endregion
+
+
+#pragma region LAYERSTACK
+extern void marble_layer_internal_destroy(struct marble_layer **pps_layer);
+
+
+/*
+ * Uninitializes layer stack.
+ * This will cause all layers to be popped (calling their
+ * "onpop" callbacks, and then destroyed.
+ * 
+ * Returns nothing.
+ */
+static void marble_application_internal_uninitlayerstack(void) {
+	if (gl_app.ms_layerstack.m_isinit == false)
+		return;
+
+	/*
+	 * Execute "onpop" callbacks of all layers,
+	 * starting with the first layer in the stack (the one 
+	 * that also gets updated first).
+	 */
+	for (size_t i = 0; i < gl_app.ms_layerstack.mps_vec->m_size; i++) {
+		struct marble_layer *ps_layer = marble_util_vec_get(gl_app.ms_layerstack.mps_vec, i);
+
+		if (ps_layer->m_ispushed == true) {
+			(*ps_layer->ms_cbs.cb_onpop)(ps_layer->m_id, ps_layer->mp_userdata);
+
+			ps_layer->m_ispushed = false;
+		}
+	}
+
+	marble_util_vec_destroy(&gl_app.ms_layerstack.mps_vec);
+	gl_app.ms_layerstack.m_isinit = false;
+}
+
+/*
+ * Initializes layer stack.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
+	if (gl_app.ms_layerstack.m_isinit == true)
+		return MARBLE_EC_COMPSTATE;
+	
+	ecode = marble_util_vec_create(
+		0,
+		(void (*)(void **))&marble_layer_internal_destroy,
+		&gl_app.ms_layerstack.mps_vec
+	);
+	if (ecode != MARBLE_EC_OK) {
+		marble_application_internal_uninitlayerstack();
+
+		return ecode;
+	}
+	
+	gl_app.ms_layerstack.m_lastlayer = 0;
+	gl_app.ms_layerstack.m_isinit    = true;
+
+	return ecode;
+}
+#pragma endregion
+
+
+/*
+ * These functions just wrap all of the component initialization
+ * functions.
+ * This allows passing an error code variable that will be 
+ * set whenever an error happens. As soon as this variable gets set,
+ * no more components will be initialized and Marble will
+ * perform a forced shutdown.
+ */
 #pragma region initialization functions
-static void inline Marble_Application_Internal_CreateHighPrecisionClock(int *ipErrorCode) {
-	if (*ipErrorCode)
+static void marble_application_internal_initdebugcon(
+	int *p_ecode /* pointer to error code variable */
+) {
+	if (*p_ecode != MARBLE_EC_OK)
+		return;
+
+	if (AllocConsole()) {
+		FILE *p_tmp = NULL;
+		/*
+		 * Redirect stdout to our newly-allocated console.
+		 * 
+		 * This allows us to use standard C I/O functions
+		 * such as printf() and friends.
+		 */
+		if (freopen_s(&p_tmp, "CONOUT$", "w", stdout) != 0)
+			goto lbl_ERROR;
+
+		printf("init: debug console\n");
+
+		*p_ecode = MARBLE_EC_OK;
+		return;
+	}
+
+lbl_ERROR:
+	*p_ecode = MARBLE_EC_DEBUGCON;
+}
+
+static void marble_application_internal_inithpc(
+	int *p_ecode /* pointer to error code variable */
+) {
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 		
 	printf("init: high-precision clock\n");
 
-	if (!QueryPerformanceFrequency(&gl_sApplication.uPerfFreq))
-		Marble_System_RaiseFatalError(*ipErrorCode = Marble_ErrorCode_InitHighPrecClock);
+	/*
+	 * Check whether an HPC is present in the system; should
+	 * not fail on computers that are still relevant nowadays.
+	 */
+	if (!QueryPerformanceFrequency((LARGE_INTEGER *)&gl_pfreq))
+		marble_application_raisefatalerror(*p_ecode = MARBLE_EC_INITHPC);
 }
 
-static void inline Marble_Application_Internal_InitializeCOMForProcess(int *ipErrorCode) {
-	if (*ipErrorCode)
+static void marble_application_internal_initcom(
+	int *p_ecode /* pointer to error code variable */
+) { MB_ERRNO
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
 	printf("init: component object model (COM)\n");
 
-	int iErrorCode = Marble_ErrorCode_Ok;
-	if ((iErrorCode = CoInitializeEx(NULL, COINIT_MULTITHREADED)) && iErrorCode ^ S_FALSE)
-		Marble_System_RaiseFatalError(*ipErrorCode = Marble_ErrorCode_COMInit);
+	/*
+	 * Initialize COM. If "CoInitializeEx()" returns non-zero,
+	 * this generally indicates that an error occurred. However,
+	 * if the user decides to init COM in "marble_callback_submitsettings()"
+	 * which is unsupported behavior but still has to be accounted for,
+	 * then another call to "CoInitializeEx()" returns S_FALSE. In this case
+	 * we do not want to quit the app.
+	 */
+	ecode = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	if (ecode && ecode != S_FALSE)
+		marble_application_raisefatalerror(*p_ecode = MARBLE_EC_INITCOM);
 }
 
-static void inline Marble_Application_Internal_InitializeAppState(int *ipErrorCode, HINSTANCE hiInstance, PSTR astrCommandLine) {
-	if (*ipErrorCode)
+static void marble_application_internal_initstate(
+	int *p_ecode,    /* pointer to error code variable */
+	HINSTANCE p_inst /* application instance */
+) {
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
 	printf("init: application state\n");
 
-	Marble_System_SetAppState(
+	marble_application_setstate(
 		FALSE,
 		0,
-		Marble_AppState_Init
+		MARBLE_APPSTATE_INIT
 	);
-
-	gl_sApplication.hiInstance      = hiInstance;
-	gl_sApplication.astrCommandLine = astrCommandLine;
+	gl_app.mp_inst = p_inst;
 }
 
-static void inline Marble_Application_Internal_CreateMainWindow(int *ipErrorCode) {
-	if (*ipErrorCode)
+static void marble_application_internal_createmainwindow(
+	int *p_ecode, /* pointer to error code variable */
+	/* pointer to user-specified settings */
+	struct marble_app_settings const *p_settings
+) {
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
 	printf("init: main window\n");
 
-	if (*ipErrorCode = Marble_Window_Create(&gl_sApplication.sMainWindow, TEXT("Marble Engine Sandbox"), 512, 512, TRUE))
-		Marble_System_RaiseFatalError(*ipErrorCode);
+	*p_ecode = marble_window_create(
+		"Marble Engine Sandbox",
+		512,
+		512,
+		TRUE,
+		&gl_app.mps_window
+	);
+	if (*p_ecode != MARBLE_EC_OK)
+		marble_application_raisefatalerror(*p_ecode);
 }
 
-static void inline Marble_Application_Internal_CreateRenderer(int *ipErrorCode) {
-	if (*ipErrorCode)
+static void marble_application_internal_createrenderer(
+	int *p_ecode /* pointer to error code variable */
+) {
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
 	printf("init: renderer\n");
 
-	if (*ipErrorCode = Marble_Renderer_Create(&gl_sApplication.sRenderer, Marble_RendererAPI_Direct2D, gl_sApplication.sMainWindow->hwWindow))
-		Marble_System_RaiseFatalError(*ipErrorCode);
-	else
-		gl_sApplication.sMainWindow->sRefRenderer = gl_sApplication.sRenderer;
+	*p_ecode = marble_renderer_create(
+		MARBLE_RENDERAPI_DIRECT2D,
+		gl_app.mps_window->mp_handle,
+		&gl_app.mps_renderer
+	);
+	if (*p_ecode != MARBLE_EC_OK)
+		marble_application_raisefatalerror(*p_ecode);
+
+	gl_app.mps_window->mps_renderer = gl_app.mps_renderer;
 }
 
-static void inline Marble_Application_Internal_CreateLayerStack(int *ipErrorCode) {
-	extern int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerStack);
-
-	if (*ipErrorCode)
+static void marble_application_internal_initlayerstack(
+	int *p_ecode /* pointer to error code variable */
+) {
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
 	printf("init: layer stack\n");
 
-	if (*ipErrorCode = Marble_LayerStack_Create(&gl_sApplication.sLayers))
-		Marble_System_RaiseFatalError(*ipErrorCode);
+	*p_ecode = marble_application_internal_initlayerstack_impl();
+	if (*p_ecode != MARBLE_EC_OK)
+		marble_application_raisefatalerror(*p_ecode);
 }
 
-static void inline Marble_Application_Internal_CreateAssetManager(int *ipErrorCode) {
-	extern int Marble_AssetManager_Create(void);
-
-	if (*ipErrorCode)
+static void marble_application_internal_initassetmanager(
+	int *p_ecode /* pointer to error code variable */
+) {
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
 	printf("init: asset manager\n");
 
-	if (*ipErrorCode = Marble_AssetManager_Create())
-		Marble_System_RaiseFatalError(*ipErrorCode);
+	*p_ecode = marble_application_internal_initassetman();
+	if (*p_ecode != MARBLE_EC_OK)
+		marble_application_raisefatalerror(*p_ecode);
 }
 
-static void inline Marble_Application_Internal_RunUserInitialization(int *ipErrorCode, int (*OnUserInit)(void)) {
-	if (*ipErrorCode)
+static void marble_application_internal_douserinit(
+	int *p_ecode,
+	char const *pz_cmdline,
+	int (MB_CALLBACK *cb_userinit)(_In_z_ char const *)
+) {
+	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
 	printf("init: user application\n");
 
-	OnUserInit();
+	/*
+	 * When user initialization fails, this is also considered
+	 * a fatal error. However, the user can still choose to return
+	 * 0 even if something failed, in which case the application
+	 * will not forcefully quit.
+	 */
+	*p_ecode = cb_userinit(pz_cmdline);
+	if (*p_ecode != MARBLE_EC_OK)
+		marble_application_raisefatalerror(*p_ecode);
 }
 #pragma endregion
 
-static int Marble_Application_Internal_UpdateAndRender(float fFrameTime) {
-	Marble_Renderer_BeginDraw(gl_sApplication.sRenderer);
 
-	Marble_Renderer_Clear(gl_sApplication.sRenderer, 0.0f, 0.0f, 0.0f, 1.0f);
+static int marble_application_internal_updateandrender(
+	float frametime /* time it took to render and present last frame */
+) {
+	marble_renderer_begindraw(gl_app.mps_renderer);
+	marble_renderer_clear(gl_app.mps_renderer, 0.0f, 0.0f, 0.0f, 1.0f);
 
-	//RECT sClientRect = { 0 };
-	//GetClientRect(gl_sApplication.sMainWindow->hwWindow, &sClientRect);
-
-	//float fRectXPos = sClientRect.right  / 2.0f - gl_sApplication.sMainWindow->sWndData.sClientSize.cx / 2.0f;
-	//float fRectYPos = sClientRect.bottom / 2.0f - gl_sApplication.sMainWindow->sWndData.sClientSize.cy / 2.0f;
-	D2D1_RECT_F sRect = {
-		gl_sApplication.sRenderer->iXOrigin,
-		gl_sApplication.sRenderer->iYOrigin,
-		gl_sApplication.sRenderer->iXOrigin + gl_sApplication.sMainWindow->sWndData.sClientSize.cx,
-		gl_sApplication.sRenderer->iYOrigin + gl_sApplication.sMainWindow->sWndData.sClientSize.cy
+	/* just for debugging purposes */
+#if (defined _DEBUG) || (defined MB_DEVBUILD)
+	D2D1_RECT_F s_rect = {
+		gl_app.mps_renderer->m_orix,
+		gl_app.mps_renderer->m_oriy,
+		gl_app.mps_renderer->m_orix + gl_app.mps_window->ms_data.ms_extends.ms_client.m_width,
+		gl_app.mps_renderer->m_oriy + gl_app.mps_window->ms_data.ms_extends.ms_client.m_width
 	};
-	D2D1_BRUSH_PROPERTIES sBrushProps = {
+	D2D1_BRUSH_PROPERTIES s_brushprops = {
 		.opacity = 1.0f
 	};
-	D2D1_COLOR_F sColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-	ID2D1SolidColorBrush *sBrush = NULL;
-	D2DWr_DeviceContext_CreateSolidColorBrush(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sColor, &sBrushProps, &sBrush);
-	D2DWr_DeviceContext_FillRectangle(gl_sApplication.sRenderer->sD2DRenderer.sD2DDevContext, &sRect, (ID2D1Brush *)sBrush);
+	D2D1_COLOR_F s_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	ID2D1SolidColorBrush *p_brush = NULL;
+	D2DWr_DeviceContext_CreateSolidColorBrush(gl_app.mps_renderer->ms_d2drenderer.mp_devicectxt, &s_color, &s_brushprops, &p_brush);
+	D2DWr_DeviceContext_FillRectangle(gl_app.mps_renderer->ms_d2drenderer.mp_devicectxt, &s_rect, (ID2D1Brush *)p_brush);
 
-	D2DWr_SolidColorBrush_Release(sBrush);
-
-	for (size_t stIndex = 0; stIndex < gl_sApplication.sLayers->sLayerStack->stSize; stIndex++) {
-		Marble_Layer *sLayer = (Marble_Layer *)gl_sApplication.sLayers->sLayerStack->ptrpData[stIndex];
-
-		if (sLayer->blIsEnabled)
-			sLayer->sCallbacks.OnUpdate(sLayer, fFrameTime);
-	}
-
-	Marble_Renderer_EndDraw(gl_sApplication.sRenderer);
-	Marble_Window_Update(gl_sApplication.sMainWindow, fFrameTime);
-
-	return Marble_Renderer_Present(&gl_sApplication.sRenderer);
-}
-
-
-int Marble_Application_Internal_OnEvent(void *ptrEvent) {
-	Marble_Event *sEvent = (Marble_Event *)ptrEvent;
-
-	for (size_t stIndex = gl_sApplication.sLayers->sLayerStack->stSize - 1; stIndex && stIndex ^ (size_t)(-1) && !sEvent->blIsHandled; stIndex--) {
-		Marble_Layer *sLayer = gl_sApplication.sLayers->sLayerStack->ptrpData[stIndex];
-
-		if (sLayer->blIsEnabled)
-			sLayer->sCallbacks.OnEvent(sLayer, sEvent);
-	}
-
-	return Marble_ErrorCode_Ok;
-}
-
-
-MARBLE_API int Marble_Application_Initialize(HINSTANCE hiInstance, PSTR astrCommandLine, int (*OnUserInit)(void)) {
-	gl_sApplication.htMainThread = GetCurrentThread();
-
-#if (defined _DEBUG) || (defined MARBLE_DEVBUILD)
-	Marble_System_Internal_CreateDebugConsole();
+	D2DWr_SolidColorBrush_Release(p_brush);
 #endif
 
-	int iErrorCode = Marble_ErrorCode_Ok;
+	for (size_t i = 0; i < gl_app.ms_layerstack.mps_vec->m_size; i++) {
+		struct marble_layer *ps_layer = marble_util_vec_get(gl_app.ms_layerstack.mps_vec, i);
 
-	Marble_Application_Internal_CreateHighPrecisionClock(&iErrorCode);
-	Marble_Application_Internal_InitializeCOMForProcess(&iErrorCode);
-	Marble_Application_Internal_InitializeAppState(&iErrorCode, hiInstance, astrCommandLine);
-	Marble_Application_Internal_CreateMainWindow(&iErrorCode);
-	Marble_Application_Internal_CreateRenderer(&iErrorCode);
-	Marble_Application_Internal_CreateLayerStack(&iErrorCode);
-	Marble_Application_Internal_CreateAssetManager(&iErrorCode);
-	Marble_Application_Internal_RunUserInitialization(&iErrorCode, OnUserInit);
-
-	/* At last, present window after user has (possibly) made some modifications. */
-	if (!iErrorCode) {
-		UpdateWindow(gl_sApplication.sMainWindow->hwWindow);
-		ShowWindow(gl_sApplication.sMainWindow->hwWindow, SW_SHOWNORMAL);
+		if (ps_layer->m_isenabled)
+			(*ps_layer->ms_cbs.cb_onupdate)(ps_layer->m_id, frametime, ps_layer->mp_userdata);
 	}
 
-	return Marble_ErrorCode_Ok;
+	marble_renderer_enddraw(gl_app.mps_renderer);
+	marble_window_update(gl_app.mps_window, frametime);
+
+	return marble_renderer_present(&gl_app.mps_renderer);
 }
 
-MARBLE_API int Marble_Application_Run(void) {
-	gl_sApplication.sAppState.iState = Marble_AppState_Running;
- 
-	MSG sMessage = { 0 };
-	while (TRUE) {
-		LARGE_INTEGER uTime;
-		QueryPerformanceCounter(&uTime);
-		float fFrameTime = (uTime.QuadPart - gl_sApplication.uFTLast.QuadPart) / (float)gl_sApplication.uPerfFreq.QuadPart;
-		gl_sApplication.uFTLast = uTime;
+/*
+ * Global clean-up function. Will always be called
+ * when Marble quits.
+ * 
+ * Passes through the given error code to the host environment.
+ * Returns passed error code.
+ */
+static int marble_application_internal_cleanup(
+	int ecode /* error code to return to system */
+) {
+	marble_window_destroy(&gl_app.mps_window);
+	marble_renderer_destroy(&gl_app.mps_renderer);
 
-		while (PeekMessage(&sMessage, NULL, 0, 0, PM_REMOVE)) {
-			if (sMessage.message == WM_QUIT || sMessage.message == MARBLE_WM_FATAL)
+	marble_application_internal_uninitlayerstack();
+	marble_application_internal_uninitassetman();
+	CoUninitialize();
+
+#if (defined _DEBUG)
+	_CrtDumpMemoryLeaks();
+#endif
+
+	return ecode;
+}
+
+
+void marble_application_setstate(
+	bool isfatal,
+	int param,
+	enum marble_app_stateid newid
+) {
+	gl_app.ms_state = (struct marble_app_state){
+		.m_isfatal = isfatal,
+		.m_id      = newid,
+		.m_param   = param
+	};
+}
+
+
+MB_API int __cdecl marble_application_init(
+	HINSTANCE p_inst,
+	PSTR pz_cmdline,
+	int (MB_CALLBACK *cb_usersubmitsettings)(char const *, struct marble_app_settings *),
+	int (MB_CALLBACK *cb_userinit)(char const *)
+) { MB_ERRNO
+	gl_app.mp_mainthrd = GetCurrentThread();
+
+#if (defined _DEBUG) || (defined MB_DEVBUILD)
+	marble_application_internal_initdebugcon(&ecode);
+
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+#endif
+
+	/* Get submitted user settings. */
+	struct marble_app_settings s_settings = { 0 };
+	ecode = cb_usersubmitsettings(pz_cmdline, &s_settings);
+
+	marble_application_internal_initstate(&ecode, p_inst);
+	marble_application_internal_inithpc(&ecode);
+	marble_application_internal_initcom(&ecode);
+	marble_application_internal_createmainwindow(&ecode, &s_settings);
+	marble_application_internal_createrenderer(&ecode);
+	marble_application_internal_initlayerstack(&ecode);
+	marble_application_internal_initassetmanager(&ecode);
+
+	/* Rrun user initialization. */
+	marble_application_internal_douserinit(&ecode, pz_cmdline, cb_userinit);
+
+	/* At last, present the window. */
+	if (!ecode) {
+		UpdateWindow(gl_app.mps_window->mp_handle);
+
+		ShowWindow(gl_app.mps_window->mp_handle, SW_SHOWNORMAL);
+	}
+
+	return MARBLE_EC_OK;
+}
+
+MB_API int __cdecl marble_application_run(void) {
+	/* update application state now that the main loop is about to start */
+	marble_application_setstate(
+		false,
+		MARBLE_EC_OK,
+		MARBLE_APPSTATE_RUNNING
+	);
+ 
+	while (TRUE) {
+		MSG s_msg;
+		uint64_t time;
+
+		QueryPerformanceCounter((LARGE_INTEGER *)&time);
+		float frametime = (time - gl_app.m_perfcounter.QuadPart) / (float)gl_pfreq;
+		gl_app.m_perfcounter.QuadPart = time;
+
+		while (PeekMessage(&s_msg, NULL, 0, 0, PM_REMOVE) > 0) {
+			if (s_msg.message == WM_QUIT || s_msg.message == MB_WM_FATAL)
 				goto lbl_CLEANUP;
 
-			TranslateMessage(&sMessage);
-			DispatchMessage(&sMessage);
+			TranslateMessage(&s_msg);
+			DispatchMessage(&s_msg);
 		}
 
-		if (!gl_sApplication.sMainWindow->sWndData.blIsMinimized)
-			Marble_Application_Internal_UpdateAndRender(fFrameTime);
+		if (gl_app.mps_window->ms_data.m_isminimized == false)
+			marble_application_internal_updateandrender(frametime);
 	}
 	
 lbl_CLEANUP:
-	if (gl_sApplication.sAppState.blIsFatal) {
-		TCHAR caBuffer[1024] = { 0 };
+	if (gl_app.ms_state.m_isfatal) {
+		TCHAR a_buf[1024] = { 0 };
 
 		_stprintf_s(
-			caBuffer, 
-			1024, 
+			a_buf,
+			1024,
 			TEXT("Application has to abruptly quit due to the occurence of\n")
 			TEXT("a fatal error:\n\n")
 			TEXT("Code:\t%i\n")
-			TEXT("String:\t%s\n")
-			TEXT("Desc:\t%s\n"),
-			gl_sApplication.sAppState.iParameter, 
-			Marble_Error_ToString(gl_sApplication.sAppState.iParameter),
-			Marble_Error_ToDesc(gl_sApplication.sAppState.iParameter)
+			TEXT("String:\t%S\n")
+			TEXT("Desc:\t%S\n"),
+			gl_app.ms_state.m_param,
+			marble_error_getstr(gl_app.ms_state.m_param),
+			marble_error_getdesc(gl_app.ms_state.m_param)
 		);
-		MessageBox(NULL, caBuffer, TEXT("Fatal Error"), MB_ICONERROR | MB_OK);
+		MessageBox(NULL, a_buf, TEXT("Fatal Error"), MB_ICONERROR | MB_OK);
 	}
 
-	return Marble_System_Cleanup(gl_sApplication.sAppState.iParameter);
+	return marble_application_internal_cleanup(gl_app.ms_state.m_param);
 }
 
 

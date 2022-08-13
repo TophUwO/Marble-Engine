@@ -3,63 +3,95 @@
 #include <api.h>
 
 
-#define MB_IFNTRUE_RET_CODE(expr, code)      { if (!(expr)) { return (int)code; } }
-#define MB_IFNOK_RET_CODE(expr)              { if (iErrorCode = (int)(expr)) { return iErrorCode; } }
-#define MB_IFNOK_GOTO_LBL(expr, label)       { if (iErrorCode = (int)(expr)) { goto label; } }
-#define MB_IFNOK_DO_BODY(expr, body)         { if (iErrorCode = (int)(expr)) { body; } }
+/*
+ * Error codes
+ * 
+ * Any function that returns an int
+ * can return any of these values. Their
+ * purpose becomes clear when looking at
+ * their description strings.
+ * 
+ * To make the code a little bit shorter,
+ * error codes are passed along in the system
+ * as ints.
+ */
+enum marble_ecode {
+	MARBLE_EC_OK = 0,
+	MARBLE_EC_UNKNOWN,
+
+	MARBLE_EC_UNIMPLFEATURE, 
+	MARBLE_EC_DEBUGCON,
+	MARBLE_EC_MEMALLOC,
+	MARBLE_EC_MEMREALLOC,
+	MARBLE_EC_MEMCPY,
+	MARBLE_EC_PARAM,
+	MARBLE_EC_INTERNALPARAM,
+	MARBLE_EC_OPENFILE,
+	MARBLE_EC_READFILE,
+	MARBLE_EC_FSEEK,
+	MARBLE_EC_PATHLENGTH,
+	MARBLE_EC_EMPTYPATH,
+	MARBLE_EC_INVALIDPATHENC,
+	MARBLE_EC_REGWNDCLASS,
+	MARBLE_EC_INITCOM,
+	MARBLE_EC_CREATEMAINWND,
+	MARBLE_EC_INITHPC,
+	MARBLE_EC_STATE,
+	MARBLE_EC_COMPSTATE,
+	MARBLE_EC_CREATED2DFAC,
+	MARBLE_EC_CREATED3D11DEV,
+	MARBLE_EC_GETDXGIDEV,
+	MARBLE_EC_CREATED2DDEV,
+	MARBLE_EC_CREATED2DDEVCTXT,
+	MARBLE_EC_GETDXGIADAPTER,
+	MARBLE_EC_GETDXGIFAC,
+	MARBLE_EC_CREATESWAPCHAIN,
+	MARBLE_EC_GETDXGIBACKBUFFER,
+	MARBLE_EC_CREATED2DBMPFROMDXGISURFACE,//
+	MARBLE_EC_RESIZERENDERER,
+	MARBLE_EC_ASSETTYPE,
+	MARBLE_EC_ASSETID,
+	MARBLE_EC_ELEMENTNOTFOUND,
+	MARBLE_EC_DUPEDASSET,
+	MARBLE_EC_ASSETNOTFOUND,
+	MARBLE_EC_LAYERALREADYPUSHED,
+	MARBLE_EC_LAYERSTATE,
+	MARBLE_EC_RENDERAPI,
+	MARBLE_EC_CREATERENDERER,//
+
+#if (defined MB_DYNAMIC_LIBRARY)
+	__MARBLE_NUMERRORCODES__ /* for internal use */
+#endif
+};
 
 
-typedef enum Marble_ErrorCodes {
-	Marble_ErrorCode_Ok = 0,
-	Marble_ErrorCode_Unknown,
+/*
+ * Gets string for error code.
+ * 
+ * If the error code is invalid, the function
+ * returns the error code string for
+ * MARBLE_EC_UNKNOWN.
+ * 
+ * Returns error code string.
+ */
+MB_API char const *const marble_error_getstr(
+	int ecode /* error code to get string representation for */
+);
 
-	Marble_ErrorCode_UnimplementedFeature, 
-	Marble_ErrorCode_CreateDebugConsole,
-	Marble_ErrorCode_MemoryAllocation,
-	Marble_ErrorCode_MemoryReallocation,
-	Marble_ErrorCode_Parameter,
-	Marble_ErrorCode_InternalParameter,
-	Marble_ErrorCode_OpenFile,
-	Marble_ErrorCode_GetFileInfo,
-	Marble_ErrorCode_ReadFromFile,
-	Marble_ErrorCode_GotoFilePosition,
-	Marble_ErrorCode_RegisterWindowClass,
-	Marble_ErrorCode_COMInit,
-	Marble_ErrorCode_CreateWindow,
-	Marble_ErrorCode_InitHighPrecClock,
-	Marble_ErrorCode_AppState,
-	Marble_ErrorCode_ComponentInitState,
-	Marble_ErrorCode_ArraySubscript,
-	Marble_ErrorCode_RendererAPI,
-	Marble_ErrorCode_RendererInit,
-	Marble_ErrorCode_CreateD2DFactory,
-	Marble_ErrorCode_CreateD3D11Device,
-	Marble_ErrorCode_GetDXGIDevice,
-	Marble_ErrorCode_CreateD2DDevice,
-	Marble_ErrorCode_CreateD2DDeviceContext,
-	Marble_ErrorCode_GetDXGIAdapter,
-	Marble_ErrorCode_GetDXGIFactory,
-	Marble_ErrorCode_CreateDXGISwapchain,
-	Marble_ErrorCode_GetDXGIBackbuffer,
-	Marble_ErrorCode_CreateBitmapFromDxgiSurface,
-	Marble_ErrorCode_ResizeRendererBuffers,
-	Marble_ErrorCode_HeadValidation,
-	Marble_ErrorCode_AssetType,
-	Marble_ErrorCode_AssetID,
-	Marble_ErrorCode_CreateWICImagingFactory,
-	Marble_ErrorCode_CreateWICDecoder,
-	Marble_ErrorCode_WICDecoderGetFrame,
-	Marble_ErrorCode_WICCreateFormatConv,
-	Marble_ErrorCode_WICFormatConversion,
-	Marble_ErrorCode_CreateD2DBitmapFromIWICBitmap,
-	Marble_ErrorCode_CreateDWriteFactory,
-	Marble_ErrorCode_CreateTextFormat,
-	Marble_ErrorCode_ElementNotFound,
-	Marble_ErrorCode_DuplicatesNotAllowed
-} Marble_ErrorCode;
-
-
-MARBLE_API TCHAR const *const Marble_Error_ToString(Marble_ErrorCode eErrorCode);
-MARBLE_API TCHAR const *const Marble_Error_ToDesc(Marble_ErrorCode eErrorCode);
+/*
+ * Gets description string for error code.
+ * 
+ * If the error code is invalid, the function
+ * returns the description string for
+ * MARBLE_EC_UNKNOWN.
+ * An error description is a brief message that
+ * is supposed to give hints on what went wrong
+ * and possible fixes.
+ * 
+ * Returns error code description string.
+ */
+MB_API char const *const marble_error_getdesc(
+	int ecode /* error code to get description string for */
+);
 
 

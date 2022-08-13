@@ -2,75 +2,113 @@
 #include <error.h>
 
 
-static struct Marble_Internal_EventEntry { Marble_EventType eType; TCHAR const *const strName; Marble_EventCategory eCategory; } const gl_saEventTable[] = {
-	{ Marble_EventType_Unknown,              TEXT("Ev_Unknown"),             Marble_EventCategory_None,                                    },
+/* Table representing additional event data; mainly used for filtering. */
+static struct marble_event_eventinfo { enum marble_evtype m_type; enum marble_evcat m_cat; char const *const pz_name; } const glsa_evinfotable[] = {
+	{ MARBLE_EVTYPE_UNKNOWN, MARBLE_EVCAT_NONE, "Ev_Unknown" },
 
-	{ Marble_EventType_Window_Closed,        TEXT("Ev_WindowClosed"),        Marble_EventCategory_Application                              },
-	{ Marble_EventType_Window_Minimized,     TEXT("Ev_WindowMinimzed"),      Marble_EventCategory_Application                              },
-	{ Marble_EventType_Window_Maximized,     TEXT("Ev_WindowMaximized"),     Marble_EventCategory_Application                              },
-	{ Marble_EventType_Window_Resized,       TEXT("Ev_WindowResized"),       Marble_EventCategory_Application                              },
-	{ Marble_EventType_Window_FocusObtained, TEXT("Ev_WindowFocusObtained"), Marble_EventCategory_Application | Marble_EventCategory_Input },
-	{ Marble_EventType_Window_FocusLost,     TEXT("Ev_WindowFocusLost"),     Marble_EventCategory_Application | Marble_EventCategory_Input },
+	{ MARBLE_EVTYPE_WNDCLOSED,     MARBLE_EVCAT_WINDOW,                        "Ev_WindowClosed"        },
+	{ MARBLE_EVTYPE_WNDDMINIMIZED, MARBLE_EVCAT_WINDOW,                        "Ev_WindowMinimzed"      },
+	{ MARBLE_EVTYPE_WNDMAXIMIZED,  MARBLE_EVCAT_WINDOW,                        "Ev_WindowMaximized"     },
+	{ MARBLE_EVTYPE_WNDRESIZED,    MARBLE_EVCAT_WINDOW,                        "Ev_WindowResized"       },
+	{ MARBLE_EVTYPE_WNDGOTFOCUS,   MARBLE_EVCAT_WINDOW,                        "Ev_WindowGotFocus"      },
+	{ MARBLE_EVTYPE_WNDLOSTFOCUS,  MARBLE_EVCAT_WINDOW,                        "Ev_WindowLostFocus"     },
 
-	{ Marble_EventType_Keyboard_KeyPressed,  TEXT("Ev_KeyboardKeyPressed"),  Marble_EventCategory_Input | Marble_EventCategory_Keyboard    }, 
-	{ Marble_EventType_Keyboard_KeyReleased, TEXT("Ev_KeyboardKeyReleased"), Marble_EventCategory_Input | Marble_EventCategory_Keyboard    },
-	{ Marble_EventType_Keyboard_KeyRepeated, TEXT("Ev_KeyboardKeyRepeated"), Marble_EventCategory_Input | Marble_EventCategory_Keyboard    },
+	{ MARBLE_EVTYPE_KBPRESSED,     MARBLE_EVCAT_INPUT | MARBLE_EVCAT_KEYBOARD, "Ev_KeyboardKeyPressed"  }, 
+	{ MARBLE_EVTYPE_KBRELEASED,    MARBLE_EVCAT_INPUT | MARBLE_EVCAT_KEYBOARD, "Ev_KeyboardKeyReleased" },
+	{ MARBLE_EVTYPE_KBREPEATED,    MARBLE_EVCAT_INPUT | MARBLE_EVCAT_KEYBOARD, "Ev_KeyboardKeyRepeated" },
 
-	{ Marble_EventType_Mouse_ButtonPressed,  TEXT("Ev_MouseButtonPressed"),  Marble_EventCategory_Input | Marble_EventCategory_Mouse       },
-	{ Marble_EventType_Mouse_ButtonReleased, TEXT("Ev_MouseButtonReleased"), Marble_EventCategory_Input | Marble_EventCategory_Mouse       },
-	{ Marble_EventType_Mouse_MouseMoved,     TEXT("Ev_MouseMoved"),          Marble_EventCategory_Input | Marble_EventCategory_Mouse       }
+	{ MARBLE_EVTYPE_MBTNPRESSED,  MARBLE_EVCAT_INPUT | MARBLE_EVCAT_MOUSE,     "Ev_MouseButtonPressed"  },
+	{ MARBLE_EVTYPE_MBTNRELEASED, MARBLE_EVCAT_INPUT | MARBLE_EVCAT_MOUSE,     "Ev_MouseButtonReleased" },
+	{ MARBLE_EVTYPE_MMOVED,       MARBLE_EVCAT_INPUT | MARBLE_EVCAT_MOUSE,     "Ev_MouseMoved"          }
 };
-static const DWORD gl_dwNumberOfEventTypes = sizeof(gl_saEventTable) / sizeof(*gl_saEventTable);
 
 
-int Marble_Event_ConstructEvent(void *ptrEvent, Marble_EventType eEventType, void *ptrData) {
-	switch (eEventType) {
-		case Marble_EventType_Keyboard_KeyReleased:
-		case Marble_EventType_Keyboard_KeyPressed:
-			*(Marble_KeyPressedData *)(((char *)ptrEvent) + sizeof(Marble_GenericEvent)) = *(Marble_KeyPressedData *)ptrData;
+/*
+ * Gets event type name.
+ * 
+ * This function is only used for debugging purposes.
+ * 
+ * Returns event type name.
+ */
+static char const *const marble_event_internal_getevtypename(enum marble_evtype type) {
+	if (type >= __MARBLE_NUMEVTYPES__ || type < 0)
+		return marble_event_internal_getevtypename(MARBLE_EVTYPE_UNKNOWN);
+
+	return glsa_evinfotable[type].pz_name;
+}
+
+
+void marble_event_construct(
+	void *p_evptr,
+	enum marble_evtype type,
+	void const *p_evdata
+) {
+	if (p_evptr == NULL)
+		return;
+
+	/* Initialize the entire block with 0 first. */
+	memset(
+		p_evptr,
+		0,
+		sizeof(struct marble_event)
+	);
+
+	/*
+	 * Copy-over event-specific data.
+	 * 
+	 * As this function is always going to be called from within
+	 * the engine, there is no way the data given can be invalid (i.e.
+	 * incorrect struct data passed for a particular event type).
+	 * Therefore, just copying over by casting the pointer
+	 * is of no great danger.
+	 */
+	switch (type) {
+		case MARBLE_EVTYPE_KBPRESSED:
+		case MARBLE_EVTYPE_KBRELEASED:
+			if (p_evdata == NULL)
+				return;
+
+			((struct marble_keyboardevent *)p_evptr)->_data = *(struct marble_keyboardevent_data *)p_evdata;
 
 			break;
-		case Marble_EventType_Window_Resized:
-			*(Marble_WindowResizedData *)(((char *)ptrEvent) + sizeof(Marble_GenericEvent)) = *(Marble_WindowResizedData *)ptrData;
+		case MARBLE_EVTYPE_WNDRESIZED:
+			if (p_evdata == NULL)
+				return;
+
+			((struct marble_windowevent *)p_evptr)->_data._resized = *(struct marble_windowevent_resizeddata *)p_evdata;
 
 			break;
-		case Marble_EventType_Mouse_ButtonPressed:
-		case Marble_EventType_Mouse_ButtonReleased:
-		case Marble_EventType_Mouse_MouseMoved:
-			*(Marble_MouseData *)(((char *)ptrEvent) + sizeof(Marble_GenericEvent)) = *(Marble_MouseData *)ptrData;
+		case MARBLE_EVTYPE_MBTNPRESSED:
+		case MARBLE_EVTYPE_MBTNRELEASED:
+		case MARBLE_EVTYPE_MMOVED:
+			if (p_evdata == NULL)
+				return;
+
+			((struct marble_mouseevent *)p_evptr)->_data = *(struct marble_mouseevent_data *)p_evdata;
 
 			break;
 	}
 
-	*(Marble_GenericEvent *)ptrEvent = (Marble_GenericEvent){
-		.eType       = eEventType,
-		.eCategory   = gl_saEventTable[eEventType].eCategory,
-		.blIsHandled = FALSE
+	*(struct marble_event *)p_evptr = (struct marble_event){
+		.m_type      = type,
+		.m_cat       = glsa_evinfotable[type].m_cat,
+		.m_ishandled = false
 	};
-	QueryPerformanceCounter(&((Marble_GenericEvent *)ptrEvent)->uqwTime);
-
-	return Marble_ErrorCode_Ok;
+	QueryPerformanceCounter((LARGE_INTEGER *)&((struct marble_event *)p_evptr)->m_timestamp);
 }
 
-TCHAR const *const Marble_Event_GetEventTypeName(Marble_EventType eEventType) {
-	if ((DWORD)eEventType >= gl_dwNumberOfEventTypes || eEventType < 0)
-		return Marble_Event_GetEventTypeName(Marble_EventType_Unknown);
-
-	return gl_saEventTable[eEventType].strName;
-}
-
-Marble_EventType Marble_Event_GetMouseEventType(UINT udwMessage) {
-	switch (udwMessage) {
+enum marble_evtype marble_event_getmouseevent(uint32_t msgid) {
+	switch (msgid) {
 		case WM_LBUTTONDOWN:
 		case WM_RBUTTONDOWN:
-		case WM_MBUTTONDOWN: return Marble_EventType_Mouse_ButtonPressed;
+		case WM_MBUTTONDOWN: return MARBLE_EVTYPE_MBTNPRESSED;
 		case WM_LBUTTONUP:
 		case WM_MBUTTONUP:
-		case WM_RBUTTONUP:   return Marble_EventType_Mouse_ButtonReleased;
-		case WM_MOUSEMOVE:   return Marble_EventType_Mouse_MouseMoved;
+		case WM_RBUTTONUP:   return MARBLE_EVTYPE_MBTNRELEASED;
+		case WM_MOUSEMOVE:   return MARBLE_EVTYPE_MMOVED;
 	}
 
-	return Marble_EventType_Unknown;
+	return MARBLE_EVTYPE_UNKNOWN;
 }
 
 

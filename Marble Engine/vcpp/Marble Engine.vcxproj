@@ -77,6 +77,7 @@
     <TargetName>marblemn_$(PlatformShortName)d</TargetName>
     <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -84,6 +85,7 @@
     <TargetName>marblemn32</TargetName>
     <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -91,6 +93,7 @@
     <TargetName>marblemn_$(PlatformShortName)d</TargetName>
     <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -98,14 +101,18 @@
     <TargetName>marblemn64</TargetName>
     <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>MARBLE_DLLEXP;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_DYNAMIC_LIBRARY;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <CompileAs>CompileAsC</CompileAs>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,13 +123,16 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>MARBLE_DEVBUILD;MARBLE_DLLEXP;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_DYNAMIC_LIBRARY;MB_DEVBUILD;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <CompileAs>CompileAsC</CompileAs>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,11 +145,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>MARBLE_DLLEXP;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_DYNAMIC_LIBRARY;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <CompileAs>CompileAsC</CompileAs>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,13 +163,16 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>MARBLE_DEVBUILD;MARBLE_DLLEXP;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_DYNAMIC_LIBRARY;MB_DEVBUILD;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
+      <CompileAs>CompileAsC</CompileAs>
+      <DisableLanguageExtensions>false</DisableLanguageExtensions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -170,30 +186,24 @@
   <ItemGroup>
     <ClCompile Include="..\src\application.c" />
     <ClCompile Include="..\src\asset.c" />
-    <ClCompile Include="..\src\color.c" />
     <ClCompile Include="..\src\error.c" />
     <ClCompile Include="..\src\event.c" />
     <ClCompile Include="..\src\layer.c" />
-    <ClCompile Include="..\src\level.c" />
-    <ClCompile Include="..\src\main.c" />
     <ClCompile Include="..\src\renderer.c" />
-    <ClCompile Include="..\src\system.c" />
-    <ClCompile Include="..\src\util.c" />
     <ClCompile Include="..\src\window.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\api.h" />
     <ClInclude Include="..\include\application.h" />
     <ClInclude Include="..\include\asset.h" />
-    <ClInclude Include="..\include\color.h" />
     <ClInclude Include="..\include\def.h" />
     <ClInclude Include="..\include\entrypoint.h" />
     <ClInclude Include="..\include\event.h" />
-    <ClInclude Include="..\include\layer.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
     <ClInclude Include="..\include\platform.h" />
     <ClInclude Include="..\include\renderer.h" />
+    <ClInclude Include="..\include\system.h" />
     <ClInclude Include="..\include\util.h" />
     <ClInclude Include="..\include\window.h" />
   </ItemGroup>
@@ -201,6 +211,7 @@
     <Text Include="..\..\Notes\asset_deps.txt" />
     <Text Include="..\..\Notes\asset_types.txt" />
     <Text Include="..\..\Notes\old_asset_create.txt" />
+    <Text Include="..\..\Notes\old_rendererstuff.txt" />
     <Text Include="..\..\Notes\old_vec_test.txt" />
     <Text Include="..\..\Notes\script_commands.txt" />
     <Text Include="..\..\Notes\TODO.txt" />

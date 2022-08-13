@@ -1,209 +1,316 @@
 #include <application.h>
 
 
-static DWORD volatile gl_dwCurrentLayerId = 1;
+void marble_layer_internal_destroy(
+	struct marble_layer **pps_layer
+);
 
-static int __Marble_Layer_Internal_DummyDestroy__(void **ptrpUserdata) { return Marble_ErrorCode_Ok; }
-static int __Marble_Layer_Internal_DummyOnPush__(Marble_Layer *sSelf) { return Marble_ErrorCode_Ok; }
-static int __Marble_Layer_Internal_DummyOnPop__(Marble_Layer *sSelf) { return Marble_ErrorCode_Ok; }
-static int __Marble_Layer_Internal_DummyOnUpdate__(Marble_Layer *sSelf, float fFrameTime) { return Marble_ErrorCode_Ok; }
-static int __Marble_Layer_Internal_DummyOnEvent__(Marble_Layer *sSelf, Marble_Event *sEvent) { return Marble_ErrorCode_Ok; }
+/* Global layer ID; gets incremented whenever a layer gets created. */
+static int volatile gl_layerid = 0;
 
-static void inline Marble_Layer_Internal_FixLayerCallbacks(Marble_Layer *sLayer) {
-	sLayer->sCallbacks.OnPush   = sLayer->sCallbacks.OnPush   ? sLayer->sCallbacks.OnPush   : &__Marble_Layer_Internal_DummyOnPush__;
-	sLayer->sCallbacks.OnPop    = sLayer->sCallbacks.OnPop    ? sLayer->sCallbacks.OnPop    : &__Marble_Layer_Internal_DummyOnPop__;
-	sLayer->sCallbacks.OnUpdate = sLayer->sCallbacks.OnUpdate ? sLayer->sCallbacks.OnUpdate : &__Marble_Layer_Internal_DummyOnUpdate__;
-	sLayer->sCallbacks.OnEvent  = sLayer->sCallbacks.OnEvent  ? sLayer->sCallbacks.OnEvent  : &__Marble_Layer_Internal_DummyOnEvent__;
+
+/*
+ * Layer dummy functions
+ * 
+ * It is generally not required that all callbacks
+ * of a layer be user-defined. In trivial cases,
+ * some functions may just be empty.
+ * Therefore, when the user submits the callbacks, if a callback
+ * function member is NULL, it will be replaced with
+ * the corresponding callback defined inside
+ * region "dummy callbacks".
+ * 
+ * This also ensures that the callback pointers are
+ * valid at all times, removing the need for extra
+ * validation before invoking the them.
+ */
+#pragma region dummy callbacks
+static marble_layer_callback_onpush __marble_layer_internal_cbpush__(
+	int layerid,
+	void *p_userdata
+) {
+	UNREFERENCED_PARAMETER(layerid);
+	UNREFERENCED_PARAMETER(p_userdata);
+
+	return MARBLE_EC_OK;
 }
 
+static marble_layer_callback_onpop __marble_layer_internal_cbpop__(
+	int layerid,
+	void *p_userdata
+) {
+	UNREFERENCED_PARAMETER(layerid);
+	UNREFERENCED_PARAMETER(p_userdata);
 
-void Marble_LayerStack_Destroy(Marble_LayerStack **ptrpLayerstack) {
-	if (!ptrpLayerstack)
-		return;
-
-	Marble_Util_Vector_Destroy(&(*ptrpLayerstack)->sLayerStack);
-
-	free(*ptrpLayerstack);
-	*ptrpLayerstack = NULL;
+	return MARBLE_EC_OK;
 }
 
-int Marble_LayerStack_Create(Marble_LayerStack **ptrpLayerstack) { MARBLE_ERRNO
-	if (!ptrpLayerstack)
-		return Marble_ErrorCode_Parameter;
+static marble_layer_callback_onupdate __marble_layer_internal_cbupdate__(
+	int layerid,
+	float ft,
+	void *p_userdata
+) {
+	UNREFERENCED_PARAMETER(layerid);
+	UNREFERENCED_PARAMETER(ft);
+	UNREFERENCED_PARAMETER(p_userdata);
 
-	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
-		ptrpLayerstack, 
-		sizeof **ptrpLayerstack, 
-		FALSE, 
-		TRUE
-	));
-
-	MB_IFNOK_DO_BODY(Marble_Util_Vector_Create(
-		Marble_Util_VectorType_VecOfPointers, 
-		0, 
-		32, 
-		&Marble_Layer_Destroy, 
-		NULL, 
-		&(*ptrpLayerstack)->sLayerStack
-	), { Marble_LayerStack_Destroy(ptrpLayerstack); return iErrorCode; });
-
-	(*ptrpLayerstack)->stLastLayer = 0;
-	return Marble_ErrorCode_Ok;
+	return MARBLE_EC_OK;
 }
 
+static marble_layer_callback_onevent __marble_layer_internal_cbevent__(
+	         int layerid,
+	struct marble_event *p_event,
+	void *p_userdata
+) {
+	UNREFERENCED_PARAMETER(layerid);
+	UNREFERENCED_PARAMETER(p_event);
+	UNREFERENCED_PARAMETER(p_userdata);
 
-int Marble_Layer_Create(_Bool blIsEnabled, Marble_Layer **ptrpLayer) { MARBLE_ERRNO
-	if (!ptrpLayer)
-		return Marble_ErrorCode_Parameter;
+	return MARBLE_EC_OK;
+}
+#pragma endregion
 
-	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
-		ptrpLayer, 
-		sizeof **ptrpLayer, 
-		FALSE, 
-		TRUE
-	));
 
-	(*ptrpLayer)->dwLayerId   = InterlockedIncrement(&gl_dwCurrentLayerId);
-	(*ptrpLayer)->blIsEnabled = blIsEnabled;
-
-	return Marble_ErrorCode_Ok;
+/*
+ * "Fixes" layer callback structure.
+ * This means changing the NULL callbacks to the "dummy callbacks"
+ * defined above, making it valid to invoke any of the callbacks
+ * directly, and without extra validation.
+ */
+static void marble_layer_internal_fixcbs(
+	struct marble_layer_callbacks *ps_cbs /* callback structure to "fix" */
+) {
+	ps_cbs->cb_onpush   = ps_cbs->cb_onpush   ? ps_cbs->cb_onpush   : (marble_layer_callback_onpush)&__marble_layer_internal_cbpush__;
+	ps_cbs->cb_onpop    = ps_cbs->cb_onpop    ? ps_cbs->cb_onpop    : (marble_layer_callback_onpop)&__marble_layer_internal_cbpop__;
+	ps_cbs->cb_onupdate = ps_cbs->cb_onupdate ? ps_cbs->cb_onupdate : (marble_layer_callback_onupdate)&__marble_layer_internal_cbupdate__;
+	ps_cbs->cb_onevent  = ps_cbs->cb_onevent  ? ps_cbs->cb_onevent  : (marble_layer_callback_onevent)&__marble_layer_internal_cbevent__;
 }
 
-int Marble_Layer_CreateAndPush(_Bool blIsEnabled, struct Marble_Layer_Callbacks const *sCallbacks, void *ptrUserdata, Marble_Layer **ptrpLayer, Marble_LayerStack *sLayerStack, _Bool blIsTopmost) { MARBLE_ERRNO
-	MB_IFNOK_RET_CODE(Marble_Layer_Create(blIsEnabled, ptrpLayer));
+/*
+ * Sets layer callbacks.
+ * 
+ * Returns nothing.
+ */
+static void marble_layer_internal_setcbs(
+	struct marble_layer_callbacks *restrict ps_dest,     /* callback structure to set */
+	struct marble_layer_callbacks const *restrict ps_src /* source callback structure */
+) {
+	if (ps_src != NULL)
+		*ps_dest = *ps_src;
 
-	Marble_Layer_SetCallbacks(*ptrpLayer, sCallbacks);
-	Marble_Layer_SetUserdata(*ptrpLayer, ptrUserdata);
-	MB_IFNOK_DO_BODY(Marble_Layer_Push(sLayerStack, *ptrpLayer, blIsTopmost), {
-		Marble_Layer_Destroy(ptrpLayer);
-
-		return iErrorCode;
-	});
-
-	return Marble_ErrorCode_Ok;
+	/*
+	 * Fix the callbacks. This works even if **ps_src** is NULL. In this case,
+	 * all callbacks will be "fixed" to the given "dummy callbacks".
+	 */
+	marble_layer_internal_fixcbs(ps_dest);
 }
 
-void Marble_Layer_Destroy(Marble_Layer **ptrpLayer) {
-	if (!ptrpLayer || !*ptrpLayer)
-		return;
+/*
+ * Sets userdata.
+ * 
+ * Returns old userdata.
+ */
+static void *marble_layer_setuserdata(
+	void **pp_dest,   /* userdata to set */
+	void const *p_src /* userdata pointer */
+) {
+	void *p_oldudata = *pp_dest;
 
-	Marble_Layer_Pop((*ptrpLayer)->sRefLayerstack, *ptrpLayer, (*ptrpLayer)->blIsTopmost);
-
-	free(*ptrpLayer);
-	*ptrpLayer = NULL;
+	*pp_dest = (void *)p_src;
+	return p_oldudata;
 }
 
-int Marble_Layer_Push(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) { MARBLE_ERRNO
-	if (!sLayerStack || !sLayer)
-		return Marble_ErrorCode_Parameter;
-	sLayerStack = sLayerStack == Marble_DefLayerStack ? gl_sApplication.sLayers : sLayerStack;
+/*
+ * Create an empty layer structure.
+ * 
+ * For it to work, callbacks and possibly userdata
+ * still have to be submitted.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_layer_internal_create(
+	bool isenabled,
+	struct marble_layer **pps_layer
+) { MB_ERRNO
+	if (pps_layer == NULL)
+		return MARBLE_EC_INTERNALPARAM;
 
-	Marble_Layer_Internal_FixLayerCallbacks(sLayer);
-	if (blIsTopmost)
-		iErrorCode = Marble_Util_Vector_PushBack(sLayerStack->sLayerStack, sLayer);
-	else {
-		iErrorCode = Marble_Util_Vector_Insert(
-			sLayerStack->sLayerStack, 
-			sLayerStack->stLastLayer, 
-			sLayer
+	ecode = marble_system_alloc(sizeof **pps_layer, false, false, pps_layer);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+
+	(*pps_layer)->m_isenabled = isenabled;
+	(*pps_layer)->m_id        = InterlockedIncrement((LONG volatile *)&gl_layerid);
+
+	return MARBLE_EC_OK;
+}
+
+/*
+ * Pushes layer onto the internal layer stack.
+ * 
+ * If the layer is already pushed, the function will not push
+ * the layer again.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_layer_internal_push(
+	struct marble_layer *ps_layer, /* layer to push */
+	bool istopmost                 /* push as topmost? */
+) { MB_ERRNO
+	if (ps_layer == NULL)
+		return MARBLE_EC_INTERNALPARAM;
+	if (ps_layer->m_ispushed == true)
+		return MARBLE_EC_LAYERALREADYPUSHED;
+
+	if (istopmost)
+		ecode = marble_util_vec_pushback(gl_app.ms_layerstack.mps_vec, ps_layer);
+	else
+		ecode = marble_util_vec_insert(
+			gl_app.ms_layerstack.mps_vec,
+			ps_layer,
+			gl_app.ms_layerstack.m_lastlayer
 		);
 
-		if (!iErrorCode)
-			++sLayerStack->stLastLayer;
+	if (ecode == MARBLE_EC_OK) {
+		ps_layer->m_istopmost = istopmost;
+		if (!istopmost)
+			++gl_app.ms_layerstack.m_lastlayer;
+
+		/*
+		 * We will simply pass-through the return value. If "cb_onpush"
+		 * fails, we will catch the error code in "marble_application_createlayer()"
+		 * and handle it appropriately.
+		 */
+		ecode = (*ps_layer->ms_cbs.cb_onpush)(
+			ps_layer->m_id,
+			ps_layer->mp_userdata
+		);
 	}
 
-	if (!iErrorCode) {
-		MB_IFNOK_RET_CODE(sLayer->sCallbacks.OnPush(sLayer));
-
-		sLayer->blIsTopmost    = blIsTopmost;
-		sLayer->sRefLayerstack = sLayerStack;
-	}
-
-	return iErrorCode;
+	return ecode;
 }
 
-Marble_Layer *Marble_Layer_Pop(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost) {
-	if (!sLayerStack || !sLayer)
-		return NULL;
+/*
+ * Removes a layer from the layer stack. 
+ */
+static int marble_layer_internal_pop(
+	struct marble_layer *ps_layer /* layer to pop */
+) {
+	if (ps_layer == NULL)
+		return MARBLE_EC_INTERNALPARAM;
 
-	size_t stIndex = Marble_Util_Vector_Find(
-		sLayerStack->sLayerStack, 
-		sLayer, 
-		blIsTopmost 
-			? sLayerStack->stLastLayer - 1
-			: 0, 
-		blIsTopmost
-			? sLayerStack->stLastLayer
-			: 0
+	/* Scan the entire layer stack. */
+	size_t index = marble_util_vec_find(
+		gl_app.ms_layerstack.mps_vec, 
+		ps_layer,
+		0,
+		0
 	);
 
-	if (stIndex ^ (size_t)(-1)) {
-		Marble_Layer *sLayer = Marble_Util_Vector_Erase(
-			sLayerStack->sLayerStack,
-			stIndex,
-			FALSE
+	/*
+	 * If the layer could be found, execute its
+	 * "cb_onpop" handler and erase it from the layer stack.
+	 */
+	if (index != (size_t)(-1)) {
+		marble_util_vec_erase(
+			gl_app.ms_layerstack.mps_vec,
+			index,
+			false
 		);
-		sLayer->sCallbacks.OnPop(sLayer);
 
-		sLayer->blIsTopmost    = FALSE;
-		sLayer->sRefLayerstack = NULL;
+		/*
+		 * Execute "cb_onpop" handler if it hasn't
+		 * been executed yet. 
+		 */
+		if (ps_layer->m_ispushed == true) {
+			(*ps_layer->ms_cbs.cb_onpop)(
+				ps_layer->m_id,
+				ps_layer->mp_userdata
+			);
 
-		if (!blIsTopmost)
-			--sLayerStack->stLastLayer;
+			ps_layer->m_ispushed = false;
+		}
 
-		return sLayer;
+		if (ps_layer->m_istopmost == false)
+			--gl_app.ms_layerstack.m_lastlayer;
 	}
 
-	return NULL;
+	return MARBLE_EC_OK;
 }
 
-void *Marble_Layer_GetUserdata(Marble_Layer *sLayer) {
-	if (sLayer)
-		return sLayer->ptrUserdata;
 
-	return NULL;
-}
+int marble_application_createlayer(
+	bool isenabled,
+	bool istopmost,
+	struct marble_layer_callbacks const *p_callbacks,
+	void const *p_userdata,                          													  
+	char const *pz_stringid,
+	int *p_layerid
+) { MB_ERRNO
+	if (p_layerid == NULL)
+		return MARBLE_EC_PARAM;
+	if (gl_app.ms_layerstack.m_isinit == false) {
+		*p_layerid = -1;
 
-void *Marble_Layer_GetCallback(Marble_Layer *sLayer, int iHandlerType) {
-	if (!sLayer)
-		return NULL;
-
-	switch (iHandlerType) {
-		case Marble_LayerHandlerType_OnPush:   return sLayer->sCallbacks.OnPush;
-		case Marble_LayerHandlerType_OnPop:    return sLayer->sCallbacks.OnPop;
-		case Marble_LayerHandlerType_OnUpdate: return sLayer->sCallbacks.OnUpdate;
-		case Marble_LayerHandlerType_OnEvent:  return sLayer->sCallbacks.OnEvent;
+		return MARBLE_EC_COMPSTATE;
 	}
 
-	return NULL;
+	struct marble_layer *ps_layer;
+	ecode = marble_layer_internal_create(isenabled, &ps_layer);
+	if (ecode != MARBLE_EC_OK) {
+		*p_layerid = -1;
+
+		return ecode;
+	};
+
+	marble_layer_internal_setcbs(&ps_layer->ms_cbs, p_callbacks);
+	marble_layer_setuserdata(&ps_layer->mp_userdata, p_userdata);
+	
+	ecode = marble_layer_internal_push(ps_layer, istopmost);
+	if (ecode != MARBLE_EC_OK) {
+		marble_layer_internal_destroy(&ps_layer);
+
+		*p_layerid = -1;
+		return ecode;
+	};
+
+	*p_layerid = ps_layer->m_id;
+	marble_system_cpystr(ps_layer->maz_stringid, pz_stringid, MB_STRINGIDMAX);
+
+	return MARBLE_EC_OK;
 }
 
-_Bool Marble_Layer_IsEnabled(Marble_Layer *sLayer) {
-	return sLayer ? sLayer->blIsEnabled : FALSE;
-}
-
-void Marble_Layer_SetEnabled(Marble_Layer *sLayer, _Bool blIsEnabled) {
-	if (sLayer)
-		sLayer->blIsEnabled = blIsEnabled;
-}
-
-void Marble_Layer_SetCallbacks(Marble_Layer *sLayer, struct Marble_Layer_Callbacks const *sCallbacks) {
-	if (!sLayer)
+/*
+ * Destroys a layer.
+ * 
+ * If the layer that is to be destroyed is still pushed onto 
+ * the layer stack, it will be popped automatically.
+ * 
+ * Returns nothing.
+ */
+void marble_layer_internal_destroy(
+	struct marble_layer **pps_layer /* layer to destroy */
+) { MB_ERRNO
+	if (pps_layer == NULL || *pps_layer == NULL || gl_app.ms_layerstack.m_isinit == false)
 		return;
 
-	memcpy(&sLayer->sCallbacks, sCallbacks, sizeof(struct Marble_Layer_Callbacks));
+	/*
+	 * Pop the layer. Ideally, the "cb_onpop" handler will take care of
+	 * free'ing the userdata. If the user fails to do so, the memory that
+	 * is being occupied by the userdata will leak. This is only true, however,
+	 * when **marble_layer::mp_userdata** itself points to dynamically allocated memory
+	 * or **marble_layer::mp_userdata** contains pointers to dynamically allocated
+	 * memory.
+	 * We cannot do anything with the userdata here because we do now know the layout
+	 * of the struct.
+	 */
+	ecode = marble_layer_internal_pop(*pps_layer);
+	if (ecode != MARBLE_EC_OK)
+		return;
 
-	Marble_Layer_Internal_FixLayerCallbacks(sLayer);
-}
-
-void *Marble_Layer_SetUserdata(Marble_Layer *sLayer, void *ptrUserdata) {
-	if (!sLayer)
-		return NULL;
-
-	void *ptrOldUserdata = sLayer->ptrUserdata;
-
-	sLayer->ptrUserdata = ptrUserdata;
-	return ptrOldUserdata;
+	/* Free-up layer memory. */
+	free(*pps_layer);
+	*pps_layer = NULL;
 }
 
 

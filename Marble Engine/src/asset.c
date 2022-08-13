@@ -1,362 +1,474 @@
 #include <application.h>
-#include <marble.h>
 
 
-#pragma region Marble_Asset
-static _Bool inline Marble_Asset_Internal_IsValidAssetType(int iAssetType) {
-	return iAssetType > Marble_AssetType_Unknown && iAssetType < __MARBLE_NUMASSETTYPES__;
+void marble_asset_internal_destroy(
+	struct marble_asset **pps_asset
+);
+
+static int marble_asset_internal_loadfromfile(
+	char const *pz_path,
+	struct marble_asset **pps_asset,
+	struct marble_asset **pps_existingassetptr
+);
+
+
+/*
+ * Checks whether asset type is valid.
+ * 
+ * Returns true if asset type is valid, false if not.
+ */
+static bool marble_asset_internal_isvalidtype(
+	enum marble_asset_type type /* type to check */
+) {
+	return type < __MARBLE_NUMASSETTYPES__ && type > MARBLE_ASSETTYPE_UNKNOWN;
 }
 
-static _Bool inline Marble_Asset_Internal_FindFn(CHAR const *strKey, void *ptrCmpAsset) {
-	return !strcmp(strKey, ((Marble_Asset *)ptrCmpAsset)->astrAssetID);
+/*
+ * Internal callback function used by the asset registry to locate
+ * an asset. As assets have a unique name, we can just uniquely identfy and
+ * locate an asset using its identifier.
+ * 
+ * Returns true if the asset is found, or false if not.
+ */
+static bool MB_CALLBACK marble_asset_internal_cbfind(
+	char const *pz_key, /* key */
+	void *p_asset       /* asset to check key against */
+) {
+	return (bool)!strcmp(pz_key, ((struct marble_asset *)p_asset)->mz_strid);
 }
 
-static _Bool inline Marble_Asset_Internal_AssetAlreadyLoaded(CHAR const *strId, Marble_Asset **ptrpExistingAssetPtr) {
-	Marble_Asset *ptrFound = Marble_Util_HashTable_Find(gl_sApplication.sAssets.sHashTable, strId, &Marble_Asset_Internal_FindFn);
+/*
+ * Checks if asset with a given ID is already loaded.
+ * 
+ * Returns true if asset is already loaded, false if not. If
+ * **pps_existingassetptr** is not NULL and the asset exists,
+ * **pps_existingassetptr** will receive the pointer to the
+ * found asset. Otherwise, the pointer value of **pps_existingassetptr**
+ * is not changed and remains possibly indeterminate.
+ */
+static bool marble_asset_internal_isassetalreadyloaded(
+	char const *pz_id,                         /* ID to check */
+	struct marble_asset **pps_existingassetptr /* optional pointer to receive existing asset pointer */
+) {
+	struct marble_asset *ps_found = marble_util_htable_find(
+		gl_app.ms_assets.mps_table,
+		pz_id,
+		&marble_asset_internal_cbfind
+	);
 
-	if (ptrFound && ptrpExistingAssetPtr)
-		*ptrpExistingAssetPtr = ptrFound;
+	if (ps_found != NULL && pps_existingassetptr != NULL)
+		*pps_existingassetptr = ps_found;
 
-	return (_Bool)ptrFound;
+	return ps_found != NULL;
 }
 
-static void inline Marble_Asset_Internal_SetID(Marble_Asset *sAsset, CHAR const *strNewID) {
-	strcpy_s(sAsset->astrAssetID, MARBLE_ASSETIDLEN, strNewID);
+/*
+ * Copies the given string ID safely into the asset ID buffer.
+ * 
+ * Returns nothing.
+ */
+static void marble_asset_internal_setid(
+	struct marble_asset *ps_asset, /* asset to copy new ID into */
+	char const *pz_newid           /* new ID to copy */
+) {
+	marble_system_cpystr(
+		ps_asset->mz_strid,
+		pz_newid,
+		MB_STRINGIDMAX
+	);
 }
 
-static _Bool inline Marble_Asset_Internal_IsValidAssetID(CHAR const *strID, Marble_Asset **ptrpExistingAssetPtr) {
-	if (!strID || !*strID)
+/*
+ * Checks whether the ID is usable, that is,
+ *  (1) the ID is valid in that it is neither NULL nor its first character is NUL
+ *  (2) the ID is not already used (i.e. an asset with that ID is already loaded)
+ * 
+ * Returns true if the ID is usable, false if not. If
+ * **pps_existingassetptr** is not NULL and the asset exists,
+ * **pps_existingassetptr** will receive the pointer to the
+ * found asset. Otherwise, the pointer value of **pps_existingassetptr**
+ * is not changed and remains possibly indeterminate.
+ */
+static bool marble_asset_internal_isusableid(
+	char const *pz_id,                         /* ID to check for validity */
+	struct marble_asset **pps_existingassetptr /* optional pointer to receive existing asset pointer */
+) {
+	if (pz_id == NULL || *pz_id == '\0')
 		return FALSE;
 
-	return !Marble_Asset_Internal_AssetAlreadyLoaded(strID, ptrpExistingAssetPtr);
+	return !marble_asset_internal_isassetalreadyloaded(pz_id, pps_existingassetptr);
 }
 
-static int Marble_Asset_Internal_EvaluateDependencyTable(Marble_Asset *sParentAsset, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sCommonAssetHead) { MARBLE_ERRNO
-	if (!sCommonAssetHead->dwNumOfDeps)
-		return Marble_ErrorCode_Ok;
+/*
+ * Adds the asset to the asset-manager registry.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_asset_internal_register(
+	struct marble_asset *ps_asset /* asset to register */
+) { MB_ERRNO
+	if (ps_asset == NULL || gl_app.ms_assets.m_isinit == false)
+		return ps_asset ? MARBLE_EC_PARAM : MARBLE_EC_COMPSTATE;
+	
+	ecode = marble_util_htable_insert(
+		gl_app.ms_assets.mps_table, 
+		ps_asset->mz_strid, 
+		ps_asset
+	);
+	if (ecode != MARBLE_EC_OK) {
+		printf("AssetManager: Failed to register asset \"%s\" (type = %i); error code: %i (%s).\n",
+			ps_asset->mz_strid,
+			ps_asset->m_type,
+			ecode,
+			marble_error_getstr(ecode)
+		);
+
+		return ecode;
+	}
+	
+	printf("AssetManager: Successfully registered asset \"%s\" (type = %i).\n",
+		ps_asset->mz_strid,
+		ps_asset->m_type
+	);
+	
+	return MARBLE_EC_OK;
+}
+
+/*
+ * Removes an asset from the registry.
+ * 
+ * The function can, additionally, invoke the asset
+ * destructor to free-up all the resources the asset
+ * occupies.
+ * 
+ * Returns non-zero in case of error, 0 on success.
+ */
+static int marble_asset_internal_unregister(
+	struct marble_asset *ps_asset, /* asset to register */
+	bool dofree                    /* Destroy asset as well? */
+) {
+	if (ps_asset == NULL || gl_app.ms_assets.m_isinit == false)
+		return ps_asset != NULL ? MARBLE_EC_PARAM : MARBLE_EC_COMPSTATE;
+
+	void *p_asset = marble_util_htable_erase(
+		gl_app.ms_assets.mps_table,
+		ps_asset->mz_strid,
+		&marble_asset_internal_cbfind,
+		dofree
+	);
+
+	return p_asset != NULL ? MARBLE_EC_OK : MARBLE_EC_ASSETNOTFOUND;
+}
+
+/*
+ * Increments ref-count of an asset; works only if the asset is not
+ * internally marked as persistent.
+ * 
+ * Returns nothing.
+ */
+static void marble_asset_internal_addref(
+	struct marble_asset *ps_asset /* asset to add ref to */
+) {
+	/* Only increment ref-count if it is not -1, meaning the asset is persistent. */
+	if (ps_asset->m_refcount != -1)
+		++ps_asset->m_refcount;
+}
+
+/*
+ * Decrements the ref-count.
+ * If the ref-count is -1, the asset is persistent, meaning
+ * that the asset cannot be released and has to be
+ * destroyed to be removed.
+ * 
+ * Returns nothing.
+ */
+static void marble_asset_internal_release(
+	struct marble_asset *ps_asset /* asset to release */
+) {
+	if (ps_asset == NULL || ps_asset->m_refcount != -1)
+		return;
+
+	// TODO: add asset type id strings
+	printf("AssetManager: Releasing asset \"%s\" (type = %i); current ref-count: %i.\n",
+		ps_asset->mz_strid,
+		ps_asset->m_type,
+		ps_asset->m_type
+	);
+
+	/*
+	 * If the asset's ref-count becomes 0, the asset will automatically 
+	 * be unloaded and destroyed.
+	 */
+	if (--ps_asset->m_refcount == 0)
+		marble_asset_internal_unregister(ps_asset, true);
+}
+
+/*
+ * Sequentially scans the dependency table entries inside the asset file and
+ * executes the commands given.
+ * 
+ * Returns 0 on success, non-zero on error.
+ */
+static int marble_asset_internal_evaldeptable(
+	struct marble_asset *ps_parent,   /* parent asset that contains the dependency table */
+	struct marble_util_file *ps_file, /* open file stream */
+	uint32_t numofdeps                /* number of dependency table entries */
+) { MB_ERRNO
+	if (numofdeps == 0)
+		return MARBLE_EC_OK;
 
 	/* Create asset vector in case there are asset dependencies to load */
-	MB_IFNOK_RET_CODE(Marble_Util_Vector_Create(
-		Marble_Util_VectorType_VecOfPointers, 
-		0, 
-		8, 
-		NULL, 
-		NULL, 
-		&sParentAsset->sDependencies
-	));
+	ecode = marble_util_vec_create(
+		0,
+		NULL,
+		&ps_parent->mps_deps
+	);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
 
-	/* Traverse asset dependency table */
-	for (DWORD dwIndex = 0; dwIndex < sCommonAssetHead->dwNumOfDeps; dwIndex++) {
-		BYTE bCommand = 0;
-		MB_IFNOK_RET_CODE(Marble_Util_FileStream_ReadBYTE(sStream, &bCommand));
+	/* Traverse asset dependency table. */
+	for (uint32_t i = 0; i < numofdeps; i++) {
+		/* Get the command. */
+		uint8_t cmd = 0;
+		marble_util_file_read8(ps_file, &cmd);
 
-		switch (bCommand) {
-			case 1: {
-				CHAR  strPath[1024] = { 0 };
-				WCHAR wstrPath[1024] = { 0 };
-
-				DWORD dwSizeInBytes = 0;
-				Marble_Util_FileStream_ReadDWORD(sStream, &dwSizeInBytes);
-				Marble_Util_FileStream_ReadSize(sStream, dwSizeInBytes, strPath);
-				if (!*strPath) {
-					iErrorCode = Marble_ErrorCode_AssetID;
+		/* Cxecute the command. */
+		switch (cmd) {
+			case MARBLE_ASSETDEPTABLECMD_LOADASSET: {
+				// TODO: remove magic numbers
+				char az_buffer[1024] = { '\0' };
+				uint32_t ssize = 0;
+				marble_util_file_read32(ps_file, &ssize);
+				if (ssize > sizeof az_buffer - 1) {
+					ecode = MARBLE_EC_PATHLENGTH;
 
 					goto lbl_CLEANUP;
 				}
 
-				size_t stNumOfCharsConverted = 0;
-				mbstowcs_s(
-					&stNumOfCharsConverted,
-					wstrPath,
-					1024,
-					strPath,
-					1024
+				/* Read the path. */
+				marble_util_file_read(ps_file, ssize, az_buffer);
+				if (*az_buffer == '\0') {
+					ecode = MARBLE_EC_EMPTYPATH;
+
+					goto lbl_CLEANUP;
+				}
+
+				/* Try to load the asset. */
+				struct marble_asset *ps_asset = NULL;
+				ecode = marble_asset_internal_loadfromfile(
+					az_buffer, 
+					&ps_asset, 
+					&ps_asset
 				);
+				if (ecode != MARBLE_EC_OK && ecode != MARBLE_EC_DUPEDASSET)
+					goto lbl_CLEANUP;
+				bool const isdupe = ecode == MARBLE_EC_DUPEDASSET;
 
-				Marble_Asset *sAsset = NULL;
-				MB_IFNOK_GOTO_LBL(Marble_Asset_LoadFromFile(
-						wstrPath, 
-						&sAsset, 
-						&sAsset
-				), lbl_CLEANUP);
-				_Bool const blIsDupe = iErrorCode == Marble_ErrorCode_AssetID;
+				/* Increment the ref-count and add it to the dependency list. */
+				marble_asset_internal_addref(ps_asset);
+				marble_util_vec_pushback(ps_parent->mps_deps, ps_asset);
 
-				Marble_Asset_Obtain(sAsset);
-				Marble_Util_Vector_PushBack(sParentAsset->sDependencies, sAsset);
-				if (!blIsDupe && (iErrorCode = Marble_Asset_Register(sAsset)))
+				/* 
+				 * Only try to register the asset if it is not a 
+				 * duplicate; or else we will have the same asset 
+				 * registered twice, leading to issues when unloading
+				 * the asset etc.
+				 */
+				if (isdupe == false && (ecode = marble_asset_internal_register(ps_asset)) != MARBLE_EC_OK)
 					goto lbl_CLEANUP;
 			}
 		}
 
 	lbl_CLEANUP:
-		if (iErrorCode) {
-			printf("AssetManager: Dependency command %i (index: %u) failed; error: %i (%S).\n",
-				bCommand,
-				dwIndex,
-				iErrorCode,
-				Marble_Error_ToString(iErrorCode)
+		if (ecode) {
+			printf("AssetManager: Dependency command %i (index: %u) failed; error: %i (%s).\n",
+				cmd,
+				i,
+				ecode,
+				marble_error_getstr(ecode)
 			);
 
-			return iErrorCode;
+			return ecode;
 		}
 	}
 
-	return iErrorCode;
+	return ecode;
 }
 
+/*
+ * Creates an empty asset of a specific type and ID.
+ * 
+ * Returns 0 on success, non-zero on failure. If the asset could
+ * be created successfully, the pointer pointed to by
+ * **pps_asset** will now hold the pointer to the newly-created
+ * asset.
+ * If **ptrpExistingAssetPtr** is not NULL and the asset is already loaded,
+ * **ptrpExistingAssetPtr** will hold a pointer to the existing asset.
+ */
+static int marble_asset_internal_create(
+	enum marble_asset_type type,               /* type of the asset */
+	char const *pz_id,                         /* string ID */
+	struct marble_asset **pps_asset,           /* pointer to receive pointer to the newly-created asset */
+	struct marble_asset **pps_existingassetptr /* optional pointer to receive pointer to an existing asset of the same ID */
+) { MB_ERRNO
+	if (pps_asset == NULL || marble_asset_internal_isvalidtype(type) == false)
+		return MARBLE_EC_PARAM;
 
-int Marble_Asset_Create(int iAssetType, CHAR const *strID, void const *ptrCreateParams, Marble_Asset **ptrpAsset, Marble_Asset **ptrpExistingAssetPtr) { MARBLE_ERRNO
-	extern int Marble_ColorTableAsset_Create(void const *ptrCreateParams, Marble_Asset **ptrpColorTable);
-	extern int Marble_MapAsset_Create(void const *ptrCreateParams, Marble_Asset **ptrpMapAsset);
+	if (marble_asset_internal_isusableid(pz_id, pps_existingassetptr) == false)
+		return MARBLE_EC_ASSETID;
 
-	if (!ptrpAsset)
-		return Marble_ErrorCode_Parameter;
-	MB_IFNTRUE_RET_CODE(Marble_Asset_Internal_IsValidAssetType(iAssetType), Marble_ErrorCode_AssetType);
-	MB_IFNTRUE_RET_CODE(Marble_Asset_Internal_IsValidAssetID(strID, ptrpExistingAssetPtr), Marble_ErrorCode_AssetID);
-
-	switch (iAssetType) {
-		case Marble_AssetType_ColorTable: iErrorCode = Marble_ColorTableAsset_Create(ptrCreateParams, ptrpAsset); break;
-		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_Create(ptrCreateParams, ptrpAsset);        break;
+	*pps_asset = NULL;
+	switch (type) {
 		default:
-			iErrorCode = Marble_ErrorCode_UnimplementedFeature;
+			ecode = MARBLE_EC_UNIMPLFEATURE;
 	}
 
-	if (!iErrorCode)
-		Marble_Asset_Internal_SetID(*ptrpAsset, strID);
+	if (ecode == MARBLE_EC_OK)
+		marble_asset_internal_setid(*pps_asset, pz_id);
 	else
-		Marble_Asset_Destroy(ptrpAsset, TRUE);
+		marble_asset_internal_destroy(pps_asset);
 
-	return iErrorCode;
+	return ecode;
 }
 
-int Marble_Asset_LoadFromFile(TCHAR const *strPath, Marble_Asset **ptrpAsset, Marble_Asset **ptrpExistingAssetPtr) { MARBLE_ERRNO
-	extern int Marble_ColorTableAsset_LoadFromFile(Marble_Asset *sColorTable, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead);
-	extern int Marble_MapAsset_LoadFromFile(Marble_Asset *sMap, Marble_Util_FileStream *sStream, Marble_CommonAssetHead *sAssetHead);
+/*
+ * Loads an asset from file and attempts to register it.
+ * 
+ * Returns 0 on success, non-zero on failure. 
+ * If the asset could
+ * be created successfully, the pointer pointed to by
+ * **pps_asset** will now hold the pointer to the newly-created
+ * asset.
+ * If **ptrpExistingAssetPtr** is not NULL and the asset is already loaded,
+ * **ptrpExistingAssetPtr** will hold a pointer to the existing asset.
+ */
+static int marble_asset_internal_loadfromfile(
+	char const *pz_path,                       /* path to asset file */
+	struct marble_asset **pps_asset,			 /* pointer to newly-created asset */
+	struct marble_asset **pps_existingassetptr /* pointer to existing asset */
+) { MB_ERRNO
+	if (pps_asset == NULL)
+		return MARBLE_EC_PARAM;
+	bool wascreated = false;
 
-	if (!ptrpAsset)
-		return Marble_ErrorCode_Parameter;
-	_Bool blWasCreated = FALSE;
+	/* Open asset file. */
+	struct marble_util_file *ps_file = NULL;
+	ecode = marble_util_file_open(
+		pz_path,
+		MARBLE_UTIL_FILEPERM_READ,
+		&ps_file
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_CLEANUP;
+	
+	/* Read common asset head for basic information. */
+	struct marble_asset_commonhead s_commonhead;
+	ecode = marble_util_file_read(
+		ps_file, 
+		sizeof s_commonhead, 
+		&s_commonhead
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_CLEANUP;
 
-	Marble_Util_FileStream *sStream = NULL;
-	MB_IFNOK_RET_CODE(Marble_Util_FileStream_Open(
-		strPath, 
-		Marble_Util_StreamPerm_Read, 
-		&sStream
-	));
+	/* Create asset if it has not been created yet. */
+	if (*pps_asset == NULL) {
+		wascreated = TRUE;
 
-	Marble_CommonAssetHead sCommonHead = { 0 };
-	MB_IFNOK_GOTO_LBL(Marble_Util_FileStream_ReadSize(
-		sStream, 
-		sizeof(sCommonHead), 
-		&sCommonHead
-	), lbl_CLEANUP);
-
-	/* Create asset if it has not been created yet */
-	if (!*ptrpAsset) {
-		blWasCreated = TRUE;
-
-		MB_IFNOK_GOTO_LBL(Marble_Asset_Create(
-			sCommonHead.dwMagic >> 16, 
-			sCommonHead.astrAssetID, 
-			NULL, 
-			ptrpAsset, 
-			ptrpExistingAssetPtr
-		), lbl_CLEANUP);
+		ecode = marble_asset_internal_create(
+			s_commonhead.m_assettype, 
+			s_commonhead.mz_strid,
+			pps_asset,
+			pps_existingassetptr
+		);
+		if (ecode != MARBLE_EC_OK)
+			goto lbl_CLEANUP;
 	}
 
+	/* Evaluate dependency table; executing all of its commands. */
+	ecode = marble_asset_internal_evaldeptable(
+		*pps_asset, 
+		ps_file, 
+		s_commonhead.m_numofdeps
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_CLEANUP;
 
-	MB_IFNOK_GOTO_LBL(Marble_Asset_Internal_EvaluateDependencyTable(
-		*ptrpAsset, 
-		sStream, 
-		&sCommonHead
-	), lbl_CLEANUP);
+	marble_util_file_goto(ps_file, s_commonhead.m_dataoff);
 
-	Marble_Util_FileStream_Goto(sStream, sCommonHead.dwOffAssetHead);
-
-	switch (sCommonHead.uAssetType) {
-		case Marble_AssetType_ColorTable: iErrorCode = Marble_ColorTableAsset_LoadFromFile(*ptrpAsset, sStream, &sCommonHead); break;
-		case Marble_AssetType_Map:        iErrorCode = Marble_MapAsset_LoadFromFile(*ptrpAsset, sStream, &sCommonHead);        break;
+	/* Call asset-type-specific loading routines. */
+	switch (s_commonhead.m_assettype) {
+		default:
+			ecode = MARBLE_EC_UNIMPLFEATURE;
 	}
 
 lbl_CLEANUP:
-	if (iErrorCode && blWasCreated) {
-		Marble_Asset_Destroy(ptrpAsset, TRUE);
+	if (ecode && wascreated) {
+		marble_asset_internal_destroy(pps_asset);
 
-		printf("AssetManager: Failed to create asset \"%s\"; error: %i (%S).\n",
-			sCommonHead.astrAssetID,
-			iErrorCode,
-			Marble_Error_ToString(iErrorCode)
+		printf("AssetManager: Failed to create asset \"%s\"; error: %i (%s).\n",
+			s_commonhead.mz_strid,
+			ecode,
+			marble_error_getstr(ecode)
 		);
 	}
 
-	Marble_Util_FileStream_Destroy(&sStream);
-	return iErrorCode;
+	/* Close file stream. */
+	marble_util_file_destroy(&ps_file);
+	return ecode;
 }
 
-void Marble_Asset_Destroy(Marble_Asset **ptrpAsset, _Bool blIsInternal) {
-	extern void Marble_ColorTableAsset_Destroy(Marble_Asset *ptrColorTable);
-	extern void Marble_MapAsset_Destroy(Marble_Asset *sMapAsset);
 
-	if (!ptrpAsset || !*ptrpAsset)
+int marble_application_loadasset(
+	char const *pz_path
+) { MB_ERRNO
+	struct marble_asset *ps_asset = NULL;
+	ecode = marble_asset_internal_loadfromfile(
+		pz_path,
+		&ps_asset,
+		NULL
+	);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+
+	ecode = marble_asset_internal_register(ps_asset);
+	if (ecode != MARBLE_EC_OK)
+		marble_asset_internal_destroy(&ps_asset);
+
+	return ecode;
+}
+
+/*
+ * Destroys (i.e. unregisters and deallocates all resources) the given asset.
+ * 
+ * Returns nothing.
+ */
+void marble_asset_internal_destroy(
+	struct marble_asset **pps_asset /* asset to destroy */
+) {
+	if (pps_asset == NULL || *pps_asset == NULL)
 		return;
 
-	switch ((*ptrpAsset)->iAssetType) {
-		case Marble_AssetType_ColorTable: Marble_ColorTableAsset_Destroy(*ptrpAsset); break;
-		case Marble_AssetType_Map:        Marble_MapAsset_Destroy(*ptrpAsset);        break;
+	switch ((*pps_asset)->m_type) {
+		// TODO: add specific asset type destructors
 	}
 
-	if ((*ptrpAsset)->sDependencies) {
-		for (size_t stIndex = 0; stIndex < (*ptrpAsset)->sDependencies->stSize; stIndex++)
-			Marble_Asset_Release((*ptrpAsset)->sDependencies->ptrpData[stIndex]);
+	if ((*pps_asset)->mps_deps) {
+		for (size_t i = 0; i < (*pps_asset)->mps_deps->m_size; i++)
+			marble_asset_internal_release((*pps_asset)->mps_deps->mpp_data[i]);
 
-		Marble_Util_Vector_Destroy(&(*ptrpAsset)->sDependencies);
+		marble_util_vec_destroy(&(*pps_asset)->mps_deps);
 	}
 
-	printf("AssetManager: Destroyed asset \"%s\" (type = %i), at address 0x%p (outstanding references: %i).\n",
-		(*ptrpAsset)->astrAssetID,
-		(*ptrpAsset)->iAssetType,
-		*ptrpAsset,
-		(*ptrpAsset)->iRefCount
+	printf("AssetManager: Destroyed asset \"%s\" (type = %i), at address 0x%p (remaining references: %i).\n",
+		(*pps_asset)->mz_strid,
+		(*pps_asset)->m_type,
+		*pps_asset,
+		(*pps_asset)->m_refcount
 	);
 
-	free(*ptrpAsset);
-	*ptrpAsset = NULL;
+	free(*pps_asset);
+	*pps_asset = NULL;
 }
-
-int Marble_Asset_GetType(Marble_Asset *sAsset) {
-	return sAsset ? sAsset->iAssetType : Marble_AssetType_Unknown;
-}
-
-CHAR *Marble_Asset_GetId(Marble_Asset *sAsset) {
-	return sAsset ? sAsset->astrAssetID : NULL;
-}
-
-
-/// <summary>
-/// int Marble_Asset_Register(Marble_AssetManager *sAssetManager, Marble_Asset *sAsset)
-/// 
-/// Attempt to register asset (i.e. transfer ownership of asset pointer from user to engine);
-/// If the asset does already exist or it cannot be registered, the ownership will not be
-/// transferred, meaning that the user will still have to take care of destroying the asset.
-/// </summary>
-/// <param name="Marble_AssetManager *sAssetManager"> > Asset manager to register asset in </param>
-/// <param name="Marble_Asset *sAsset"> > Asset to register </param>
-/// <returns>Non-zero on error; 0 on success.</returns>
-int Marble_Asset_Register(Marble_Asset *sAsset) { MARBLE_ERRNO
-	if (!sAsset || !gl_sApplication.sAssets.blIsInit)
-		return sAsset ? Marble_ErrorCode_Parameter : Marble_ErrorCode_ComponentInitState;
-
-	MB_IFNOK_RET_CODE(Marble_Util_HashTable_Insert(
-		gl_sApplication.sAssets.sHashTable, 
-		sAsset->astrAssetID, 
-		sAsset, 
-		FALSE
-	));
-
-	printf("AssetManager: Successfully registered asset \"%s\" (type = %i).\n",
-		sAsset->astrAssetID,
-		sAsset->iAssetType
-	);
-
-	return Marble_ErrorCode_Ok;
-}
-
-int Marble_Asset_Unregister(Marble_Asset *sAsset, _Bool blDoFree) {
-	if (!sAsset || !gl_sApplication.sAssets.blIsInit)
-		return sAsset ? Marble_ErrorCode_Parameter : Marble_ErrorCode_ComponentInitState;
-
-	Marble_Util_HashTable_Erase(gl_sApplication.sAssets.sHashTable, sAsset->astrAssetID, &Marble_Asset_Internal_FindFn, blDoFree);
-
-	return Marble_ErrorCode_Ok;
-}
-
-int Marble_Asset_Obtain(Marble_Asset *sAsset) {
-	if (!sAsset)
-		return Marble_ErrorCode_Parameter;
-
-	if (sAsset->iRefCount ^ -1)
-		++sAsset->iRefCount;
-
-	return Marble_ErrorCode_Ok;
-}
-
-int Marble_Asset_Release(Marble_Asset *sAsset) {
-	if (!sAsset)
-		return Marble_ErrorCode_Parameter;
-
-	if (sAsset->iRefCount ^ -1) {
-		printf("AssetManager: Releasing asset \"%s\" (type = %i); current ref-count: %i.\n",
-			sAsset->astrAssetID,
-			sAsset->iAssetType,
-			sAsset->iRefCount
-		);
-
-		if (!--sAsset->iRefCount)
-			return Marble_Asset_Unregister(sAsset, TRUE);
-	}
-
-	return Marble_ErrorCode_Ok;
-}
-
-int Marble_Asset_Render(Marble_Asset *sAsset, Marble_Renderer *sRenderer) { MARBLE_ERRNO
-	extern int Marble_MapAsset_Render(Marble_Asset *sMap, Marble_Renderer *sRenderer);
-
-	if (!sAsset || !sRenderer)
-		return Marble_ErrorCode_Parameter;
-
-	switch (sAsset->iAssetType) {
-		case Marble_AssetType_Map: iErrorCode = Marble_MapAsset_Render(sAsset, sRenderer); break;
-	}
-
-	return iErrorCode;
-}
-#pragma endregion
-
-
-#pragma region Marble_AssetManager
-int Marble_AssetManager_Create(void) { MARBLE_ERRNO
-	extern void Marble_AssetManager_Destroy(void);
-
-	/* 
-		* If asset manager is already initialized, block further
-		* attempts to (re-)initialize. 
-	*/
-	if (gl_sApplication.sAssets.blIsInit)
-		return Marble_ErrorCode_ComponentInitState;
-
-	MB_IFNOK_GOTO_LBL(CoCreateInstance(
-		&CLSID_WICImagingFactory,
-		NULL,
-		CLSCTX_INPROC_SERVER,
-		&IID_IWICImagingFactory2,
-		&gl_sApplication.sAssets.sWICFactory
-	), lbl_ERROR);
-
-	MB_IFNOK_GOTO_LBL(Marble_Util_HashTable_Create(
-		&gl_sApplication.sAssets.sHashTable,
-		64, 
-		(void (*)(void **))&Marble_Asset_Destroy
-	), lbl_ERROR);
-
-	gl_sApplication.sAssets.blIsInit = TRUE;
-	return Marble_ErrorCode_Ok;
-
-lbl_ERROR:
-	Marble_AssetManager_Destroy();
-
-	return iErrorCode;
-}
-
-void Marble_AssetManager_Destroy(void) {
-	if (!gl_sApplication.sAssets.blIsInit)
-		return;
-
-	gl_sApplication.sAssets.blIsInit = FALSE;
-
-	Marble_Util_HashTable_Destroy(&gl_sApplication.sAssets.sHashTable);
-	if (gl_sApplication.sAssets.sWICFactory)
-		gl_sApplication.sAssets.sWICFactory->lpVtbl->Release(gl_sApplication.sAssets.sWICFactory);
-}
-#pragma endregion
 
 

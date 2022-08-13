@@ -1,77 +1,176 @@
 #pragma once
 
 #include <event.h>
+#include <error.h>
 
 
-typedef enum Marble_AssetTypes {
-	Marble_AssetType_Unknown = 0,
-
-	/* Magic numbers for debug purposes only */
-	Marble_AssetType_ColorTable = 2,
-	Marble_AssetType_Map = 4,
-
-	__MARBLE_NUMASSETTYPES__
-} Marble_AssetType;
-
-
-typedef struct Marble_Layer        Marble_Layer;
-typedef struct Marble_Asset        Marble_Asset;
-typedef struct Marble_Renderer     Marble_Renderer;
-typedef struct Marble_Window       Marble_Window;
-typedef struct Marble_LayerStack   Marble_LayerStack;
-
-
-struct Marble_Layer_Callbacks {
-	int (*OnPush)(Marble_Layer *sSelf);
-	int (*OnPop)(Marble_Layer *sSelf);
-	int (*OnUpdate)(Marble_Layer *sSelf, float fFrameTime);
-	int (*OnEvent)(Marble_Layer *sSelf, Marble_Event *sEvent);
+/*
+ * app settings
+ * 
+ * Gets automatically submitted by the entry-point
+ * and contains data needed for creating a main window,
+ * and other flags that control application modes etc.
+ * 
+ * NOTE: For now, only square tiles are supported and the main
+ *       window will always open on the primary monitor
+ *       of the system.
+ */
+struct marble_app_settings {
+	/*
+	 * x position, in pixels,
+	 * relative to the upper-left corner of
+	 * the physical screen
+	 */
+	int m_xpos;
+	/*
+	 * y position, in pixels,
+	 * relative to the upper-left corner of
+	 * the physical screen
+	 */
+	int m_ypos;
+	int m_width;    /* width, in tiles */
+	int m_height;   /* height, in tiles */
+	int m_tilesize; /* size of a tile, in pixels */
 };
-typedef struct Marble_MapAsset_CreateParams { 
-	DWORD dwWidth; 
-	DWORD dwHeight;
-	DWORD dwNumOfLayers;
-	int   iTileFormat;
-} Marble_MapAsset_CreateParams;
 
 
-MARBLE_API struct Marble_UserAPI {
-	struct Renderer {
-		void (*const Clear)(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha);
-	} Renderer;
+#pragma region marble_application
+struct marble_layer_callbacks;
 
-	struct Window {
-		void (*const setSize)(Marble_Window *sWindow, int iWidthInTiles, int iHeightInTiles, int iTileSize);
-		void (*const setFullscreen)(Marble_Window *sWindow, _Bool blIsEnabled);
-		void (*const setVSync)(Marble_Window *sWindow, _Bool blIsEnabled);
-	} Window;
+/*
+ * Creates a user-defined layer.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API int marble_application_createlayer(
+	/*
+	 * Layers can be either enabled or disabled. While enabled
+	 * layers behave as normal, disabled layers, while still present
+	 * in the system, will not be rendered or receive updates.
+	 * Waking-up a layer can be done by calling "marble_layer_setenabled()"
+	 * on a layer id.
+	 */
+	bool isenabled,
+	/*
+	 * Layers can be pushed as top-most, meaning it 
+	 * will be the first to receive events, but
+	 * the last to render. There can be more than one
+	 * overlay. Layers (including those that are top-most)
+	 * will always be rendered in the order they were pushed.
+	 */
+	bool istopmost,
+	struct marble_layer_callbacks const *p_callbacks, /* user-defined callback functions */
+	void const *p_userdata,                           /* optional userdata */
+	/*
+	 * Optional string id; used only internally.
+	 * 
+	 * Note: An asset ID is a NUL-terminated ASCII string not longer than MB_STRINGIDMAX
+	 * bytes (including NUL-terminator).
+	 */
+	char const *pz_stringid,
+	/* 
+	 * Pointer to an integer variable receiving the newly 
+	 * created layer.
+	 * If the function fails, the memory pointed to by this parameter
+	 * will be zero and the function will return non-zero.
+	 */
+	int *p_layerid
+);
+#pragma endregion
 
-	struct Layer {
-		int           (*const Create)(_Bool blIsEnabled, Marble_Layer **ptrpLayer);
-		int           (*const CreateAndPush)(_Bool blIsEnabled, struct Marble_Layer_Callbacks const *sCallbacks, void *ptrUserdata, Marble_Layer **ptrpLayer, Marble_LayerStack *sLayerStack, _Bool blIsTopmost);
-		void          (*const Destroy)(Marble_Layer **ptrpLayer);
-		int           (*const Push)(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost);
-		Marble_Layer *(*const Pop)(Marble_LayerStack *sLayerStack, Marble_Layer *sLayer, _Bool blIsTopmost);
-		void         *(*const getUserdata)(Marble_Layer *sLayer);
-		void         *(*const getCallback)(Marble_Layer *sLayer, int iHandlerType);
-		_Bool         (*const isEnabled)(Marble_Layer *sLayer);
-		void          (*const setEnabled)(Marble_Layer *sLayer, _Bool blIsEnabled);
-		void          (*const setCallbacks)(Marble_Layer *sLayer, struct Marble_Layer_Callbacks const *sCallbacks);
-		void         *(*const setUserdata)(Marble_Layer *sLayer, void *ptrUserdata);
-	} Layer;
 
-	struct Asset {
-		int   (*const Create)(int iAssetType, CHAR const *strAssetID, void const *ptrCreateParams, Marble_Asset **ptrpAsset);
-		int   (*const LoadFromFile)(TCHAR const *strPath, Marble_Asset **ptrpAsset);
-		void  (*const Destroy)(Marble_Asset **ptrpAsset);
-		int   (*const getType)(Marble_Asset *sAsset);
-		CHAR *(*const getID)(Marble_Asset *sAsset);
-		int   (*const Register)(Marble_Asset *sAsset);
-		int   (*const Unregister)(Marble_Asset *sAsset, _Bool blDoFree);
-		int   (*const Obtain)(Marble_Asset *sAsset);
-		int   (*const Release)(Marble_Asset *sAsset);
-		int   (*const Render)(Marble_Asset *sAsset, Marble_Renderer *sRenderer);
-	} Asset;
-} Marble;
+#pragma region marble_layer
+typedef int (MB_CALLBACK *marble_layer_callback_onpush)(
+	int layerid,     /* layer id */
+	void *p_userdata /* layer-specific userdata */
+);
+
+typedef int (MB_CALLBACK *marble_layer_callback_onpop)(
+	int layerid,     /* layer id */
+	void *p_userdata /* layer-specific userdata */
+);
+
+typedef int (MB_CALLBACK *marble_layer_callback_onupdate)(
+	int layerid,     /* layer id */
+	float ft,        /* last frametime */
+	void *p_userdata /* layer-specific userdata */
+);
+
+typedef int (MB_CALLBACK *marble_layer_callback_onevent)(
+	int layerid,                  /* layer id */
+	struct marble_event *p_event, /* event data */
+	void *p_userdata              /* layer-specific userdata */
+);
+
+/*
+ * layer callbacks
+ *
+ * cb_onpush:   Called directly after the layer was pushed onto the layer stack.
+ * cb_onpop:    Called directly before the layer is popped from the layer stack.
+ *              If the userdata is dynamically allocated memory, it has to be free'd
+ *              from within "cb_onpop".
+ * cb_onupdate: Called once every frame.
+ * cb_onevent:  Called upon receiving a system event.
+ */
+struct marble_layer_callbacks {
+	marble_layer_callback_onpush   cb_onpush;
+	marble_layer_callback_onpop    cb_onpop;
+	marble_layer_callback_onupdate cb_onupdate;
+	marble_layer_callback_onevent  cb_onevent;
+};
+
+
+/*
+ * Gets current userdata.
+ * 
+ * Returns a pointer to the userdata structure that
+ * id currently attached to the layer. This is the same
+ * pointer that was submitted by a past call to 
+ * "marble_application_createlayer()" or "marble_layer_submituserdata()".
+ * If the layer does not exist, or there is no userdata currently
+ * attached to the layer, the function returns NULL.
+ */
+MB_API void *marble_layer_getuserdata(
+	int layerid /* layer to get userdata for */
+);
+
+/*
+ * Gets current layer state.
+ * 
+ * Returns true (1) if the layer is currently enabled, or false (0)
+ * if the layer is currently disabled.
+ */
+MB_API bool marble_layer_isenabled(
+	int layerid /* layer to get state for */
+);
+
+/*
+ * Sets the state of a layer.
+ * 
+ * For more information regarding the state of a layer
+ * and a layers behavior in relation to its state,
+ * consult the inline documentation for "marble_application_createlayer()".
+ * 
+ * Returns nothing.
+ */
+MB_API void marble_layer_setenabled(
+	int layerid,   /* layer to set state for */
+	bool isenabled /* enable or disable layer? */
+);
+
+/*
+ * Submits new userdata.
+ * 
+ * Returns the pointer to the old userdata; this is the same pointer that
+ * was submitted by a past call to "marble_application_createlayer()" or
+ * "marble_layer_submituserdata()".
+ * If the layer does not exist, or there is no userdata to return,
+ * the function returns NULL.
+ */
+MB_API void *marble_layer_submituserdata(
+	int layerid,              /* layer to submit userdata to */
+	void const *p_newuserdata /* new userdata to submit */
+);
+#pragma endregion
 
 

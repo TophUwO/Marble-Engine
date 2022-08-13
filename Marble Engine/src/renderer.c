@@ -1,235 +1,380 @@
-#pragma once
-
 #include <application.h>
 
 
-static void Marble_Renderer_Internal_GetDesktopDPI(float *fpDpiX, float *fpDpiY) {
-	UINT udwDpi = GetDpiForWindow(GetDesktopWindow());
+/*
+ * Generally, the "marble_renderer" structure just works as an
+ * interface. Internally, it implements all supported render APIs,
+ * and will call the correct routines based on the
+ * renderer that is currently active.
+ * Any routines that are required because of the differences between
+ * render APIs will simply do nothing for any renderers
+ * that do not need them.
+ */
 
-	*fpDpiX = *fpDpiY = (float)udwDpi;
+
+/*
+ * Gets desktop DPI.
+ * 
+ * Returns nothing; but **p_dpi** will hold
+ * the desktop DPI value.
+ */
+static uint32_t marble_renderer_internal_getdesktopdpi(void) {
+	return (uint32_t)GetDpiForWindow(GetDesktopWindow());
 }
 
 
-#pragma region Direct2D Renderer
-#define Marble_Direct2DRenderer_SafeRelease(fn, inst)  if (inst) { fn(inst); (inst) = NULL; }
-#define Marble_Direct2DRenderer_SafeRelease_Vtbl(inst) if (inst) (inst)->lpVtbl->Release(inst)
-#define Marble_Direct2DRenderer_Action(act, ret)       if (iErrorCode == Marble_ErrorCode_Ok) { if (act != S_OK) { iErrorCode = ret; } }
+#pragma region DIRECT2D-RENDERER
+/*
+ * Macro to run release functions on renderer objects. 
+ * It automatically checks for validity of their parameter.
+ */
+#define marble_d2drenderer_release_s(ty, fn, inst)  if (inst) { fn((ty)(inst)); (inst) = NULL; }
+/*
+ * Macro to run release functions on renderer objects. 
+ * It automatically checks for validity of their parameter.
+ */
+#define marble_d2drenderer_release_s_Vtbl(inst) if (inst) (inst)->lpVtbl->Release(inst)
 
+ /*
+ * Macro to shorten long swapchain queries.
+ * Helps making the code a little bit clearer.
+ */
+#define MB_D2DSWAPCHAIN(inst)     ((inst)->ms_d2drenderer.mps_swapchain)
+#define MB_D2DSWAPCHAIN_DIR(inst) ((inst)->mps_swapchain)
+ /*
+ * Macro to shorten long Vtbl calls of the swapchain.
+ * Helps making the code a little bit clearer.
+ */
+#define MB_D2DSWAPCHAIN_VT(inst)     (MB_D2DSWAPCHAIN(inst)->lpVtbl)
+#define MB_D2DSWAPCHAIN_VT_DIR(inst) (MB_D2DSWAPCHAIN_DIR(inst)->lpVtbl)
 
-struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources {
-	IDXGISurface  *sDXGIBackbuffer;
-	ID3D11Device  *sD3D11Device;
-	IDXGIDevice   *sDXGIDevice;
-	IDXGIAdapter  *sDXGIAdapter;
-	IDXGIFactory2 *sDXGIFactory;
-	ID2D1Bitmap1  *sD2DBitmap;
+/*
+ * Structure holding intermediate resource pointers.
+ * 
+ * When the operation is completed, "marble_direct2drenderer_releaseintermresources()"
+ * will be called which will release everything which was required for
+ * creating the renderer infrastructure, but is not needed for operation of said
+ * renderer.
+ */
+struct marble_d2drenderer_intermres {
+	IDXGISurface  *ps_dxgibuf;
+	ID3D11Device  *ps_d3d11dev;
+	IDXGIDevice   *ps_dxgidev;
+	IDXGIAdapter  *ps_dxgiadapter;
+	IDXGIFactory2 *ps_dxgifac;
+	ID2D1Bitmap1  *ps_d2dbitmap;
+};
+
+/*
+ * Direct2D factory options
+ * 
+ * Currently only used to enable debugging
+ * features of Direct2D.
+ */
+D2D1_FACTORY_OPTIONS const gls_d2dfacprops = { 
+	.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION 
+};
+/*
+ * Feature levels that we will support
+ * 
+ * A graphics card not supporting any of the feature
+ * levels listed below will not be able to
+ * successfully initialize a Direct2D renderer.
+ */
+D3D_FEATURE_LEVEL const gla_d3dfeaturelvls[] = {
+	D3D_FEATURE_LEVEL_11_1,
+	D3D_FEATURE_LEVEL_11_0,
+	D3D_FEATURE_LEVEL_10_1,
+	D3D_FEATURE_LEVEL_10_0
+};
+/*
+ * DXGI swapchain description
+ * 
+ * Holds all information that's needed to create a DXGI swapchain that is 
+ * required to make use of a Direct2D render target.
+ */
+DXGI_SWAP_CHAIN_DESC1 gls_swapchaindesc = {
+	.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED,      /* alpha mode is determined by Direct2D backbuffer */
+	.Width       = 0,                                /* same as target window */
+	.Height      = 0,                                /* same as target window */
+	.Flags       = 0,                                /* no additional flags */
+	.BufferCount = 2,                                /* allow double-buffering */
+	.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,  /* use target for output */
+	.Format      = DXGI_FORMAT_B8G8R8A8_UNORM,       /* use default Direct2D's pixel format */
+	.Scaling     = DXGI_SCALING_STRETCH,             /* does not matter as we will resize renderer together with the window */
+	.Stereo      = FALSE,                            /* no VR for now */
+	.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL, /* faster flip effect than blits */
+	.SampleDesc  = {
+		.Count   = 1,                                /* no multi-sampling */
+		.Quality = 0                                 /* no antialiasing */
+	}
+};
+
+/*
+ * Properties for the Direct2D backbuffer.
+ * 
+ * DPI is obtained automatically (using desktop DPI in a
+ * window device context).
+ */
+D2D1_BITMAP_PROPERTIES1 const gls_d2dbmpprops = {
+	.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+	.pixelFormat   = {
+		.format    = DXGI_FORMAT_B8G8R8A8_UNORM,   /* set to same pixel format as swapchain */
+		.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED /* allow premultiplied alpha */
+	}
 };
 
 
-static void Marble_Renderer_Internal_Direct2DRenderer_FreeIntermediateResources(struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources *sIntermediateResources) {
-	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIBackbuffer);
-	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIFactory);
-	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIDevice);
-	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sDXGIAdapter);
-	Marble_Direct2DRenderer_SafeRelease_Vtbl(sIntermediateResources->sD3D11Device);
+/*
+ * Release intermediate resources queried and allocated during the 
+ * (re-)creation of the Direct2D renderer infrastructure.
+ * 
+ * Returns nothing.
+ */
+static void marble_d2drenderer_internal_releaseintermresources(
+	struct marble_d2drenderer_intermres *ps_resources /* resources to free */
+) {
+	marble_d2drenderer_release_s_Vtbl(ps_resources->ps_dxgibuf);
+	marble_d2drenderer_release_s_Vtbl(ps_resources->ps_dxgifac);
+	marble_d2drenderer_release_s_Vtbl(ps_resources->ps_dxgidev);
+	marble_d2drenderer_release_s_Vtbl(ps_resources->ps_dxgiadapter);
+	marble_d2drenderer_release_s_Vtbl(ps_resources->ps_d3d11dev);
 }
 
-static int Marble_Renderer_Internal_Direct2DCleanup(Marble_Renderer **ptrpRenderer, int iErrorCode, HWND *hwpRestoredHWND) {
-	if (iErrorCode) {
-		if (hwpRestoredHWND && (*ptrpRenderer)->sD2DRenderer.sDXGISwapchain)
-			(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->GetHwnd(
-				(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain,
-				hwpRestoredHWND
-			);
+/*
+ * Free resources occupied by the Direct2D renderer.
+ * 
+ * Passes through **ecode** variable as return value.
+ */
+static int marble_d2drenderer_internal_cleanup(
+	struct marble_renderer_d2d *ps_renderer, /* renderer to free resources of */
+	int ecode,                               /* pass-through error code */
+	HWND *p_restoredhwnd                     /* HWND used to recreate renderer if needed */
+) {
+	/*
+	 * If the error code variable is set and **p_restoredhwnd** is non-NULL,
+	 * (e.g. when we want to recreate the renderer), save the underlying window
+	 * handle so we can associate our recreated renderer with it.
+	 */
+	if (ecode) {
+		if (p_restoredhwnd && MB_D2DSWAPCHAIN_DIR(ps_renderer))
+			MB_D2DSWAPCHAIN_VT_DIR(ps_renderer)->GetHwnd(MB_D2DSWAPCHAIN_DIR(ps_renderer), p_restoredhwnd);
 
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_Factory_Release, (ID2D1Factory *)(*ptrpRenderer)->sD2DRenderer.sD2DFactory);
-		Marble_Direct2DRenderer_SafeRelease_Vtbl((*ptrpRenderer)->sD2DRenderer.sDXGISwapchain);
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap);
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_DeviceContext_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevContext);
-		Marble_Direct2DRenderer_SafeRelease(D2DWr_Device_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevice);
-		Marble_Direct2DRenderer_SafeRelease(WrDWrite_Factory_Release, (*ptrpRenderer)->sD2DRenderer.sDWriteFactory);
+		marble_d2drenderer_release_s(ID2D1Factory *, D2DWr_Factory_Release, ps_renderer->mp_d2dfactory);
+		marble_d2drenderer_release_s_Vtbl(MB_D2DSWAPCHAIN_DIR(ps_renderer));
+		marble_d2drenderer_release_s(ID2D1Bitmap *, D2DWr_Bitmap_Release, ps_renderer->mp_bitmap);
+		marble_d2drenderer_release_s(ID2D1DeviceContext *, D2DWr_DeviceContext_Release, ps_renderer->mp_devicectxt);
+		marble_d2drenderer_release_s(ID2D1Device *, D2DWr_Device_Release, ps_renderer->mp_device);
 	}
 
-	return iErrorCode == Marble_ErrorCode_Unknown ? Marble_ErrorCode_Ok : iErrorCode;
+	return ecode == MARBLE_EC_UNKNOWN ? MARBLE_EC_OK : ecode;
 }
 
-static int Marble_Renderer_Internal_Direct2DRenderer_Create(Marble_Renderer **ptrpRenderer, HWND hwRenderWindow) { MARBLE_ERRNO
-	extern void Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(Marble_Renderer *sRenderer, int iErrorCode);
-	extern int  Marble_Renderer_Internal_SetActiveRendererAPI(Marble_Renderer *sRenderer, int iActiveAPI, int iErrorCode);
+/*
+ * Initializes the Direct2D renderer.
+ * A Direct2D renderer always has to be associated with
+ * an existing window.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_d2drenderer_internal_init(
+	HWND p_target, /* window to associate renderer with */
+	/*
+	 * Pointer to a "marble_renderer_direct2drenderer" structure whose members
+	 * will be initialized one-by-one.
+	 */
+	struct marble_renderer_d2d *ps_renderer
+) { MB_ERRNO; MB_COMERRNO
+	ID3D11Device  *ps_d3d11dev    = NULL;
+	IDXGIDevice   *ps_dxgidev     = NULL;
+	IDXGISurface  *ps_dxgibuf     = NULL;
+	IDXGIAdapter  *ps_dxgiadapter = NULL;
+	IDXGIFactory2 *ps_dxgifac     = NULL;
 
-#pragma region Static Init Data
-	static D2D1_FACTORY_OPTIONS const sD2DFactoryOptions = { .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION };
-	static D3D_FEATURE_LEVEL const eaD3DFeatureLevels[] = {
-		D3D_FEATURE_LEVEL_11_1,
-		D3D_FEATURE_LEVEL_11_0,
-		D3D_FEATURE_LEVEL_10_1,
-		D3D_FEATURE_LEVEL_10_0
-	};
-	DXGI_SWAP_CHAIN_DESC1 sDXGISwapChainDesc = {
-		.AlphaMode   = DXGI_ALPHA_MODE_UNSPECIFIED,
-		.Width       = 0,
-		.Height      = 0,
-		.Flags       = 0,
-		.BufferCount = 2,
-		.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-		.Format      = DXGI_FORMAT_B8G8R8A8_UNORM,
-		.Scaling     = DXGI_SCALING_STRETCH,
-		.Stereo      = FALSE,
-		.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
-		.SampleDesc  = {
-			.Count   = 1,
-			.Quality = 0
-		}
-	};
-	D2D1_BITMAP_PROPERTIES1 sD2DBitmapProps = {
-		.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-		.pixelFormat   = {
-			.format    = DXGI_FORMAT_B8G8R8A8_UNORM,
-			.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED
-		}
-	};
-
-	Marble_Renderer_Internal_GetDesktopDPI(&sD2DBitmapProps.dpiX, &sD2DBitmapProps.dpiY);
-#pragma endregion
-
-	Marble_Direct2DRenderer_Action(
-		D2D1CreateFactory(
-			D2D1_FACTORY_TYPE_SINGLE_THREADED, 
-			&IID_ID2D1Factory1, 
-			&sD2DFactoryOptions, 
-			&(*ptrpRenderer)->sD2DRenderer.sD2DFactory
-		), 
-		Marble_ErrorCode_CreateD2DFactory
+	/* Create a Direct2D factory. */
+	hres = D2D1CreateFactory(
+		D2D1_FACTORY_TYPE_SINGLE_THREADED, 
+		&IID_ID2D1Factory1, 
+		&gls_d2dfacprops,
+		&ps_renderer->mp_d2dfactory
 	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_CREATED2DFAC;
 
-	ID3D11Device *sD3D11Device = NULL;
-	Marble_Direct2DRenderer_Action(
-		D3D11CreateDevice(NULL, 
-			D3D_DRIVER_TYPE_HARDWARE, 
-			0, 
-			D3D11_CREATE_DEVICE_DEBUG | D3D11_CREATE_DEVICE_BGRA_SUPPORT, 
-			eaD3DFeatureLevels, 
-			ARRAYSIZE(eaD3DFeatureLevels), 
-			D3D11_SDK_VERSION, 
-			&sD3D11Device, 
-			NULL, 
-			NULL
-		), 
-		Marble_ErrorCode_CreateD3D11Device
-	);
+		goto lbl_CLEANUP;
+	}
 
-	IDXGIDevice *sDXGIDevice = NULL;
-	Marble_Direct2DRenderer_Action(
-		sD3D11Device->lpVtbl->QueryInterface(
-			sD3D11Device, 
-			&IID_IDXGIDevice, 
-			&sDXGIDevice
-		), 
-		Marble_ErrorCode_GetDXGIDevice
+	/* Create a Direct3D 11 device. */
+	hres = D3D11CreateDevice(
+		NULL, 
+		D3D_DRIVER_TYPE_HARDWARE, 
+		0, 
+		D3D11_CREATE_DEVICE_DEBUG | D3D11_CREATE_DEVICE_BGRA_SUPPORT, 
+		gla_d3dfeaturelvls, 
+		ARRAYSIZE(gla_d3dfeaturelvls), 
+		D3D11_SDK_VERSION, 
+		&ps_d3d11dev, 
+		NULL, 
+		NULL
 	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_CREATED3D11DEV;
 
-	Marble_Direct2DRenderer_Action(
-		D2DWr_Factory1_CreateDevice(
-			(*ptrpRenderer)->sD2DRenderer.sD2DFactory, 
-			sDXGIDevice, 
-			&(*ptrpRenderer)->sD2DRenderer.sD2DDevice
-		), 
-		Marble_ErrorCode_CreateD2DDevice
-	);
+		goto lbl_CLEANUP;
+	}
 
-	Marble_Direct2DRenderer_Action(
-		D2DWr_Device_CreateDeviceContext(
-			(*ptrpRenderer)->sD2DRenderer.sD2DDevice, 
-			D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
-			&(*ptrpRenderer)->sD2DRenderer.sD2DDevContext
-		), 
-		Marble_ErrorCode_CreateD2DDeviceContext
+	/*
+	 * Get the DXGI device from the Direct3D 11 device
+	 * so we can create a Direct2D compatible with it.
+	 */
+	hres = ps_d3d11dev->lpVtbl->QueryInterface(
+		ps_d3d11dev, 
+		&IID_IDXGIDevice, 
+		&ps_dxgidev
 	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_GETDXGIDEV;
 
-	IDXGIAdapter *sDXGIAdapter = NULL;
-	Marble_Direct2DRenderer_Action(
-		sDXGIDevice->lpVtbl->GetAdapter(
-			sDXGIDevice, 
-			&sDXGIAdapter
-		), 
-		Marble_ErrorCode_GetDXGIAdapter
-	);
+		goto lbl_CLEANUP; 
+	}
 
-	IDXGIFactory2 *sDXGIFactory = NULL;
-	Marble_Direct2DRenderer_Action(
-		sDXGIAdapter->lpVtbl->GetParent(
-			sDXGIAdapter, 
-			&IID_IDXGIFactory2, 
-			&sDXGIFactory
-		), 
-		Marble_ErrorCode_GetDXGIFactory
+	/* Create Direct2D device. */
+	hres = D2DWr_Factory1_CreateDevice(
+		ps_renderer->mp_d2dfactory, 
+		ps_dxgidev, 
+		&ps_renderer->mp_device
 	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_CREATED2DDEV;
+
+		goto lbl_CLEANUP;
+	}
+
+	/* Create Direct2D device context. */
+	hres = D2DWr_Device_CreateDeviceContext(
+		ps_renderer->mp_device, 
+		D2D1_DEVICE_CONTEXT_OPTIONS_NONE,
+		&ps_renderer->mp_devicectxt
+	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_CREATED2DDEVCTXT;
+
+		goto lbl_CLEANUP;
+	}
+
+	/* Get the representation of the graphics adapter (GPU). */
+	hres = ps_dxgidev->lpVtbl->GetAdapter(
+		ps_dxgidev,
+		&ps_dxgiadapter
+	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_GETDXGIADAPTER;
+
+		goto lbl_CLEANUP;
+	}
+
+	/* Get factory so we can create a swap-chain with it. */
+	hres = ps_dxgiadapter->lpVtbl->GetParent(
+		ps_dxgiadapter, 
+		&IID_IDXGIFactory2, 
+		&ps_dxgifac
+	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_GETDXGIFAC;
+
+		goto lbl_CLEANUP;
+	}
 	
-	Marble_Direct2DRenderer_Action(
-		sDXGIFactory->lpVtbl->CreateSwapChainForHwnd(
-			sDXGIFactory, 
-			(IUnknown *)sD3D11Device, 
-			hwRenderWindow, 
-			&sDXGISwapChainDesc,
-			NULL, 
-			NULL, 
-			&(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain
-		), 
-		Marble_ErrorCode_CreateDXGISwapchain
+	/* Create swap-chain. */
+	hres = ps_dxgifac->lpVtbl->CreateSwapChainForHwnd(
+		ps_dxgifac, 
+		(IUnknown *)ps_d3d11dev, 
+		p_target, 
+		&gls_swapchaindesc,
+		NULL, 
+		NULL, 
+		&ps_renderer->mps_swapchain
 	);
-	
-	IDXGISurface *sDXGIBackbuffer = NULL;
-	Marble_Direct2DRenderer_Action(
-		(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->GetBuffer(
-			(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain, 
-			0,
-			&IID_IDXGISurface, 
-			&sDXGIBackbuffer
-		), 
-		Marble_ErrorCode_GetDXGIBackbuffer
-	);
-	
-	Marble_Direct2DRenderer_Action(
-		D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(
-			(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
-			sDXGIBackbuffer, 
-			&sD2DBitmapProps, 
-			&(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
-		), 
-		Marble_ErrorCode_CreateBitmapFromDxgiSurface
-	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_CREATESWAPCHAIN;
 
-	Marble_Direct2DRenderer_Action(
-		WrDWrite_Factory_Create(
-			DWRITE_FACTORY_TYPE_SHARED,
-			&(*ptrpRenderer)->sD2DRenderer.sDWriteFactory
-		),
-		Marble_ErrorCode_CreateDWriteFactory
+		goto lbl_CLEANUP;
+	}
+	
+	/* Get DXGI backbuffer. */
+	MB_D2DSWAPCHAIN_VT_DIR(ps_renderer)->GetBuffer(
+		MB_D2DSWAPCHAIN_DIR(ps_renderer), 
+		0,
+		&IID_IDXGISurface, 
+		&ps_dxgibuf
 	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_GETDXGIBACKBUFFER;
 
+		goto lbl_CLEANUP;
+	}
+	
+	/* Create a Direct2D backbuffer. */
+	hres = D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(
+		ps_renderer->mp_devicectxt, 
+		ps_dxgibuf, 
+		&gls_d2dbmpprops, 
+		&ps_renderer->mp_bitmap
+	);
+	if (hres != S_OK) {
+		ecode = MARBLE_EC_CREATED2DBMPFROMDXGISURFACE;
+
+		goto lbl_CLEANUP;
+	}
+
+	/* Associate backbuffer with render-target. */
 	D2DWr_DeviceContext_SetTarget(
-		(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
-		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
+		ps_renderer->mp_devicectxt, 
+		(ID2D1Image *)ps_renderer->mp_bitmap
 	);
 
-	struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources sFreeRes = {
-		.sD3D11Device    = sD3D11Device,
-		.sDXGIDevice     = sDXGIDevice,
-		.sDXGIAdapter    = sDXGIAdapter,
-		.sDXGIFactory    = sDXGIFactory,
-		.sDXGIBackbuffer = sDXGIBackbuffer
+lbl_CLEANUP:
+	/*
+	 * Release all resources we do not need for
+	 * the operation of the swap-chain.
+	 */
+	struct marble_d2drenderer_intermres s_freeres = {
+		.ps_d3d11dev    = ps_d3d11dev,
+		.ps_dxgidev     = ps_dxgidev,
+		.ps_dxgiadapter = ps_dxgiadapter,
+		.ps_dxgifac     = ps_dxgifac,
+		.ps_dxgibuf     = ps_dxgibuf
 	};
-	Marble_Renderer_Internal_Direct2DRenderer_FreeIntermediateResources(&sFreeRes);
-	Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(*ptrpRenderer, iErrorCode);
-
-	return Marble_Renderer_Internal_SetActiveRendererAPI(*ptrpRenderer, Marble_RendererAPI_Direct2D, iErrorCode);
+	marble_d2drenderer_internal_releaseintermresources(&s_freeres);
+	
+	return ecode;
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_Destroy(Marble_Renderer **ptrpRenderer) {
-	Marble_Renderer_Internal_Direct2DCleanup(ptrpRenderer, Marble_ErrorCode_Unknown, NULL);
+/*
+ * Destroys a Direct2D renderer.
+ * 
+ * Returns nothing.
+ */
+static void marble_d2drenderer_internal_destroy(
+	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer to destroy */
+) {
+	marble_d2drenderer_internal_cleanup(ps_renderer, MARBLE_EC_UNKNOWN, NULL);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha) {
+/*
+ * "Clear()" implementation for a Direct2D renderer.
+ * This should be done before drawing anything meaningful
+ * to the screen.
+ * 
+ * Returns nothing.
+ */
+static void marble_d2drenderer_internal_clear(
+	struct marble_renderer_d2d *ps_renderer, /* Direct2D renderer */
+	float fRed,                              /* red component */
+	float fGreen,                            /* green component */
+	float fBlue,                             /* blue component */
+	float fAlpha                             /* alpha component */
+) {
 	D2D1_COLOR_F const sColor = {
 		.r = fRed,
 		.g = fGreen,
@@ -237,279 +382,324 @@ static void inline Marble_Renderer_Internal_Direct2DRenderer_Clear(Marble_Render
 		.a = fAlpha
 	};
 
-	D2DWr_DeviceContext_Clear(sRenderer->sD2DRenderer.sD2DDevContext, &sColor);
+	D2DWr_DeviceContext_Clear(ps_renderer->mp_devicectxt, &sColor);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(Marble_Renderer *sRenderer) {
-	D2DWr_DeviceContext_BeginDraw(sRenderer->sD2DRenderer.sD2DDevContext);
+/*
+ * "BeginDraw()" implementation for a Direct2D renderer.
+ * 
+ * Returns nothing.
+ */
+static void marble_d2drenderer_internal_begindraw(
+	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer */
+) {
+	D2DWr_DeviceContext_BeginDraw(ps_renderer->mp_devicectxt);
 }
 
-static void inline Marble_Renderer_Internal_Direct2DRenderer_EndDraw(Marble_Renderer *sRenderer) {
-	D2DWr_DeviceContext_EndDraw(sRenderer->sD2DRenderer.sD2DDevContext, NULL, NULL);
+/*
+ * "EndDraw()" implementation for a Direct2D renderer.
+ * 
+ * Returns nothing.
+ */
+static void marble_d2drenderer_internal_enddraw(
+	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer */
+) {
+	D2DWr_DeviceContext_EndDraw(ps_renderer->mp_devicectxt, NULL, NULL);
 }
 
-static int Marble_Renderer_Internal_Direct2DRenderer_RecreateDeviceContext(Marble_Renderer **ptrpRenderer) { MARBLE_ERRNO
-	D2D1_BITMAP_PROPERTIES1 const sD2DBitmapProps = {
-		.bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-		.pixelFormat   = {
-			.format    = DXGI_FORMAT_B8G8R8A8_UNORM,
-			.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED
-		}
-	};
+/*
+ * Recreates a Direct2D device context if it has become invalid (e.g. resized).
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_d2drenderer_internal_recreatedevctxt(
+	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer to recreate */
+) { MB_ERRNO
+	HRESULT res = S_OK;
+	IDXGISurface *ps_dxgibackbuf = NULL;
 
-	/* Get DXGI backbuffer */
-	IDXGISurface *sDXGIBackbuffer = NULL;
-	Marble_Direct2DRenderer_Action(
-		(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->GetBuffer(
-			(*ptrpRenderer)->sD2DRenderer.sDXGISwapchain, 
-			0,
-			&IID_IDXGISurface, 
-			&sDXGIBackbuffer
-		), 
-		Marble_ErrorCode_GetDXGIBackbuffer
-	);
-
-	Marble_Direct2DRenderer_Action(
-		D2DWr_Device_CreateDeviceContext(
-			(*ptrpRenderer)->sD2DRenderer.sD2DDevice, 
-			D2D1_DEVICE_CONTEXT_OPTIONS_NONE, 
-			&(*ptrpRenderer)->sD2DRenderer.sD2DDevContext
-		),
-		Marble_ErrorCode_CreateD2DDeviceContext
-	);
-
-	Marble_Direct2DRenderer_Action(
-		D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(
-			(*ptrpRenderer)->sD2DRenderer.sD2DDevContext, 
-			sDXGIBackbuffer, 
-			&sD2DBitmapProps, 
-			&(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
-		),
-		Marble_ErrorCode_CreateBitmapFromDxgiSurface
-	);
-
-	D2DWr_DeviceContext_SetTarget(
-		(*ptrpRenderer)->sD2DRenderer.sD2DDevContext,
-		(ID2D1Image *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap
-	);
-
-	struct Marble_Renderer_Internal_Direct2DFreeIntermediateResources sFreeRes = {
-		.sDXGIBackbuffer = sDXGIBackbuffer
-	};
-	Marble_Renderer_Internal_Direct2DRenderer_FreeIntermediateResources(&sFreeRes);
-	Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(*ptrpRenderer, iErrorCode);
-
-	return Marble_Renderer_Internal_SetActiveRendererAPI(*ptrpRenderer, Marble_RendererAPI_Direct2D, iErrorCode);
-}
-
-static int Marble_Renderer_Internal_Direct2DRenderer_Resize(Marble_Renderer **ptrpRenderer, UINT uiNewWidth, UINT uiNewHeight) { MARBLE_ERRNO
-	/* Release outstanding references to DXGI's backbuffer, so we can resize properly. */
-	Marble_Direct2DRenderer_SafeRelease(D2DWr_DeviceContext_Release, (*ptrpRenderer)->sD2DRenderer.sD2DDevContext);
-	Marble_Direct2DRenderer_SafeRelease(D2DWr_Bitmap_Release, (ID2D1Bitmap *)(*ptrpRenderer)->sD2DRenderer.sD2DBitmap);
-
-	MB_IFNOK_DO_BODY((*ptrpRenderer)->sD2DRenderer.sDXGISwapchain->lpVtbl->ResizeBuffers(
-		gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain,
+	/* Get DXGI backbuffer. */
+	res = MB_D2DSWAPCHAIN_VT_DIR(ps_renderer)->GetBuffer(
+		MB_D2DSWAPCHAIN_DIR(ps_renderer),
 		0,
-		uiNewWidth,
-		uiNewHeight,
+		&IID_IDXGISurface,
+		&ps_dxgibackbuf
+	);
+	if (res != S_OK) {
+		ecode = MARBLE_EC_GETDXGIBACKBUFFER;
+
+		goto lbl_CLEANUP;
+	}
+
+	/* Create the device context. */
+	res = D2DWr_Device_CreateDeviceContext(
+			ps_renderer->mp_device, 
+			D2D1_DEVICE_CONTEXT_OPTIONS_NONE, 
+			&ps_renderer->mp_devicectxt
+	);
+	if (res != S_OK) {
+		ecode = MARBLE_EC_CREATED2DDEVCTXT;
+
+		goto lbl_CLEANUP;
+	}
+
+	/* Create a Direct2D backbuffer. */
+	res = D2DWr_DeviceContext_CreateBitmapFromDxgiSurface(
+		ps_renderer->mp_devicectxt, 
+		ps_dxgibackbuf, 
+		&gls_d2dbmpprops, 
+		&ps_renderer->mp_bitmap
+	);
+	if (res != S_OK) {
+		ecode = MARBLE_EC_CREATED2DBMPFROMDXGISURFACE;
+
+		goto lbl_CLEANUP;
+	}
+
+	/* Associate backbuffer with render-target. */
+	D2DWr_DeviceContext_SetTarget(
+		ps_renderer->mp_devicectxt,
+		(ID2D1Image *)ps_renderer->mp_bitmap
+	);
+
+lbl_CLEANUP:
+	/*
+	 * If anything fails, the renderer will be
+	 * destroyed completely, also destroying
+	 * everything that actually succeeded to create.
+	 */
+	struct marble_d2drenderer_intermres s_freeres = {
+		.ps_dxgibuf = ps_dxgibackbuf
+	};
+	marble_d2drenderer_internal_releaseintermresources(&s_freeres);
+
+	return ecode;
+}
+
+/*
+ * "Resize()" implementation for a Direct2D renderer.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_d2drenderer_internal_resize(
+	struct marble_renderer_d2d *ps_renderer, /* Direct2D renderer to resize */
+	UINT newwidth,                           /* new width, in pixels */
+	UINT newheight                           /* new height, in pixels */
+) {
+	/*
+	 * Release outstanding references to DXGI's backbuffer,
+	 * so we can resize properly.
+	 */
+	marble_d2drenderer_release_s(ID2D1DeviceContext *, D2DWr_DeviceContext_Release, ps_renderer->mp_devicectxt);
+	marble_d2drenderer_release_s(ID2D1Bitmap *, D2DWr_Bitmap_Release, ps_renderer->mp_bitmap);
+
+	/* Resize the backbuffers. */
+	HRESULT res = MB_D2DSWAPCHAIN_VT_DIR(ps_renderer)->ResizeBuffers(
+		MB_D2DSWAPCHAIN_DIR(ps_renderer),
+		0,
+		newwidth,
+		newheight,
 		DXGI_FORMAT_B8G8R8A8_UNORM,
 		0
-	), return Marble_ErrorCode_ResizeRendererBuffers);
+	);
+	if (res != S_OK)
+		return MARBLE_EC_RESIZERENDERER;
 
 	/* Recreate device context so we can continue rendering */
-	return Marble_Renderer_Internal_Direct2DRenderer_RecreateDeviceContext(ptrpRenderer);
+	return marble_d2drenderer_internal_recreatedevctxt(ps_renderer);
 }
 
-static int Marble_Renderer_Internal_Direct2DRenderer_Recreate(Marble_Renderer **ptrpRenderer) {
-	HWND hwRestoredWindow = NULL;
-	Marble_Renderer_Internal_Direct2DCleanup(ptrpRenderer, Marble_ErrorCode_Unknown, &hwRestoredWindow);
+/*
+ * Reinitializes the entire Direct2D renderer infrastructure.
+ * This has to be done when the renderer becomes invalid (e.g.
+ * when the Graphics Driver has to restart (e.g. after a driver update),
+ * the GPU is being (physically) disconnected from the system,
+ * or the GPU hangs).
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static int marble_d2drenderer_internal_recreate(
+	struct marble_renderer_d2d *ps_renderer
+) {
+	/*
+	 * Because the reference to the window handle is lost when we destroy the window,
+	 * we save it so we can recreate the renderer and associate it with the same
+	 * window handle as before.
+	 */
+	HWND p_restoredwnd = NULL;
+	marble_d2drenderer_internal_cleanup(ps_renderer, MARBLE_EC_UNKNOWN, &p_restoredwnd);
 	
-	return Marble_Renderer_Internal_Direct2DRenderer_Create(ptrpRenderer, hwRestoredWindow);
-}
+	/* Reinitialize the renderer infrastructure. */
+	if (p_restoredwnd)
+		return marble_d2drenderer_internal_init(p_restoredwnd, ps_renderer);
 
-static void Marble_Renderer_Internal_Direct2DRenderer_SetBackgroundColor(Marble_Renderer *sRenderer, int iErrorCode) {
-	if (iErrorCode == Marble_ErrorCode_Ok) {
-		DXGI_RGBA sBkgndColor = {
-			0.0f,
-			0.0f,
-			0.0f,
-			1.0f
-		};
-
-		sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->SetBackgroundColor(sRenderer->sD2DRenderer.sDXGISwapchain, &sBkgndColor);
-	}
-}
-
-static int Marble_Renderer_Internal_Direct2DRenderer_CreateTextFormat(Marble_Renderer *sRenderer, WCHAR const *wstrFamily, float fSize, Marble_FontWeight eWeight, Marble_FontStyle eStyle, Marble_TextFormat **ptrpTextFormat) { MARBLE_ERRNO
-	if (!wstrFamily || !*wstrFamily || fSize == 0.0f) {
-		*ptrpTextFormat = NULL;
-
-		return Marble_ErrorCode_Parameter;
-	}
-
-	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
-		ptrpTextFormat, 
-		sizeof **ptrpTextFormat, 
-		FALSE, 
-		FALSE
-	));
-
-	if (WrDWrite_Factory_CreateTextFormat(
-		sRenderer->sD2DRenderer.sDWriteFactory,
-		wstrFamily,
-		NULL,
-		(DWRITE_FONT_WEIGHT)eWeight,
-		(DWRITE_FONT_STYLE)eStyle,
-		DWRITE_FONT_STRETCH_NORMAL,
-		fSize,
-		L"",
-		&(*ptrpTextFormat)->sDWriteTextFormat
-	) != S_OK) {
-		free(*ptrpTextFormat);
-		*ptrpTextFormat = NULL;
-
-		return Marble_ErrorCode_CreateTextFormat;
-	}
-	(*ptrpTextFormat)->iRendererAPI = Marble_RendererAPI_Direct2D;
-
-	return Marble_ErrorCode_Ok;
-}
-
-static void Marble_Renderer_Internal_Direct2DRenderer_DestroyTextFormat(Marble_TextFormat **ptrpTextFormat) {
-	Marble_Direct2DRenderer_SafeRelease(WrDWrite_TextFormat_Release, (*ptrpTextFormat)->sDWriteTextFormat);
+	return MARBLE_EC_INTERNALPARAM;
 }
 #pragma endregion
 
 
-static int inline Marble_Renderer_Internal_SetActiveRendererAPI(Marble_Renderer *sRenderer, int iActiveAPI, int iErrorCode) {
-	if (iErrorCode == Marble_ErrorCode_Ok)
-		sRenderer->iActiveRendererAPI = iActiveAPI;
+int marble_renderer_create(
+	enum marble_renderer_api api,
+	HWND p_target,
+	struct marble_renderer **pps_renderer
+) { MB_ERRNO
+	if (pps_renderer == NULL || p_target == NULL)
+		return MARBLE_EC_INTERNALPARAM;
 
-	return iErrorCode;
-}
+	ecode = marble_system_alloc(
+		sizeof **pps_renderer,
+		false,
+		false,
+		pps_renderer
+	);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
 
+	switch (api) {
+		case MARBLE_RENDERAPI_DIRECT2D:
+			ecode = marble_d2drenderer_internal_init(
+				p_target,
+				&(*pps_renderer)->ms_d2drenderer
+			);
 
-int Marble_Renderer_Internal_Recreate(Marble_Renderer **ptrpRenderer) {
-	if (!ptrpRenderer || !*ptrpRenderer)
-		return Marble_ErrorCode_InternalParameter;
-
-	switch ((*ptrpRenderer)->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_Direct2DRenderer_Recreate(ptrpRenderer);
+			(*pps_renderer)->m_api = MARBLE_RENDERAPI_DIRECT2D;
+			break;
+		default: ecode = MARBLE_EC_UNIMPLFEATURE;
 	}
 
-	return Marble_ErrorCode_RendererAPI;
-}
+	if (ecode == MARBLE_EC_OK)  {
+		(*pps_renderer)->m_orix = 0;
+		(*pps_renderer)->m_oriy = 0;
 
-
-int Marble_Renderer_Create(Marble_Renderer **ptrpRenderer, DWORD dwActiveAPI, HWND hwRenderWindow) { MARBLE_ERRNO
-	if (!ptrpRenderer || !hwRenderWindow)
-		return Marble_ErrorCode_InternalParameter;
-
-	MB_IFNOK_RET_CODE(Marble_System_AllocateMemory(
-		ptrpRenderer, 
-		sizeof **ptrpRenderer, 
-		FALSE, 
-		TRUE
-	));
-
-	switch (dwActiveAPI) {
-		case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_Direct2DRenderer_Create(ptrpRenderer, hwRenderWindow);
+		(*pps_renderer)->m_isinit = true;
 	}
 
-	return Marble_ErrorCode_RendererAPI;
+	return ecode;
 }
 
-void Marble_Renderer_Destroy(Marble_Renderer **ptrpRenderer) {
-	if (!ptrpRenderer || !*ptrpRenderer)
+void marble_renderer_destroy(
+	struct marble_renderer **pps_renderer
+) {
+	if (pps_renderer == NULL || *pps_renderer == NULL || (*pps_renderer)->m_isinit == false)
 		return;
 
-	switch ((*ptrpRenderer)->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Destroy(ptrpRenderer);
+	/* Release render API-specific objects. */
+	switch ((*pps_renderer)->m_api) {
+		case MARBLE_RENDERAPI_DIRECT2D:
+			marble_d2drenderer_internal_destroy(&(*pps_renderer)->ms_d2drenderer);
+
+			break;
 	}
 
-	free(*ptrpRenderer);
-	*ptrpRenderer = NULL;
+	/* Free actual renderer instance memory. */
+	free(*pps_renderer);
+	*pps_renderer = NULL;
 }
 
-void Marble_Renderer_BeginDraw(Marble_Renderer *sRenderer) {
-	if (!sRenderer)
+void marble_renderer_begindraw(
+	struct marble_renderer *ps_renderer
+) {
+	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
 		return;
 
-	switch (sRenderer->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_BeginDraw(sRenderer);
+	/* Call implementations for specific render APIs. */
+	switch (ps_renderer->m_api) {
+		case MARBLE_RENDERAPI_DIRECT2D: 
+			marble_d2drenderer_internal_begindraw(&ps_renderer->ms_d2drenderer);
+
+			break;
 	}
 }
 
-void Marble_Renderer_EndDraw(Marble_Renderer *sRenderer) {
-	if (!sRenderer)
+void marble_renderer_enddraw(
+	struct marble_renderer *ps_renderer
+) {
+	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
 		return;
 
-	switch (sRenderer->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_EndDraw(sRenderer);
+	/* Call implementations for specific render APIs. */
+	switch (ps_renderer->m_api) {
+		case MARBLE_RENDERAPI_DIRECT2D: 
+			marble_d2drenderer_internal_enddraw(&ps_renderer->ms_d2drenderer);
+			
+			break;
 	}
 }
 
-int Marble_Renderer_Present(Marble_Renderer **ptrpRenderer) {
-	if (!ptrpRenderer || !*ptrpRenderer)
-		return Marble_ErrorCode_InternalParameter;
+int marble_renderer_present(
+	struct marble_renderer **pps_renderer
+) { MB_ERRNO
+	if (pps_renderer == NULL || *pps_renderer == NULL) return MARBLE_EC_INTERNALPARAM;
+	if ((*pps_renderer)->m_isinit == false)            return MARBLE_EC_COMPSTATE;
 
-	HRESULT hrRes = S_OK;
-	switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: 
-			hrRes = gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain->lpVtbl->Present(
-				gl_sApplication.sRenderer->sD2DRenderer.sDXGISwapchain, 
-				(UINT)gl_sApplication.sMainWindow->sWndData.blIsVSync,
+	/* Call implementations for specific render APIs. */
+	switch ((*pps_renderer)->m_api) {
+		case MARBLE_RENDERAPI_DIRECT2D: {
+			HRESULT res = MB_D2DSWAPCHAIN_VT(*pps_renderer)->Present(
+				MB_D2DSWAPCHAIN(*pps_renderer),
+				0, /* TODO: will be VSync state of window */
 				0
 			);
 
-			if (hrRes == DXGI_ERROR_DEVICE_REMOVED || hrRes == DXGI_ERROR_DEVICE_RESET)
-				return Marble_Renderer_Internal_Recreate(ptrpRenderer);
+			if (res == DXGI_ERROR_DEVICE_REMOVED || res == DXGI_ERROR_DEVICE_RESET) {
+				ecode = marble_d2drenderer_internal_recreate(&(*pps_renderer)->ms_d2drenderer);
 
-			return Marble_ErrorCode_Ok;
+				if (ecode != MARBLE_EC_OK) {
+					marble_application_raisefatalerror(MARBLE_EC_CREATERENDERER);
+
+					return MARBLE_EC_CREATERENDERER;
+				}
+			}
+
+			break;
+		}
+		default: 
+			return MARBLE_EC_RENDERAPI;
 	}
 
-	return Marble_ErrorCode_RendererAPI;
+	return MARBLE_EC_OK;
 }
 
-void Marble_Renderer_Clear(Marble_Renderer *sRenderer, float fRed, float fGreen, float fBlue, float fAlpha) {
-	if (!gl_sApplication.sRenderer)
+int marble_renderer_resize(
+	struct marble_renderer *ps_renderer,
+	uint32_t newwidth,
+	uint32_t newheight
+) {
+	if (ps_renderer == NULL)            return MARBLE_EC_INTERNALPARAM;
+	if (ps_renderer->m_isinit == false) return MARBLE_EC_COMPSTATE;
+
+	/* Call implementations for specific render APIs. */
+	switch (ps_renderer->m_api) {
+		case MARBLE_RENDERAPI_DIRECT2D: return marble_d2drenderer_internal_resize(&ps_renderer->ms_d2drenderer, newwidth, newheight);
+	}
+
+	return MARBLE_EC_RENDERAPI;
+}
+
+
+void marble_renderer_clear(
+	struct marble_renderer *ps_renderer,
+	float red,
+	float green,
+	float blue,
+	float alpha
+) {
+	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
 		return;
 
-	switch (gl_sApplication.sRenderer->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Clear(sRenderer, fRed, fGreen, fBlue, fAlpha); break;
+	/* Call implementations for specific render APIs. */
+	switch (ps_renderer->m_api) {
+		case MARBLE_RENDERAPI_DIRECT2D: 
+			marble_d2drenderer_internal_clear(
+				&ps_renderer->ms_d2drenderer,
+				red,
+				green,
+				blue,
+				alpha
+			);
+
+			break;
 	}
-}
-
-void Marble_Renderer_Resize(Marble_Renderer **ptrpRenderer, UINT uiNewWidth, UINT uiNewHeight) {
-	if (!ptrpRenderer  || !*ptrpRenderer)
-		return;
-
-	switch ((*ptrpRenderer)->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_Resize(ptrpRenderer, uiNewWidth, uiNewHeight); break;
-	}
-}
-
-int Marble_Renderer_CreateTextFormat(Marble_Renderer *sRenderer, WCHAR const *wstrFamily, float fSize, Marble_FontWeight eWeight, Marble_FontStyle eStyle, Marble_TextFormat **ptrpTextFormat) {
-	if (!sRenderer || !ptrpTextFormat)
-		return Marble_ErrorCode_InternalParameter;
-
-	switch (sRenderer->iActiveRendererAPI) {
-		case Marble_RendererAPI_Direct2D: return Marble_Renderer_Internal_Direct2DRenderer_CreateTextFormat(sRenderer, wstrFamily, fSize, eWeight, eStyle, ptrpTextFormat);
-	}
-
-	return Marble_ErrorCode_RendererAPI;
-}
-
-void Marble_Renderer_DestroyTextFormat(Marble_TextFormat **ptrpTextFormat) {
-	if (!ptrpTextFormat || !*ptrpTextFormat)
-		return;
-
-	switch ((*ptrpTextFormat)->iRendererAPI) {
-		case Marble_RendererAPI_Direct2D: Marble_Renderer_Internal_Direct2DRenderer_DestroyTextFormat(ptrpTextFormat);
-	}
-
-	free(*ptrpTextFormat);
-	*ptrpTextFormat = NULL;
 }
 
 
