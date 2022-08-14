@@ -1,6 +1,7 @@
 #include <application.h>
 
 
+uint32_t gl_hashseed = 0;
 uint64_t gl_pfreq = 0;
 struct marble_application gl_app = { NULL };
 

@@ -620,6 +620,141 @@ struct marble_util_htable {
 };
 
 
+#pragma region UTIL-HASHTABLE-INTERNAL
+extern uint32_t gl_hashseed;
+
+
+/*
+ * Marble uses MurmurHash3 as its hash function.
+ * 
+ * Source: https://github.com/jwerle/murmurhash.c/blob/master/murmurhash.c
+ * 
+ * ------------------------------------------
+ * 
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2014 Joseph Werle
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+uint32_t inline __marble_util_htable_hash(
+	_In_z_ char const *pz_key
+) {
+	uint32_t c1 = 0xcc9e2d51;
+	uint32_t c2 = 0x1b873593;
+	uint32_t r1 = 15;
+	uint32_t r2 = 13;
+	uint32_t m  = 5;
+	uint32_t n  = 0xe6546b64;
+	uint32_t h  = 0;
+	uint32_t k  = 0;
+	uint8_t *d  = (uint8_t *)pz_key;
+
+	const uint32_t *chunks = NULL;
+	const uint8_t  *tail   = NULL;
+	int i = 0;
+	int const len = (int)strlen(pz_key);
+	int l = len / 4;
+
+	h = gl_hashseed;
+
+	chunks = (const uint32_t *)(d + (size_t)l * 4);
+	tail   = (const uint8_t *)(d + (size_t)l * 4);
+
+	for (i = -l; i != 0; ++i) {
+		k = chunks[i];
+
+		k *= c1;
+		k = (k << r1) | (k >> (32 - r1));
+		k *= c2;
+
+		h ^= k;
+		h = (h << r2) | (h >> (32 - r2));
+		h = h * m + n;
+	}
+	k = 0;
+
+	switch (len & 3) {
+		case 3: k ^= (tail[2] << 16);
+		case 2: k ^= (tail[1] << 8);
+		case 1:
+			k ^= tail[0];
+			k *= c1;
+			k = (k << r1) | (k >> (32 - r1));
+			k *= c2;
+			h ^= k;
+	}
+	h ^= len;
+
+	h ^= (h >> 16);
+	h *= 0x85ebca6b;
+	h ^= (h >> 13);
+	h *= 0xc2b2ae35;
+	h ^= (h >> 16);
+
+	return h;
+}
+
+/*
+ * Attempt to locate an element inside **ps_htable**.
+ * If the element is found is determined by running
+ * **fn_find()** over every element in the bucket the
+ * hash value of **pz_key** evaluates to.
+ * If the function succeeds, **p_bucketindex** and **p_vecindex**
+ * will be set to the indices in both the bucket array and
+ * the bucket itself. A value of (size_t)(-1) indicates failure.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+marble_ecode_t inline __marble_util_htable_locate(
+	_In_   struct marble_util_htable *ps_htable, /* hashtable to search */
+	_In_z_ char const *pz_key,                   /* key to search for */
+	/* callback function */
+	_In_   bool (*fn_find)(
+		_In_z_ char const *,
+		_In_ void *
+	),
+	_Out_  size_t *p_bucketindex,                /* index of bucket */
+	_Out_  size_t *p_vecindex                    /* index of element in bucket */
+) {
+	/* Get index of key in bucket array. */
+	*p_bucketindex = __marble_util_htable_hash(pz_key) % ps_htable->m_cbucket;
+
+	struct marble_util_vec *ps_bucket = ps_htable->pps_storage[*p_bucketindex];
+	if (ps_bucket == NULL)
+		goto lbl_END;
+
+	for (size_t i = 0; i < ps_bucket->m_size; i++)
+		if (fn_find(pz_key, marble_util_vec_get(ps_bucket, i)) != false) {
+			*p_vecindex = i;
+
+			return MARBLE_EC_OK;
+		}
+
+lbl_END:
+	*p_vecindex = (size_t)(-1);
+
+	return MARBLE_EC_NOTFOUND;
+}
+#pragma endregion
+
+
 /*
  * Destroys a hashtable objects, all of its buckets, and,
  * if its **pps_hashtable->mfn_dest** member is not NULL,
@@ -709,8 +844,39 @@ _Success_ok_ marble_ecode_t inline marble_util_htable_insert(
 	_In_   struct marble_util_htable *ps_htable, /* hashtable */
 	_In_z_ char const *pz_key,                   /* **p_obj**'s key */
 	_In_   void *p_obj                           /* object to insert */
-) {
-	return MARBLE_EC_UNIMPLFEATURE;
+) { MB_ERRNO
+	if (ps_htable == NULL || pz_key == NULL || *pz_key == '\0' || p_obj == NULL)
+		return MARBLE_EC_PARAM;
+
+	/* Get index of key in bucket array. */
+	uint32_t const index = __marble_util_htable_hash(pz_key) % ps_htable->m_cbucket;
+
+	/*
+	 * If the bucket at position **index** does not already exist,
+	 * create it.
+	 */
+	if (ps_htable->pps_storage[index] == NULL) {
+		ecode = marble_util_vec_create(
+			0,
+			ps_htable->mfn_dest,
+			&ps_htable->pps_storage[index]
+		);
+
+		if (ecode != MARBLE_EC_OK)
+			goto lbl_END;
+	}
+
+	/*
+	 * Even if the push fails, we do not destroy the bucket we
+	 * may just have created.
+	 */
+	ecode = marble_util_vec_pushback(
+		ps_htable->pps_storage[index],
+		p_obj
+	);
+
+lbl_END:
+	return ecode;
 }
 
 /*
@@ -733,8 +899,27 @@ void inline *marble_util_htable_erase(
 	 */
 	_In_   bool (*fn_find)(char const *, void *),
 	       bool rundest                          /* destroy (found) object? */
-) {
-	return NULL;
+) { MB_ERRNO
+	if (ps_htable == NULL || pz_key == NULL || *pz_key == '\0' || fn_find == NULL)
+		return NULL;
+
+	/* Get location of element. */
+	size_t bucketindex, vecindex;
+	ecode = __marble_util_htable_locate(
+		ps_htable,
+		pz_key,
+		fn_find,
+		&bucketindex,
+		&vecindex
+	);
+	if (ecode != MARBLE_EC_OK)
+		return NULL;
+
+	return marble_util_vec_erase(
+		ps_htable->pps_storage[bucketindex],
+		vecindex,
+		rundest
+	);
 }
 
 /*
@@ -754,8 +939,24 @@ void inline *marble_util_htable_find(
 	 * and returns NULL.
 	 */
 	_In_   bool (*fn_find)(char const *, void *)
-) {
-	return NULL;
+) { MB_ERRNO
+	if (ps_htable == NULL || pz_key == NULL || *pz_key == '\0' || fn_find == NULL)
+		return NULL;
+
+	/* Get indices. */
+	size_t bucketindex, vecindex;
+	ecode = __marble_util_htable_locate(
+		ps_htable,
+		pz_key,
+		fn_find,
+		&bucketindex,
+		&vecindex
+	);
+	
+	return ecode == MARBLE_EC_OK
+		? marble_util_vec_get(ps_htable->pps_storage[bucketindex], vecindex)
+		: NULL
+	;
 }
 #pragma endregion
 

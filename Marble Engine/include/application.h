@@ -70,7 +70,6 @@ extern struct marble_application {
 	HINSTANCE     mp_inst;       /* instance to the application */
 	HANDLE        mp_mainthrd;   /* handle to main thread */
 	LARGE_INTEGER m_perfcounter; /* performance counter; used for HTPs */
-	uint32_t      m_hashseed;    /* hash seed; used for hashing functions */
 	/* structure holding state information about the application */
 	struct marble_app_state {
 		enum marble_app_stateid m_id; /* state id */
