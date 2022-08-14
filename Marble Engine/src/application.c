@@ -287,7 +287,7 @@ static void marble_application_internal_initassetmanager(
 static void marble_application_internal_douserinit(
 	_Inout_ marble_ecode_t *p_ecode,
 	_In_z_  char const *pz_cmdline,
-	_In_    int (MB_CALLBACK *cb_userinit)(_In_z_ char const *)
+	_In_    marble_ecode_t (MB_CALLBACK *cb_userinit)(_In_z_ char const *)
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -392,8 +392,8 @@ void marble_application_setstate(
 MB_API marble_ecode_t __cdecl marble_application_init(
 	HINSTANCE p_inst,
 	PSTR pz_cmdline,
-	int (MB_CALLBACK *cb_usersubmitsettings)(char const *, struct marble_app_settings *),
-	int (MB_CALLBACK *cb_userinit)(char const *)
+	void (MB_CALLBACK *cb_usersubmitsettings)(char const *, struct marble_app_settings *),
+	marble_ecode_t (MB_CALLBACK *cb_userinit)(char const *)
 ) { MB_ERRNO
 	gl_app.mp_mainthrd = GetCurrentThread();
 
@@ -406,7 +406,7 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 
 	/* Get submitted user settings. */
 	struct marble_app_settings s_settings = { 0 };
-	ecode = cb_usersubmitsettings(pz_cmdline, &s_settings);
+	cb_usersubmitsettings(pz_cmdline, &s_settings);
 
 	marble_application_internal_initstate(&ecode, p_inst);
 	marble_application_internal_inithpc(&ecode);

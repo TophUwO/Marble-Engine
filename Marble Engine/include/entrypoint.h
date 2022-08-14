@@ -13,7 +13,7 @@ WinMain(
 	MB_API marble_ecode_t __cdecl marble_application_init(
 		HINSTANCE,
 		PSTR,
-		marble_ecode_t (MB_CALLBACK *)(
+		void (MB_CALLBACK *)(
 			char const *,
 			struct marble_app_settings *
 		),
@@ -36,7 +36,7 @@ WinMain(
 	 * This function has to be defined by the user
 	 * application, or else the code will not compile.
 	 */
-	extern marble_ecode_t MB_CALLBACK marble_callback_submitsettings(
+	extern void MB_CALLBACK marble_callback_submitsettings(
 		char const *pz_cmdline, /* command-line arguments */
 		/*
 		 * Pointer to a "marble_app_settings" structure which will

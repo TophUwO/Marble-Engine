@@ -21,27 +21,23 @@ static int volatile gl_layerid = 0;
  * validation before invoking the them.
  */
 #pragma region dummy callbacks
-_Success_ok_ static marble_layer_callback_onpush __marble_layer_internal_cbpush__(
+static void MB_CALLBACK __marble_layer_internal_cbpush__(
 	         int layerid,
 	_In_opt_ void *p_userdata
 ) {
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(p_userdata);
-
-	return MARBLE_EC_OK;
 }
 
-_Success_ok_ static marble_layer_callback_onpop __marble_layer_internal_cbpop__(
+static void MB_CALLBACK __marble_layer_internal_cbpop__(
 	         int layerid,
 	_In_opt_ void *p_userdata
 ) {
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(p_userdata);
-
-	return MARBLE_EC_OK;
 }
 
-_Success_ok_ static marble_layer_callback_onupdate __marble_layer_internal_cbupdate__(
+static void MB_CALLBACK __marble_layer_internal_cbupdate__(
 	         int layerid,
 	         float ft,
 	_In_opt_ void *p_userdata
@@ -49,11 +45,9 @@ _Success_ok_ static marble_layer_callback_onupdate __marble_layer_internal_cbupd
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(ft);
 	UNREFERENCED_PARAMETER(p_userdata);
-
-	return MARBLE_EC_OK;
 }
 
-_Success_ok_ static marble_layer_callback_onevent __marble_layer_internal_cbevent__(
+static void MB_CALLBACK __marble_layer_internal_cbevent__(
 	         int layerid,
 	_In_     struct marble_event *p_event,
 	_In_opt_ void *p_userdata
@@ -61,8 +55,6 @@ _Success_ok_ static marble_layer_callback_onevent __marble_layer_internal_cbeven
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(p_event);
 	UNREFERENCED_PARAMETER(p_userdata);
-
-	return MARBLE_EC_OK;
 }
 #pragma endregion
 
@@ -76,10 +68,10 @@ _Success_ok_ static marble_layer_callback_onevent __marble_layer_internal_cbeven
 static void marble_layer_internal_fixcbs(
 	_In_ struct marble_layer_cbs *ps_cbs /* callback structure to "fix" */
 ) {
-	ps_cbs->cb_onpush   = ps_cbs->cb_onpush   ? ps_cbs->cb_onpush   : (marble_layer_callback_onpush)&__marble_layer_internal_cbpush__;
-	ps_cbs->cb_onpop    = ps_cbs->cb_onpop    ? ps_cbs->cb_onpop    : (marble_layer_callback_onpop)&__marble_layer_internal_cbpop__;
-	ps_cbs->cb_onupdate = ps_cbs->cb_onupdate ? ps_cbs->cb_onupdate : (marble_layer_callback_onupdate)&__marble_layer_internal_cbupdate__;
-	ps_cbs->cb_onevent  = ps_cbs->cb_onevent  ? ps_cbs->cb_onevent  : (marble_layer_callback_onevent)&__marble_layer_internal_cbevent__;
+	ps_cbs->cb_onpush   = ps_cbs->cb_onpush   ? ps_cbs->cb_onpush   : &__marble_layer_internal_cbpush__;
+	ps_cbs->cb_onpop    = ps_cbs->cb_onpop    ? ps_cbs->cb_onpop    : &__marble_layer_internal_cbpop__;
+	ps_cbs->cb_onupdate = ps_cbs->cb_onupdate ? ps_cbs->cb_onupdate : &__marble_layer_internal_cbupdate__;
+	ps_cbs->cb_onevent  = ps_cbs->cb_onevent  ? ps_cbs->cb_onevent  : &__marble_layer_internal_cbevent__;
 }
 
 /*
@@ -177,10 +169,7 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_push(
 		 * fails, we will catch the error code in "marble_application_createlayer()"
 		 * and handle it appropriately.
 		 */
-		ecode = (*ps_layer->ms_cbs.cb_onpush)(
-			ps_layer->m_id,
-			ps_layer->mp_userdata
-		);
+		(*ps_layer->ms_cbs.cb_onpush)(ps_layer->m_id, ps_layer->mp_userdata);
 	}
 
 	return ecode;

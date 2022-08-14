@@ -80,28 +80,6 @@ MB_API marble_ecode_t marble_application_createlayer(
 
 
 #pragma region marble_layer
-typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onpush)(
-	int layerid,     /* layer id */
-	void *p_userdata /* layer-specific userdata */
-);
-
-typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onpop)(
-	int layerid,     /* layer id */
-	void *p_userdata /* layer-specific userdata */
-);
-
-typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onupdate)(
-	int layerid,     /* layer id */
-	float ft,        /* last frametime */
-	void *p_userdata /* layer-specific userdata */
-);
-
-typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onevent)(
-	int layerid,                  /* layer id */
-	struct marble_event *p_event, /* event data */
-	void *p_userdata              /* layer-specific userdata */
-);
-
 /*
  * layer callbacks
  *
@@ -113,10 +91,10 @@ typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onevent)(
  * cb_onevent:  Called upon receiving a system event.
  */
 struct marble_layer_cbs {
-	marble_layer_callback_onpush   cb_onpush;
-	marble_layer_callback_onpop    cb_onpop;
-	marble_layer_callback_onupdate cb_onupdate;
-	marble_layer_callback_onevent  cb_onevent;
+	void (MB_CALLBACK *cb_onpush)(int layerid, void *p_userdata);
+	void (MB_CALLBACK *cb_onpop)(int layerid, void *p_userdata);
+	void (MB_CALLBACK *cb_onupdate)(int layerid, float ft, void *p_userdata);
+	void (MB_CALLBACK *cb_onevent)(int layerid, struct marble_event *ps_event, void *p_userdata);
 };
 
 
