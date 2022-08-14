@@ -6,7 +6,7 @@ struct layer1_userdata {
 } s_userdata;
 
 
-int MB_CALLBACK marble_callback_submitsettings(char const *pz_cmdline, struct marble_app_settings *ps_settings) {
+marble_ecode_t MB_CALLBACK marble_callback_submitsettings(char const *pz_cmdline, struct marble_app_settings *ps_settings) {
 	*ps_settings = (struct marble_app_settings){
 		.m_xpos     = MB_DEFAULT,
 		.m_ypos     = MB_DEFAULT,
@@ -19,18 +19,18 @@ int MB_CALLBACK marble_callback_submitsettings(char const *pz_cmdline, struct ma
 	return 0;
 }
 
-int MB_CALLBACK marble_layer1_onpush(int layerid, void *p_userdata) {
+marble_ecode_t MB_CALLBACK marble_layer1_onpush(int layerid, void *p_userdata) {
 
 	return 0;
 }
 
-int MB_CALLBACK marble_layer1_onupdate(int layerid, float frametime, void *p_userdata) {
+marble_ecode_t MB_CALLBACK marble_layer1_onupdate(int layerid, float frametime, void *p_userdata) {
 	// TODO: any updates that have to be carried out.
 
 	return 0;
 }
 
-int MB_CALLBACK marble_callback_userinit(char const *pz_cmdline) {
+marble_ecode_t MB_CALLBACK marble_callback_userinit(char const *pz_cmdline) {
 	struct marble_layer_callbacks s_callbacks = {
 		.cb_onpush   = &marble_layer1_onpush,
 		.cb_onupdate = &marble_layer1_onupdate

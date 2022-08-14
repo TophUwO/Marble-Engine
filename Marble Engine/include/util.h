@@ -59,7 +59,7 @@ void inline marble_util_vec_destroy(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_vec_create(
+marble_ecode_t inline marble_util_vec_create(
 	size_t startcap,                      /* initial capacity */
 	void (MB_CALLBACK *fn_dest)(void **), /* object destructor */
 	/*
@@ -124,7 +124,7 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_vec_insert(
+marble_ecode_t inline marble_util_vec_insert(
 	struct marble_util_vec *ps_vector, /* vector to modify */
 	void *p_obj,                       /* object pointer to insert */
 	size_t index                       /* position where to insert **p_obj** */
@@ -188,7 +188,7 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_vec_pushback(
+marble_ecode_t inline marble_util_vec_pushback(
 	struct marble_util_vec *ps_vector, /* vector to modify */
 	void *p_obj                        /* object to insert */
 ) {
@@ -201,7 +201,7 @@ int inline marble_util_vec_pushback(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_vec_pushfront(
+marble_ecode_t inline marble_util_vec_pushfront(
 	struct marble_util_vec *ps_vector, /* vector to modify */
 	void *p_obj                        /* object to insert */
 ) {
@@ -492,7 +492,7 @@ void inline marble_util_file_destroy(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_file_open(
+marble_ecode_t inline marble_util_file_open(
 	char const *pz_path,               /* file path */
 	enum marble_util_file_perms perms, /* permissions */
 	/*
@@ -535,7 +535,7 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_file_goto(
+marble_ecode_t inline marble_util_file_goto(
 	struct marble_util_file *ps_file,
 	size_t newpos
 ) {
@@ -553,7 +553,7 @@ int inline marble_util_file_goto(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_file_read(
+marble_ecode_t inline marble_util_file_read(
 	struct marble_util_file *ps_file, /* file object */
 	size_t size,                      /* number of bytes to read */
 	void *p_dest                      /* buffer to write read bytes to */
@@ -571,7 +571,7 @@ int inline marble_util_file_read(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_file_read8(
+marble_ecode_t inline marble_util_file_read8(
 	struct marble_util_file *ps_file, /* file object */
 	uint8_t *p_dest                   /* destination buffer */
 ) {
@@ -584,7 +584,7 @@ int inline marble_util_file_read8(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_file_read16(
+marble_ecode_t inline marble_util_file_read16(
 	struct marble_util_file *ps_file, /* file object */
 	uint16_t *p_dest				  /* destination buffer */
 ) {
@@ -597,7 +597,7 @@ int inline marble_util_file_read16(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_file_read32(
+marble_ecode_t inline marble_util_file_read32(
 	struct marble_util_file *ps_file, /* file object */
 	uint32_t *p_dest				  /* destination buffer */
 ) {
@@ -656,7 +656,7 @@ void inline marble_util_htable_destroy(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_htable_create(
+marble_ecode_t inline marble_util_htable_create(
 	size_t nbuckets,          /* number of buckets */
 	void (*fn_dest)(void **), /* object destructor */
 	/*
@@ -679,7 +679,7 @@ int inline marble_util_htable_create(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_util_htable_insert(
+marble_ecode_t inline marble_util_htable_insert(
 	struct marble_util_htable *ps_hashtable, /* hashtable */
 	char const *pz_key,                      /* **p_obj**'s key */
 	void *p_obj                              /* object to insert */

@@ -10,23 +10,23 @@ WinMain(
 	_In_ PSTR pz_cmdline,
 	_In_ int showcmd
 ) {
-	MB_API int __cdecl marble_application_init(
+	MB_API marble_ecode_t __cdecl marble_application_init(
 		HINSTANCE,
 		PSTR,
-		int (MB_CALLBACK *)(
+		marble_ecode_t (MB_CALLBACK *)(
 			char const *,
 			struct marble_app_settings *
 		),
-		int (MB_CALLBACK *)(char const *)
+		marble_ecode_t (MB_CALLBACK *)(char const *)
 	);
-	MB_API int __cdecl marble_application_run(void);
+	MB_API marble_ecode_t __cdecl marble_application_run(void);
 	/*
 	 * This function runs user-application initialization AFTER Marble
 	 * successfully finished initializing itself.
 	 * This function has to be defined by the user
 	 * application, or else the code will not compile.
 	 */
-	extern int MB_CALLBACK marble_callback_userinit(
+	extern marble_ecode_t MB_CALLBACK marble_callback_userinit(
 		char const *pz_cmdline /* command-line arguments */
 	);
 	/*
@@ -36,7 +36,7 @@ WinMain(
 	 * This function has to be defined by the user
 	 * application, or else the code will not compile.
 	 */
-	extern int MB_CALLBACK marble_callback_submitsettings(
+	extern marble_ecode_t MB_CALLBACK marble_callback_submitsettings(
 		char const *pz_cmdline, /* command-line arguments */
 		/*
 		 * Pointer to a "marble_app_settings" structure which will
@@ -46,7 +46,7 @@ WinMain(
 		struct marble_app_settings *ps_settings
 	);
 
-	/* Run any necessary initialization */
+	/* Run any necessary initialization. */
 	marble_application_init(
 		p_inst,                          /* application instance */
 		pz_cmdline,                      /* command-line arguments */
@@ -54,7 +54,7 @@ WinMain(
 		&marble_callback_userinit        /* initialization AFTER Marble */
 	);
 
-	return marble_application_run(); /* start the application */
+	return marble_application_run(); /* Start the application. */
 }
 
 

@@ -146,7 +146,7 @@ static void marble_d2drenderer_internal_releaseintermresources(
  * 
  * Passes through **ecode** variable as return value.
  */
-static int marble_d2drenderer_internal_cleanup(
+static marble_ecode_t marble_d2drenderer_internal_cleanup(
 	struct marble_renderer_d2d *ps_renderer, /* renderer to free resources of */
 	int ecode,                               /* pass-through error code */
 	HWND *p_restoredhwnd                     /* HWND used to recreate renderer if needed */
@@ -177,7 +177,7 @@ static int marble_d2drenderer_internal_cleanup(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_d2drenderer_internal_init(
+static marble_ecode_t marble_d2drenderer_internal_init(
 	HWND p_target, /* window to associate renderer with */
 	/*
 	 * Pointer to a "marble_renderer_direct2drenderer" structure whose members
@@ -412,7 +412,7 @@ static void marble_d2drenderer_internal_enddraw(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_d2drenderer_internal_recreatedevctxt(
+static marble_ecode_t marble_d2drenderer_internal_recreatedevctxt(
 	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer to recreate */
 ) { MB_ERRNO
 	HRESULT res = S_OK;
@@ -481,7 +481,7 @@ lbl_CLEANUP:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_d2drenderer_internal_resize(
+static marble_ecode_t marble_d2drenderer_internal_resize(
 	struct marble_renderer_d2d *ps_renderer, /* Direct2D renderer to resize */
 	UINT newwidth,                           /* new width, in pixels */
 	UINT newheight                           /* new height, in pixels */
@@ -518,7 +518,7 @@ static int marble_d2drenderer_internal_resize(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_d2drenderer_internal_recreate(
+static marble_ecode_t marble_d2drenderer_internal_recreate(
 	struct marble_renderer_d2d *ps_renderer
 ) {
 	/*
@@ -538,7 +538,7 @@ static int marble_d2drenderer_internal_recreate(
 #pragma endregion
 
 
-int marble_renderer_create(
+marble_ecode_t marble_renderer_create(
 	enum marble_renderer_api api,
 	HWND p_target,
 	struct marble_renderer **pps_renderer
@@ -626,7 +626,7 @@ void marble_renderer_enddraw(
 	}
 }
 
-int marble_renderer_present(
+marble_ecode_t marble_renderer_present(
 	struct marble_renderer **pps_renderer
 ) { MB_ERRNO
 	if (pps_renderer == NULL || *pps_renderer == NULL) return MARBLE_EC_INTERNALPARAM;
@@ -660,7 +660,7 @@ int marble_renderer_present(
 	return MARBLE_EC_OK;
 }
 
-int marble_renderer_resize(
+marble_ecode_t marble_renderer_resize(
 	struct marble_renderer *ps_renderer,
 	uint32_t newwidth,
 	uint32_t newheight
@@ -675,7 +675,6 @@ int marble_renderer_resize(
 
 	return MARBLE_EC_RENDERAPI;
 }
-
 
 void marble_renderer_clear(
 	struct marble_renderer *ps_renderer,

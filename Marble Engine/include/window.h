@@ -44,7 +44,7 @@ struct marble_window {
  * 
  * Returns non-zero on failure, 0 on success.
  */
-extern int marble_window_create(
+extern marble_ecode_t marble_window_create(
 	char const *pz_title, /* window title */
 	uint32_t width,       /* width in pixels */
 	uint32_t height,      /* height in pixels */

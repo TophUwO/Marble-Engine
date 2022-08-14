@@ -5,7 +5,7 @@ void marble_asset_destroy(
 	struct marble_asset **pps_asset
 );
 
-static int marble_asset_internal_loadfromfile(
+static marble_ecode_t marble_asset_internal_loadfromfile(
 	char const *pz_path,
 	struct marble_asset **pps_asset,
 	struct marble_asset **pps_existingassetptr
@@ -104,7 +104,7 @@ static bool marble_asset_internal_isusableid(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_asset_internal_register(
+static marble_ecode_t marble_asset_internal_register(
 	struct marble_asset *ps_asset /* asset to register */
 ) { MB_ERRNO
 	if (ps_asset == NULL || gl_app.ms_assets.m_isinit == false)
@@ -143,7 +143,7 @@ static int marble_asset_internal_register(
  * 
  * Returns non-zero in case of error, 0 on success.
  */
-static int marble_asset_internal_unregister(
+static marble_ecode_t marble_asset_internal_unregister(
 	struct marble_asset *ps_asset, /* asset to register */
 	bool dofree                    /* Destroy asset as well? */
 ) {
@@ -209,7 +209,7 @@ static void marble_asset_internal_release(
  * 
  * Returns 0 on success, non-zero on error.
  */
-static int marble_asset_internal_evaldeptable(
+static marble_ecode_t marble_asset_internal_evaldeptable(
 	struct marble_asset *ps_parent,   /* parent asset that contains the dependency table */
 	struct marble_util_file *ps_file, /* open file stream */
 	uint32_t numofdeps                /* number of dependency table entries */
@@ -305,17 +305,14 @@ static int marble_asset_internal_evaldeptable(
  * If **ptrpExistingAssetPtr** is not NULL and the asset is already loaded,
  * **ptrpExistingAssetPtr** will hold a pointer to the existing asset.
  */
-static int marble_asset_internal_create(
+static marble_ecode_t marble_asset_internal_create(
 	enum marble_asset_type type,               /* type of the asset */
 	char const *pz_id,                         /* string ID */
 	struct marble_asset **pps_asset,           /* pointer to receive pointer to the newly-created asset */
 	struct marble_asset **pps_existingassetptr /* optional pointer to receive pointer to an existing asset of the same ID */
 ) { MB_ERRNO
-	if (pps_asset == NULL || marble_asset_internal_isvalidtype(type) == false)
-		return MARBLE_EC_PARAM;
-
-	if (marble_asset_internal_isusableid(pz_id, pps_existingassetptr) == false)
-		return MARBLE_EC_ASSETID;
+	if (pps_asset == NULL || marble_asset_internal_isvalidtype(type) == false)  return MARBLE_EC_PARAM;
+	if (marble_asset_internal_isusableid(pz_id, pps_existingassetptr) == false) return MARBLE_EC_ASSETID;
 
 	*pps_asset = NULL;
 	switch (type) {
@@ -342,7 +339,7 @@ static int marble_asset_internal_create(
  * If **ptrpExistingAssetPtr** is not NULL and the asset is already loaded,
  * **ptrpExistingAssetPtr** will hold a pointer to the existing asset.
  */
-static int marble_asset_internal_loadfromfile(
+static marble_ecode_t marble_asset_internal_loadfromfile(
 	char const *pz_path,                       /* path to asset file */
 	struct marble_asset **pps_asset,           /* pointer to newly-created asset */
 	struct marble_asset **pps_existingassetptr /* pointer to existing asset */
@@ -419,7 +416,7 @@ lbl_CLEANUP:
 }
 
 
-int marble_application_loadasset(
+marble_ecode_t marble_application_loadasset(
 	char const *pz_path
 ) { MB_ERRNO
 	struct marble_asset *ps_asset = NULL;

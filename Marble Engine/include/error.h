@@ -15,7 +15,7 @@
  * error codes are passed along in the system
  * as ints.
  */
-enum marble_ecode {
+typedef enum marble_ecode {
 	MARBLE_EC_OK = 0,
 	MARBLE_EC_UNKNOWN,
 
@@ -62,7 +62,7 @@ enum marble_ecode {
 #if (defined MB_DYNAMIC_LIBRARY)
 	__MARBLE_NUMERRORCODES__ /* for internal use */
 #endif
-};
+} marble_ecode_t;
 
 
 /*
@@ -75,7 +75,7 @@ enum marble_ecode {
  * Returns error code string.
  */
 MB_API char const *const marble_error_getstr(
-	int ecode /* error code to get string representation for */
+	marble_ecode_t ecode /* error code to get string representation for */
 );
 
 /*
@@ -91,7 +91,7 @@ MB_API char const *const marble_error_getstr(
  * Returns error code description string.
  */
 MB_API char const *const marble_error_getdesc(
-	int ecode /* error code to get description string for */
+	marble_ecode_t ecode /* error code to get description string for */
 );
 
 

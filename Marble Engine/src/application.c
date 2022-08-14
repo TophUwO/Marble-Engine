@@ -34,7 +34,7 @@ static void marble_application_internal_uninitassetman(void) {
  * 
  * Returns 0 on success, non-zero on error.
  */
-static int marble_application_internal_initassetman(void) { MB_ERRNO
+static marble_ecode_t marble_application_internal_initassetman(void) { MB_ERRNO
 	/* 
 	* If asset manager is already initialized, block further
 	* attempts to (re-)initialize. 
@@ -102,7 +102,7 @@ static void marble_application_internal_uninitlayerstack(void) {
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
+static marble_ecode_t marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
 	if (gl_app.ms_layerstack.m_isinit == true)
 		return MARBLE_EC_COMPSTATE;
 	
@@ -135,7 +135,7 @@ static int marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
  */
 #pragma region initialization functions
 static void marble_application_internal_initdebugcon(
-	int *p_ecode /* pointer to error code variable */
+	marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -162,7 +162,7 @@ lbl_ERROR:
 }
 
 static void marble_application_internal_inithpc(
-	int *p_ecode /* pointer to error code variable */
+	marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -178,7 +178,7 @@ static void marble_application_internal_inithpc(
 }
 
 static void marble_application_internal_initcom(
-	int *p_ecode /* pointer to error code variable */
+	marble_ecode_t *p_ecode /* pointer to error code variable */
 ) { MB_ERRNO
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -199,8 +199,8 @@ static void marble_application_internal_initcom(
 }
 
 static void marble_application_internal_initstate(
-	int *p_ecode,    /* pointer to error code variable */
-	HINSTANCE p_inst /* application instance */
+	marble_ecode_t *p_ecode, /* pointer to error code variable */
+	HINSTANCE p_inst         /* application instance */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -216,9 +216,8 @@ static void marble_application_internal_initstate(
 }
 
 static void marble_application_internal_createmainwindow(
-	int *p_ecode, /* pointer to error code variable */
-	/* pointer to user-specified settings */
-	struct marble_app_settings const *p_settings
+	marble_ecode_t *p_ecode,                     /* pointer to error code variable */
+	struct marble_app_settings const *p_settings /* pointer to user-specified settings */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -237,7 +236,7 @@ static void marble_application_internal_createmainwindow(
 }
 
 static void marble_application_internal_createrenderer(
-	int *p_ecode /* pointer to error code variable */
+	marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -256,7 +255,7 @@ static void marble_application_internal_createrenderer(
 }
 
 static void marble_application_internal_initlayerstack(
-	int *p_ecode /* pointer to error code variable */
+	marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -269,7 +268,7 @@ static void marble_application_internal_initlayerstack(
 }
 
 static void marble_application_internal_initassetmanager(
-	int *p_ecode /* pointer to error code variable */
+	marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -282,7 +281,7 @@ static void marble_application_internal_initassetmanager(
 }
 
 static void marble_application_internal_douserinit(
-	int *p_ecode,
+	marble_ecode_t *p_ecode,
 	char const *pz_cmdline,
 	int (MB_CALLBACK *cb_userinit)(_In_z_ char const *)
 ) {
@@ -304,7 +303,7 @@ static void marble_application_internal_douserinit(
 #pragma endregion
 
 
-static int marble_application_internal_updateandrender(
+static marble_ecode_t marble_application_internal_updateandrender(
 	float frametime /* time it took to render and present last frame */
 ) {
 	marble_renderer_begindraw(gl_app.mps_renderer);
@@ -349,8 +348,8 @@ static int marble_application_internal_updateandrender(
  * Passes through the given error code to the host environment.
  * Returns passed error code.
  */
-static int marble_application_internal_cleanup(
-	int ecode /* error code to return to system */
+static marble_ecode_t marble_application_internal_cleanup(
+	marble_ecode_t ecode /* error code to return to system */
 ) {
 	marble_window_destroy(&gl_app.mps_window);
 	marble_renderer_destroy(&gl_app.mps_renderer);
@@ -380,7 +379,7 @@ void marble_application_setstate(
 }
 
 
-MB_API int __cdecl marble_application_init(
+MB_API marble_ecode_t __cdecl marble_application_init(
 	HINSTANCE p_inst,
 	PSTR pz_cmdline,
 	int (MB_CALLBACK *cb_usersubmitsettings)(char const *, struct marble_app_settings *),
@@ -420,7 +419,7 @@ MB_API int __cdecl marble_application_init(
 	return MARBLE_EC_OK;
 }
 
-MB_API int __cdecl marble_application_run(void) {
+MB_API marble_ecode_t __cdecl marble_application_run(void) {
 	/* update application state now that the main loop is about to start */
 	marble_application_setstate(
 		false,

@@ -58,7 +58,7 @@ static marble_layer_callback_onupdate __marble_layer_internal_cbupdate__(
 }
 
 static marble_layer_callback_onevent __marble_layer_internal_cbevent__(
-	         int layerid,
+	int layerid,
 	struct marble_event *p_event,
 	void *p_userdata
 ) {
@@ -128,7 +128,7 @@ static void *marble_layer_setuserdata(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_layer_internal_create(
+static marble_ecode_t marble_layer_internal_create(
 	bool isenabled,
 	struct marble_layer **pps_layer
 ) { MB_ERRNO
@@ -153,7 +153,7 @@ static int marble_layer_internal_create(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static int marble_layer_internal_push(
+static marble_ecode_t marble_layer_internal_push(
 	struct marble_layer *ps_layer, /* layer to push */
 	bool istopmost                 /* push as topmost? */
 ) { MB_ERRNO
@@ -193,7 +193,7 @@ static int marble_layer_internal_push(
 /*
  * Removes a layer from the layer stack. 
  */
-static int marble_layer_internal_pop(
+static marble_ecode_t marble_layer_internal_pop(
 	struct marble_layer *ps_layer /* layer to pop */
 ) {
 	if (ps_layer == NULL)
@@ -239,7 +239,7 @@ static int marble_layer_internal_pop(
 }
 
 
-int marble_application_createlayer(
+marble_ecode_t marble_application_createlayer(
 	bool isenabled,
 	bool istopmost,
 	struct marble_layer_callbacks const *p_callbacks,

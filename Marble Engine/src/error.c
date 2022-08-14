@@ -93,7 +93,7 @@ static char const *const glapz_ecodedescs[] = {
 
 
 char const *const marble_error_getstr(
-	int ecode
+	marble_ecode_t ecode
 ) {
 	if (MB_INRANGE_EXCL(ecode, MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1) == false)
 		return marble_error_getstr(MARBLE_EC_UNKNOWN);
@@ -102,7 +102,7 @@ char const *const marble_error_getstr(
 }
 
 char const *const marble_error_getdesc(
-	int ecode
+	marble_ecode_t ecode
 ) {
 	if (MB_INRANGE_EXCL(ecode, MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1) == false)
 		return marble_error_getdesc(MARBLE_EC_UNKNOWN);

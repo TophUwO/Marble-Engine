@@ -4,7 +4,7 @@
 #include <error.h>
 
 
-extern void marble_application_raisefatalerror(int errorcode);
+extern void marble_application_raisefatalerror(marble_ecode_t ecode);
 
 
 /*
@@ -19,7 +19,7 @@ extern void marble_application_raisefatalerror(int errorcode);
  * the pointer pointed to by **pp_memptr** is guaranteed to be
  * initialized with NULL.
  */
-int inline marble_system_alloc(
+marble_ecode_t inline marble_system_alloc(
 	size_t size,     /* requested size of the memory block, in bytes */
 	bool needzeroed, /* Should the requested memory be zeroed? */
 	/*
@@ -71,7 +71,7 @@ int inline marble_system_alloc(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-int inline marble_system_cpystr(
+marble_ecode_t inline marble_system_cpystr(
 	char *restrict pz_dest,      /* destination memory */
 	char const *restrict pz_src, /* source memory */
 	size_t size				     /* destination size, in bytes */

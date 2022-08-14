@@ -56,7 +56,7 @@ struct marble_renderer {
  * If the renderer could be created successfully, the return value
  * is 0, otherwise non-zero.
  */
-extern int marble_renderer_create(
+extern marble_ecode_t marble_renderer_create(
 	enum marble_renderer_api api, /* API the renderer will use */
 	/* window handle the renderer will be associated with */
 	HWND p_target,
@@ -112,7 +112,7 @@ extern void marble_renderer_enddraw(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-extern int marble_renderer_present(
+extern marble_ecode_t marble_renderer_present(
 	struct marble_renderer **pps_renderer /* pointer to the renderer instance */
 );
 
@@ -127,7 +127,7 @@ extern int marble_renderer_present(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-extern int marble_renderer_resize(
+extern marble_ecode_t marble_renderer_resize(
 	struct marble_renderer *ps_renderer, /* pointer to the renderer instance */
 	uint32_t newwidth,                   /* new width, in pixels */
 	uint32_t newheight                   /* new height, in pixels */

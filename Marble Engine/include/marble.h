@@ -42,7 +42,7 @@ struct marble_layer_callbacks;
  * 
  * Returns 0 on success, non-zero on failure.
  */
-MB_API int marble_application_createlayer(
+MB_API marble_ecode_t marble_application_createlayer(
 	/*
 	 * Layers can be either enabled or disabled. While enabled
 	 * layers behave as normal, disabled layers, while still present
@@ -80,23 +80,23 @@ MB_API int marble_application_createlayer(
 
 
 #pragma region marble_layer
-typedef int (MB_CALLBACK *marble_layer_callback_onpush)(
+typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onpush)(
 	int layerid,     /* layer id */
 	void *p_userdata /* layer-specific userdata */
 );
 
-typedef int (MB_CALLBACK *marble_layer_callback_onpop)(
+typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onpop)(
 	int layerid,     /* layer id */
 	void *p_userdata /* layer-specific userdata */
 );
 
-typedef int (MB_CALLBACK *marble_layer_callback_onupdate)(
+typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onupdate)(
 	int layerid,     /* layer id */
 	float ft,        /* last frametime */
 	void *p_userdata /* layer-specific userdata */
 );
 
-typedef int (MB_CALLBACK *marble_layer_callback_onevent)(
+typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onevent)(
 	int layerid,                  /* layer id */
 	struct marble_event *p_event, /* event data */
 	void *p_userdata              /* layer-specific userdata */

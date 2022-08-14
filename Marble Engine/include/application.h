@@ -133,11 +133,11 @@ extern void marble_application_setstate(
  * Returns nothing.
  */
 void inline marble_application_raisefatalerror(
-	int errorcode /* error code that will be returned to host environment */
+	marble_ecode_t ecode /* error code that will be returned to host environment */
 ) {
 	marble_application_setstate(
 		true,
-		errorcode,
+		ecode,
 		MARBLE_APPSTATE_FORCEDSHUTDOWN
 	);
 

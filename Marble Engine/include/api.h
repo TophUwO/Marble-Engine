@@ -27,7 +27,7 @@
  * the engine itself.
  */
 #if (defined MB_DYNAMIC_LIBRARY)
-	#define MB_ERRNO int ecode = MARBLE_EC_OK;
+	#define MB_ERRNO marble_ecode_t ecode = MARBLE_EC_OK;
 #endif
 
 

@@ -220,7 +220,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 }
 
 
-int marble_window_create(
+marble_ecode_t marble_window_create(
 	char const *const pz_title,
 	uint32_t width,
 	uint32_t height,
