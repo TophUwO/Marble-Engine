@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <time.h>
 #ifdef _DEBUG
 	#define _CRTDBG_MAP_ALLOC
 #endif

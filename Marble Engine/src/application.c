@@ -396,8 +396,9 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 	void (MB_CALLBACK *cb_usersubmitsettings)(char const *, struct marble_app_settings *),
 	marble_ecode_t (MB_CALLBACK *cb_userinit)(char const *)
 ) { MB_ERRNO
+	gl_hashseed = (uint32_t)time(NULL);
 	gl_app.mp_mainthrd = GetCurrentThread();
-
+ 
 #if (defined _DEBUG) || (defined MB_DEVBUILD)
 	marble_application_internal_initdebugcon(&ecode);
 
