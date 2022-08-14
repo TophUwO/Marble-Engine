@@ -34,7 +34,7 @@ static char const *const glapz_ecodestrs[] = {
 	"MARBLE_EC_GETDXGIFAC",
 	"MARBLE_EC_CREATESWAPCHAIN",
 	"MARBLE_EC_GETDXGIBACKBUFFER",
-	"MARBLE_EC_CREATEDXGIBMPFROMDXGISURFACE",
+	"MARBLE_EC_CREATED2DBMPFROMDXGISURFACE",
 	"MARBLE_EC_RESIZERENDERER",
 	"MARBLE_EC_ASSETTYPE",
 	"MARBLE_EC_ASSETID",
@@ -43,7 +43,9 @@ static char const *const glapz_ecodestrs[] = {
 	"MARBLE_EC_ASSETNOTFOUND",
 	"MARBLE_EC_LAYERALREADYPUSHED",
 	"MARBLE_EC_LAYERSTATE",
-	"MARBLE_EC_RENDERAPI"
+	"MARBLE_EC_RENDERAPI",
+	"MARBLE_EC_CREATERENDERER",
+	"MARBLE_EC_NOTFOUND"
 };
 
 /* Error code descriptions */
@@ -88,7 +90,9 @@ static char const *const glapz_ecodedescs[] = {
 	"Asset could not be located.",
 	"Layer is already pushed onto the internal layer stack.",
 	"Operation could not be carried out due to an incorrect layer state.",
-	"Invalid renderer API."
+	"Invalid renderer API.",
+	"Failed to create and initialize renderer.",
+	"The specified object could not be found."
 };
 
 
