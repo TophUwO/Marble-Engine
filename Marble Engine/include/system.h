@@ -18,28 +18,28 @@ extern void marble_application_raisefatalerror(marble_ecode_t ecode);
  * standard "free()".
  *
  * Returns 0 on success, non-zero on failure. If the function fails,
- * the pointer pointed to by **pp_memptr** is guaranteed to be
+ * the pointer pointed to by **pp_mpt** is guaranteed to be
  * initialized with NULL.
  */
 _Critical_ marble_ecode_t inline marble_system_alloc(
-	_In_              size_t size,     /* requested size of the memory block, in bytes */
-	                  bool needzeroed, /* Should the requested memory be zeroed? */
-	                  /*
-	                   * If this parameter is set to TRUE, the allocation is considered
-	                   * critical; if the allocation fails, the function raises a fatal
-	                   * error, resulting in a forced shutdown. This parameter should really
-	                   * only be set to true for allocating resources used by Marble's subsystems.
-	                   */
-	                  bool iscritical,
+	_In_           size_t size,     /* requested size of the memory block, in bytes */
+	               bool needzeroed, /* Should the requested memory be zeroed? */
+	               /*
+	                * If this parameter is set to TRUE, the allocation is considered
+	                * critical; if the allocation fails, the function raises a fatal
+	                * error, resulting in a forced shutdown. This parameter should really
+	                * only be set to true for allocating resources used by Marble's subsystems.
+	                */
+	               bool iscritical,
 	/* 
 	 * Pointer to receive pointer to newly allocated memory.
 	 * This parameter must not be NULL. 
 	 */
-	_Init_(pp_memptr) void **pp_memptr
+	_Init_(pp_mpt) void **pp_mpt
 ) {
-	if (pp_memptr == NULL || size == 0) {
-		if (pp_memptr != NULL)
-			*pp_memptr = NULL;
+	if (pp_mpt == NULL || size == 0) {
+		if (pp_mpt != NULL)
+			*pp_mpt = NULL;
 
 		return MARBLE_EC_INTERNALPARAM;
 	}
@@ -50,11 +50,11 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
 	 * is completely asinine.
 	 */
 	(void)(needzeroed != false
-		? (*pp_memptr = calloc(1, size))
-		: (*pp_memptr = malloc(size))
+		? (*pp_mpt = calloc(1, size))
+		: (*pp_mpt = malloc(size))
 		);
 
-	if (*pp_memptr == NULL) {
+	if (*pp_mpt == NULL) {
 		if (iscritical == true)
 			marble_application_raisefatalerror(MARBLE_EC_MEMALLOC);
 
@@ -63,7 +63,7 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
 
 	printf("Allocator: Allocated memory of %i bytes, starting at address: 0x%p.\n", 
 		(int)size,
-		*pp_memptr
+		*pp_mpt
 	);
 
 	return MARBLE_EC_OK;
