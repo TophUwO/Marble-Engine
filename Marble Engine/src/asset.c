@@ -380,7 +380,7 @@ _Critical_ static marble_ecode_t marble_asset_internal_loadfromfile(
 
 	/* Create asset if it has not been created yet. */
 	if (*pps_asset == NULL) {
-		wascreated = TRUE;
+		wascreated = true;
 
 		ecode = marble_asset_internal_create(
 			s_commonhead.m_assettype, 

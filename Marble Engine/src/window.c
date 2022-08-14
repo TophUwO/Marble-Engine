@@ -59,7 +59,10 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 	WPARAM wparam, /* param1 */
 	LPARAM lparam  /* param2 */
 ) {
-	struct marble_window *ps_wnddata = NULL;
+	struct marble_window *ps_wnddata = (struct marble_window *)GetWindowLongPtr(
+		p_window, 
+		GWLP_USERDATA
+	);
 
 	switch (msgid) {
 		case WM_CREATE:
@@ -71,7 +74,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 
 			return 0;
 		case WM_SIZE: {
-			ps_wnddata = (struct marble_window *)GetWindowLongPtr(p_window, GWLP_USERDATA);
+			//ps_wnddata = (struct marble_window *)GetWindowLongPtr(p_window, GWLP_USERDATA);
 			ps_wnddata->ms_data.m_isminimized = wparam == SIZE_MINIMIZED;
 
 			/* Ignore message if window initialization is not complete yet. */
@@ -105,14 +108,9 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 		case WM_KEYUP:
 		case WM_SYSKEYUP: {
 			if (wparam == VK_F11) {
-				ps_wnddata = (struct marble_window *)GetWindowLongPtr(
-					p_window, 
-					GWLP_USERDATA
-				);
-
 				ps_wnddata->ms_data.m_isfscreen = !ps_wnddata->ms_data.m_isfscreen;
 				if (ps_wnddata->ms_data.m_isfscreen == true) {
-					/* Make window borderless */
+					/* Make window borderless. */
 					SetWindowLong(p_window, GWL_STYLE, 0);
 
 					/* Resize window so it covers the entire screen. */
@@ -125,10 +123,10 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 
 					ShowWindow(p_window, SW_SHOWMAXIMIZED);
 				} else {
-					/* Restore window styles */
+					/* Restore window styles. */
 					SetWindowLong(p_window, GWL_STYLE, ps_wnddata->ms_data.m_style);
 
-					/* restore old size */
+					/* Restore old size. */
 					SetWindowPos(
 						p_window, 
 						HWND_TOP,
@@ -141,7 +139,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 					ShowWindow(p_window, SW_SHOW);
 				}
 
-				/* recompute drawing area coordinates */
+				/* Recompute drawing area coordinates. */
 				marble_window_internal_computedrawingorigin(ps_wnddata);
 				return 0;
 			}
@@ -195,7 +193,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 			marble_window_internal_onevent(&s_wndclosedev);
 			if (wparam == 0)
 				marble_application_setstate(
-					FALSE,
+					false,
 					MARBLE_EC_OK,
 					MARBLE_APPSTATE_SHUTDOWN
 				);
@@ -210,7 +208,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 			 * a forced shutdown, in which case we will use a custom return
 			 * value and do not need WM_QUIT to make us leave the main loop.
 			 */
-			if (p_window == gl_app.mps_window->mp_handle && gl_app.ms_state.m_id == MARBLE_APPSTATE_SHUTDOWN)
+			if (ps_wnddata->ms_data.m_ismainwnd == true && gl_app.ms_state.m_id == MARBLE_APPSTATE_SHUTDOWN)
 				PostQuitMessage(0);
 
 			return 0;
@@ -225,6 +223,7 @@ _Critical_ marble_ecode_t marble_window_create(
 	_In_            uint32_t width,
 	_In_            uint32_t height,
 	                bool isvsync,
+	                bool ismainwnd,
 	_Init_(pps_wnd) struct marble_window **pps_wnd
 ) { MB_ERRNO
 	if (pps_wnd == NULL)
@@ -241,7 +240,7 @@ _Critical_ marble_ecode_t marble_window_create(
 
 	(*pps_wnd)->ms_data.ms_extends.ms_window = (struct marble_sizei2d){ width, height };
 	(*pps_wnd)->ms_data.m_isvsync            = isvsync;
-	(*pps_wnd)->ms_data.m_isfscreen          = FALSE;
+	(*pps_wnd)->ms_data.m_isfscreen          = false;
 	(*pps_wnd)->ms_data.m_style              = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
 
 	WNDCLASSEX s_wndclassdesc = {
@@ -254,7 +253,7 @@ _Critical_ marble_ecode_t marble_window_create(
 		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
 		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1)
 	};
-	if (RegisterClassEx(&s_wndclassdesc) == FALSE) {
+	if (RegisterClassEx(&s_wndclassdesc) == false) {
 		ecode = MARBLE_EC_REGWNDCLASS;
 
 		goto lbl_ERROR;
@@ -289,6 +288,10 @@ _Critical_ marble_ecode_t marble_window_create(
 		(uint32_t)s_clientrect.bottom
 	};
 
+	(*pps_wnd)->ms_data.m_ismainwnd = gl_app.m_hasmainwnd == true
+		? false
+		: ismainwnd
+	;
 	return MARBLE_EC_OK;
 
 lbl_ERROR:
@@ -380,7 +383,7 @@ void marble_window_resize(
 
 	/* Compute total window size based on requested render target size. */
 	RECT s_wndrect = { 0, 0, (LONG)(width * tsize), (LONG)(height * tsize) };
-	AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, FALSE);
+	AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, false);
 
 	/* Is our desired size too large for our display device? */
 	float const scr_w = (float)abs(s_moninfo.rcWork.right - s_moninfo.rcWork.left);
@@ -398,7 +401,7 @@ void marble_window_resize(
 			(int)(width * scale) * tsize,
 			(int)(height * scale) * tsize
 		};
-		AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, FALSE);
+		AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, false);
 
 		/* Calculate window and render area size. */
 		ps_wnd->ms_data.ms_extends.m_tsize = tsize;
@@ -419,7 +422,7 @@ void marble_window_resize(
 		0, 0,
 		ps_wnd->ms_data.ms_extends.ms_window.m_width,
 		ps_wnd->ms_data.ms_extends.ms_window.m_height,
-		TRUE
+		true
 	);
 	marble_window_internal_computedrawingorigin(ps_wnd);
 }

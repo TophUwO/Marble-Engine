@@ -102,7 +102,7 @@ DXGI_SWAP_CHAIN_DESC1 gls_swapchaindesc = {
 	.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,  /* use target for output */
 	.Format      = DXGI_FORMAT_B8G8R8A8_UNORM,       /* use default Direct2D's pixel format */
 	.Scaling     = DXGI_SCALING_STRETCH,             /* does not matter as we will resize renderer together with the window */
-	.Stereo      = FALSE,                            /* no VR for now */
+	.Stereo      = false,                            /* no VR for now */
 	.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL, /* faster flip effect than blits */
 	.SampleDesc  = {
 		.Count   = 1,                                /* no multi-sampling */
@@ -640,7 +640,7 @@ _Critical_ marble_ecode_t marble_renderer_present(
 		case MARBLE_RENDERAPI_DIRECT2D: {
 			HRESULT res = MB_D2DSWAPCHAIN_VT(*pps_renderer)->Present(
 				MB_D2DSWAPCHAIN(*pps_renderer),
-				0, /* TODO: will be VSync state of window */
+				1, /* TODO: will be VSync state of window */
 				0
 			);
 

@@ -21,7 +21,7 @@ static void marble_application_internal_uninitassetman(void) {
 	if (gl_app.ms_assets.m_isinit == false)
 		return;
 
-	gl_app.ms_assets.m_isinit = FALSE;
+	gl_app.ms_assets.m_isinit = false;
 
 	/*
 	 * Destroy asset registry.
@@ -213,7 +213,7 @@ static void marble_application_internal_initstate(
 	printf("init: application state\n");
 
 	marble_application_setstate(
-		FALSE,
+		false,
 		0,
 		MARBLE_APPSTATE_INIT
 	);
@@ -233,7 +233,8 @@ static void marble_application_internal_createmainwindow(
 		"Marble Engine Sandbox",
 		512,
 		512,
-		TRUE,
+		true,
+		true,
 		&gl_app.mps_window
 	);
 	if (*p_ecode != MARBLE_EC_OK)
@@ -396,8 +397,9 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 	void (MB_CALLBACK *cb_usersubmitsettings)(char const *, struct marble_app_settings *),
 	marble_ecode_t (MB_CALLBACK *cb_userinit)(char const *)
 ) { MB_ERRNO
-	gl_hashseed = (uint32_t)time(NULL);
-	gl_app.mp_mainthrd = GetCurrentThread();
+	gl_hashseed         = (uint32_t)time(NULL);
+	gl_app.mp_mainthrd  = GetCurrentThread();
+	gl_app.m_hasmainwnd = false;
  
 #if (defined _DEBUG) || (defined MB_DEVBUILD)
 	marble_application_internal_initdebugcon(&ecode);
@@ -439,7 +441,7 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 		MARBLE_APPSTATE_RUNNING
 	);
  
-	while (TRUE) {
+	while (true) {
 		MSG s_msg;
 		uint64_t time;
 

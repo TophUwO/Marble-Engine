@@ -70,6 +70,7 @@ extern struct marble_application {
 	HINSTANCE     mp_inst;       /* instance to the application */
 	HANDLE        mp_mainthrd;   /* handle to main thread */
 	LARGE_INTEGER m_perfcounter; /* performance counter; used for HTPs */
+	bool          m_hasmainwnd;  /* Do we already have a main window? */
 	/* structure holding state information about the application */
 	struct marble_app_state {
 		enum marble_app_stateid m_id; /* state id */

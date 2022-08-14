@@ -14,7 +14,7 @@ extern void marble_application_raisefatalerror(marble_ecode_t ecode);
  *
  * Calls "malloc()" or "calloc()" depending on **needzeroed**. Can raise
  * a fatal application error (causing a forced shutdown) if **iscritical**
- * is TRUE. To free the memory allocated by this function, use 
+ * is true. To free the memory allocated by this function, use 
  * standard "free()".
  *
  * Returns 0 on success, non-zero on failure. If the function fails,
@@ -25,7 +25,7 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
 	_In_           size_t size,     /* requested size of the memory block, in bytes */
 	               bool needzeroed, /* Should the requested memory be zeroed? */
 	               /*
-	                * If this parameter is set to TRUE, the allocation is considered
+	                * If this parameter is set to true, the allocation is considered
 	                * critical; if the allocation fails, the function raises a fatal
 	                * error, resulting in a forced shutdown. This parameter should really
 	                * only be set to true for allocating resources used by Marble's subsystems.

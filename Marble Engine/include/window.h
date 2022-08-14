@@ -19,6 +19,7 @@ struct marble_window {
 		bool     m_isvsync;     /* VSync state */
 		bool     m_isfscreen;   /* fullscreen state */
 		bool     m_isminimized; /* window size state */
+		bool     m_ismainwnd;   /* Is the window the main window? */
 		uint64_t m_lastupdate;  /* timestamp of last update */
 		/* window styles (system-specific) */
 		uint32_t m_style;
@@ -49,6 +50,7 @@ _Critical_ extern marble_ecode_t marble_window_create(
 	_In_            uint32_t width,       /* width in pixels */
 	_In_            uint32_t height,      /* height in pixels */
 	                bool isvsync,         /* Should VSync be enabled? */
+	                bool ismainwnd,       /* Should the window be the main window? */
 	/*
 	 * Pointer to a pointer to a "marble_window" structure
 	 * that will receive the freshly-created window. 
