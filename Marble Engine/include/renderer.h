@@ -56,17 +56,16 @@ struct marble_renderer {
  * If the renderer could be created successfully, the return value
  * is 0, otherwise non-zero.
  */
-extern marble_ecode_t marble_renderer_create(
-	enum marble_renderer_api api, /* API the renderer will use */
-	/* window handle the renderer will be associated with */
-	HWND p_target,
+_Critical_ extern marble_ecode_t marble_renderer_create(
+	                     enum marble_renderer_api api, /* API the renderer will use */
+	_In_                 HWND p_target,                /* window handle the renderer will be associated with */
 	/*
 	 * Pointer to a pointer to a "marble_renderer" structure that will receive
 	 * a pointer to the freshly-created renderer structure.
 	 * After "marble_renderer_create()" returned successfully, the renderer
 	 * is ready to be used.
 	 */
-	struct marble_renderer **pps_renderer
+	_Init_(pps_renderer) struct marble_renderer **pps_renderer
 );
 
 /*
@@ -75,7 +74,7 @@ extern marble_ecode_t marble_renderer_create(
  * Returns nothing.
  */
 extern void marble_renderer_destroy(
-	struct marble_renderer **pps_renderer /* pointer to the renderer instance */
+	_Uninit_(pps_renderer) struct marble_renderer **pps_renderer /* pointer to the renderer instance */
 );
 
 /*
@@ -87,7 +86,7 @@ extern void marble_renderer_destroy(
  * Returns nothing.
  */
 extern void marble_renderer_begindraw(
-	struct marble_renderer *ps_renderer /* renderer instance */
+	_In_ struct marble_renderer *ps_renderer /* renderer instance */
 );
 
 /*
@@ -99,7 +98,7 @@ extern void marble_renderer_begindraw(
  * Returns nothing.
  */
 extern void marble_renderer_enddraw(
-	struct marble_renderer *ps_renderer /* renderer instance */
+	_In_ struct marble_renderer *ps_renderer /* renderer instance */
 );
 
 /*
@@ -112,8 +111,8 @@ extern void marble_renderer_enddraw(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-extern marble_ecode_t marble_renderer_present(
-	struct marble_renderer **pps_renderer /* pointer to the renderer instance */
+_Critical_ extern marble_ecode_t marble_renderer_present(
+	_In_ struct marble_renderer **pps_renderer /* pointer to the renderer instance */
 );
 
 /*
@@ -127,10 +126,10 @@ extern marble_ecode_t marble_renderer_present(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-extern marble_ecode_t marble_renderer_resize(
-	struct marble_renderer *ps_renderer, /* pointer to the renderer instance */
-	uint32_t newwidth,                   /* new width, in pixels */
-	uint32_t newheight                   /* new height, in pixels */
+_Success_ok_ extern marble_ecode_t marble_renderer_resize(
+	_In_ struct marble_renderer *ps_renderer, /* pointer to the renderer instance */
+	     uint32_t newwidth,                   /* new width, in pixels */
+	     uint32_t newheight                   /* new height, in pixels */
 );
 
 
@@ -140,11 +139,11 @@ extern marble_ecode_t marble_renderer_resize(
  * Returns nothing.
  */
 extern void marble_renderer_clear(
-	struct marble_renderer *ps_renderer, /* renderer instance */
-	float red,                           /* red component (0.0 ... 1.0) */
-	float green,                         /* green component (0.0 ... 1.0) */
-	float blue,                          /* blue component (0.0 ... 1.0) */
-	float alpha                          /* alpha component (0.0 ... 1.0) */
+	_In_ struct marble_renderer *ps_renderer, /* renderer instance */
+	     float red,                           /* red component (0.0 ... 1.0) */
+	     float green,                         /* green component (0.0 ... 1.0) */
+	     float blue,                          /* blue component (0.0 ... 1.0) */
+	     float alpha                          /* alpha component (0.0 ... 1.0) */
 );
 
 

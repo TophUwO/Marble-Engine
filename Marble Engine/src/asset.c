@@ -2,13 +2,12 @@
 
 
 void marble_asset_destroy(
-	struct marble_asset **pps_asset
+	_Uninit_(pps_asset) struct marble_asset **pps_asset
 );
 
-static marble_ecode_t marble_asset_internal_loadfromfile(
-	char const *pz_path,
-	struct marble_asset **pps_asset,
-	struct marble_asset **pps_existingassetptr
+_Critical_ static marble_ecode_t marble_asset_internal_loadfromfile(
+	_In_z_            char const *pz_path,
+	_Init_(pps_asset) struct marble_asset **pps_asset
 );
 
 
@@ -31,8 +30,8 @@ static bool marble_asset_internal_isvalidtype(
  * Returns true if the asset is found, or false if not.
  */
 static bool MB_CALLBACK marble_asset_internal_cbfind(
-	char const *pz_key, /* key */
-	void *p_asset       /* asset to check key against */
+	_In_z_ char const *pz_key, /* key */
+	_In_   void *p_asset       /* asset to check key against */
 ) {
 	return (bool)!strcmp(pz_key, ((struct marble_asset *)p_asset)->mz_strid);
 }
@@ -47,8 +46,8 @@ static bool MB_CALLBACK marble_asset_internal_cbfind(
  * is not changed and remains possibly indeterminate.
  */
 static bool marble_asset_internal_isassetalreadyloaded(
-	char const *pz_id,                         /* ID to check */
-	struct marble_asset **pps_existingassetptr /* optional pointer to receive existing asset pointer */
+	_In_z_        char const *pz_id,                 /* ID to check */
+	_Maybe_valid_ struct marble_asset **pps_assetptr /* optional pointer to receive existing asset pointer */
 ) {
 	struct marble_asset *ps_found = marble_util_htable_find(
 		gl_app.ms_assets.mps_table,
@@ -56,10 +55,7 @@ static bool marble_asset_internal_isassetalreadyloaded(
 		&marble_asset_internal_cbfind
 	);
 
-	if (ps_found != NULL && pps_existingassetptr != NULL)
-		*pps_existingassetptr = ps_found;
-
-	return ps_found != NULL;
+	return *pps_assetptr = ps_found != NULL ? ps_found : NULL;
 }
 
 /*
@@ -68,8 +64,8 @@ static bool marble_asset_internal_isassetalreadyloaded(
  * Returns nothing.
  */
 static void marble_asset_internal_setid(
-	struct marble_asset *ps_asset, /* asset to copy new ID into */
-	char const *pz_newid           /* new ID to copy */
+	_In_   struct marble_asset *ps_asset, /* asset to copy new ID into */
+	_In_z_ char const *pz_newid           /* new ID to copy */
 ) {
 	marble_system_cpystr(
 		ps_asset->mz_strid,
@@ -89,14 +85,19 @@ static void marble_asset_internal_setid(
  * found asset. Otherwise, the pointer value of **pps_existingassetptr**
  * is not changed and remains possibly indeterminate.
  */
-static bool marble_asset_internal_isusableid(
-	char const *pz_id,                         /* ID to check for validity */
-	struct marble_asset **pps_existingassetptr /* optional pointer to receive existing asset pointer */
+static int marble_asset_internal_isusableid(
+	_In_          char const *pz_id,                 /* ID to check for validity */
+	_Maybe_valid_ struct marble_asset **pps_assetptr /* optional pointer to receive existing asset pointer */
 ) {
-	if (pz_id == NULL || *pz_id == '\0')
-		return FALSE;
+	if (pz_id == NULL || *pz_id == '\0') {
+		*pps_assetptr = NULL;
 
-	return !marble_asset_internal_isassetalreadyloaded(pz_id, pps_existingassetptr);
+		return 0;
+	}
+	*pps_assetptr = NULL;
+
+	bool ret = marble_asset_internal_isassetalreadyloaded(pz_id, pps_assetptr);
+	return ret == false ? 1 : 2;
 }
 
 /*
@@ -104,8 +105,8 @@ static bool marble_asset_internal_isusableid(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_asset_internal_register(
-	struct marble_asset *ps_asset /* asset to register */
+_Success_ok_ static marble_ecode_t marble_asset_internal_register(
+	_In_ struct marble_asset *ps_asset /* asset to register */
 ) { MB_ERRNO
 	if (ps_asset == NULL || gl_app.ms_assets.m_isinit == false)
 		return ps_asset ? MARBLE_EC_PARAM : MARBLE_EC_COMPSTATE;
@@ -143,9 +144,9 @@ static marble_ecode_t marble_asset_internal_register(
  * 
  * Returns non-zero in case of error, 0 on success.
  */
-static marble_ecode_t marble_asset_internal_unregister(
-	struct marble_asset *ps_asset, /* asset to register */
-	bool dofree                    /* Destroy asset as well? */
+_Success_ok_ static marble_ecode_t marble_asset_internal_unregister(
+	_In_ struct marble_asset *ps_asset, /* asset to register */
+	     bool dofree                    /* Destroy asset as well? */
 ) {
 	if (ps_asset == NULL || gl_app.ms_assets.m_isinit == false)
 		return ps_asset != NULL ? MARBLE_EC_PARAM : MARBLE_EC_COMPSTATE;
@@ -167,7 +168,7 @@ static marble_ecode_t marble_asset_internal_unregister(
  * Returns nothing.
  */
 static void marble_asset_internal_addref(
-	struct marble_asset *ps_asset /* asset to add ref to */
+	_In_ struct marble_asset *ps_asset /* asset to add ref to */
 ) {
 	/* Only increment ref-count if it is not -1, meaning the asset is persistent. */
 	if (ps_asset->m_refcount != -1)
@@ -183,7 +184,7 @@ static void marble_asset_internal_addref(
  * Returns nothing.
  */
 static void marble_asset_internal_release(
-	struct marble_asset *ps_asset /* asset to release */
+	_In_ struct marble_asset *ps_asset /* asset to release */
 ) {
 	if (ps_asset == NULL || ps_asset->m_refcount != -1)
 		return;
@@ -209,10 +210,10 @@ static void marble_asset_internal_release(
  * 
  * Returns 0 on success, non-zero on error.
  */
-static marble_ecode_t marble_asset_internal_evaldeptable(
-	struct marble_asset *ps_parent,   /* parent asset that contains the dependency table */
-	struct marble_util_file *ps_file, /* open file stream */
-	uint32_t numofdeps                /* number of dependency table entries */
+_Critical_ static marble_ecode_t marble_asset_internal_evaldeptable(
+	_In_ struct marble_asset *ps_parent,   /* parent asset that contains the dependency table */
+	_In_ struct marble_util_file *ps_file, /* open file stream */
+	     uint32_t numofdeps                /* number of dependency table entries */
 ) { MB_ERRNO
 	if (numofdeps == 0)
 		return MARBLE_EC_OK;
@@ -257,7 +258,6 @@ static marble_ecode_t marble_asset_internal_evaldeptable(
 				struct marble_asset *ps_asset = NULL;
 				ecode = marble_asset_internal_loadfromfile(
 					az_buffer, 
-					&ps_asset, 
 					&ps_asset
 				);
 				if (ecode != MARBLE_EC_OK && ecode != MARBLE_EC_DUPEDASSET)
@@ -266,7 +266,9 @@ static marble_ecode_t marble_asset_internal_evaldeptable(
 
 				/* Increment the ref-count and add it to the dependency list. */
 				marble_asset_internal_addref(ps_asset);
-				marble_util_vec_pushback(ps_parent->mps_deps, ps_asset);
+				ecode = marble_util_vec_pushback(ps_parent->mps_deps, ps_asset);
+				if (ecode != MARBLE_EC_OK)
+					goto lbl_CLEANUP;
 
 				/* 
 				 * Only try to register the asset if it is not a 
@@ -305,24 +307,33 @@ static marble_ecode_t marble_asset_internal_evaldeptable(
  * If **ptrpExistingAssetPtr** is not NULL and the asset is already loaded,
  * **ptrpExistingAssetPtr** will hold a pointer to the existing asset.
  */
-static marble_ecode_t marble_asset_internal_create(
-	enum marble_asset_type type,               /* type of the asset */
-	char const *pz_id,                         /* string ID */
-	struct marble_asset **pps_asset,           /* pointer to receive pointer to the newly-created asset */
-	struct marble_asset **pps_existingassetptr /* optional pointer to receive pointer to an existing asset of the same ID */
+_Critical_ static marble_ecode_t marble_asset_internal_create(
+	                  enum marble_asset_type type,    /* type of the asset */
+	_In_z_            char const *pz_id,              /* string ID */
+	_Init_(pps_asset) struct marble_asset **pps_asset /* pointer to receive pointer to the newly-created asset */
 ) { MB_ERRNO
-	if (pps_asset == NULL || marble_asset_internal_isvalidtype(type) == false)  return MARBLE_EC_PARAM;
-	if (marble_asset_internal_isusableid(pz_id, pps_existingassetptr) == false) return MARBLE_EC_ASSETID;
+	if (pps_asset == NULL || marble_asset_internal_isvalidtype(type) == false) {
+		ecode = MARBLE_EC_PARAM;
 
-	*pps_asset = NULL;
+		goto lbl_END;
+	}
+
+	if (marble_asset_internal_isusableid(pz_id, pps_asset) == false) {
+		ecode = MARBLE_EC_ASSETID;
+
+		goto lbl_END;
+	}
+
 	switch (type) {
 		default:
 			ecode = MARBLE_EC_UNIMPLFEATURE;
-	}
 
-	if (ecode == MARBLE_EC_OK)
-		marble_asset_internal_setid(*pps_asset, pz_id);
-	else
+			goto lbl_END;
+	}
+	marble_asset_internal_setid(*pps_asset, pz_id);
+
+lbl_END:
+	if (ecode != MARBLE_EC_OK)
 		marble_asset_destroy(pps_asset);
 
 	return ecode;
@@ -339,10 +350,9 @@ static marble_ecode_t marble_asset_internal_create(
  * If **ptrpExistingAssetPtr** is not NULL and the asset is already loaded,
  * **ptrpExistingAssetPtr** will hold a pointer to the existing asset.
  */
-static marble_ecode_t marble_asset_internal_loadfromfile(
-	char const *pz_path,                       /* path to asset file */
-	struct marble_asset **pps_asset,           /* pointer to newly-created asset */
-	struct marble_asset **pps_existingassetptr /* pointer to existing asset */
+_Critical_ static marble_ecode_t marble_asset_internal_loadfromfile(
+	_In_z_            char const *pz_path,            /* path to asset file */
+	_Init_(pps_asset) struct marble_asset **pps_asset /* pointer to newly-created asset */
 ) { MB_ERRNO
 	if (pps_asset == NULL)
 		return MARBLE_EC_PARAM;
@@ -375,8 +385,7 @@ static marble_ecode_t marble_asset_internal_loadfromfile(
 		ecode = marble_asset_internal_create(
 			s_commonhead.m_assettype, 
 			s_commonhead.mz_strid,
-			pps_asset,
-			pps_existingassetptr
+			pps_asset
 		);
 		if (ecode != MARBLE_EC_OK)
 			goto lbl_CLEANUP;
@@ -422,8 +431,7 @@ marble_ecode_t marble_application_loadasset(
 	struct marble_asset *ps_asset = NULL;
 	ecode = marble_asset_internal_loadfromfile(
 		pz_path,
-		&ps_asset,
-		NULL
+		&ps_asset
 	);
 	if (ecode != MARBLE_EC_OK)
 		return ecode;
@@ -441,7 +449,7 @@ marble_ecode_t marble_application_loadasset(
  * Returns nothing.
  */
 void marble_asset_destroy(
-	struct marble_asset **pps_asset /* asset to destroy */
+	_Uninit_(pps_asset) struct marble_asset **pps_asset /* asset to destroy */
 ) {
 	if (pps_asset == NULL || *pps_asset == NULL)
 		return;

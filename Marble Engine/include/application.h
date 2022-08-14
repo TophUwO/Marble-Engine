@@ -56,7 +56,7 @@ struct marble_layer {
 	 * allow executing code when a layer is being pushed
 	 * and popped from the internal layer stack.
 	 */
-	struct marble_layer_callbacks ms_cbs;
+	struct marble_layer_cbs ms_cbs;
 };
 
 

@@ -30,7 +30,10 @@ static struct marble_event_eventinfo { enum marble_evtype m_type; enum marble_ev
  * 
  * Returns event type name.
  */
-static char const *const marble_event_internal_getevtypename(enum marble_evtype type) {
+static char const *const marble_event_internal_getevtypename(
+	_In_range_(MARBLE_EVTYPE_UNKNOWN, __MARBLE_NUMEVTYPES__ - 1)
+	enum marble_evtype type
+) {
 	if (type >= __MARBLE_NUMEVTYPES__ || type < 0)
 		return marble_event_internal_getevtypename(MARBLE_EVTYPE_UNKNOWN);
 
@@ -39,9 +42,10 @@ static char const *const marble_event_internal_getevtypename(enum marble_evtype 
 
 
 void marble_event_construct(
-	void *p_evptr,
-	enum marble_evtype type,
-	void const *p_evdata
+	_Out_    void *p_evptr,
+	_In_range_(MARBLE_EVTYPE_UNKNOWN, __MARBLE_NUMEVTYPES__ - 1)
+	         enum marble_evtype type,
+	_In_opt_ void const *p_evdata
 ) {
 	if (p_evptr == NULL)
 		return;

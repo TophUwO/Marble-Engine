@@ -3,6 +3,8 @@
 #include <api.h>
 #include <error.h>
 
+#define _Maybe_out_z_ _When_(return == MARBLE_EC_OK, _Out_writes_z_(size))
+
 
 extern void marble_application_raisefatalerror(marble_ecode_t ecode);
 
@@ -19,24 +21,28 @@ extern void marble_application_raisefatalerror(marble_ecode_t ecode);
  * the pointer pointed to by **pp_memptr** is guaranteed to be
  * initialized with NULL.
  */
-marble_ecode_t inline marble_system_alloc(
-	size_t size,     /* requested size of the memory block, in bytes */
-	bool needzeroed, /* Should the requested memory be zeroed? */
-	/*
-	 * If this parameter is set to TRUE, the allocation is considered
-	 * critical; if the allocation fails, the function raises a fatal
-	 * error, resulting in a forced shutdown. This parameter should really
-	 * only be set to true for allocating resources used by Marble's subsystems.
-	 */
-	bool iscritical,
+_Critical_ marble_ecode_t inline marble_system_alloc(
+	_In_              size_t size,     /* requested size of the memory block, in bytes */
+	                  bool needzeroed, /* Should the requested memory be zeroed? */
+	                  /*
+	                   * If this parameter is set to TRUE, the allocation is considered
+	                   * critical; if the allocation fails, the function raises a fatal
+	                   * error, resulting in a forced shutdown. This parameter should really
+	                   * only be set to true for allocating resources used by Marble's subsystems.
+	                   */
+	                  bool iscritical,
 	/* 
 	 * Pointer to receive pointer to newly allocated memory.
 	 * This parameter must not be NULL. 
 	 */
-	void **pp_memptr
+	_Init_(pp_memptr) void **pp_memptr
 ) {
-	if (pp_memptr == NULL || size == 0)
+	if (pp_memptr == NULL || size == 0) {
+		if (pp_memptr != NULL)
+			*pp_memptr = NULL;
+
 		return MARBLE_EC_INTERNALPARAM;
+	}
 
 	/*
 	 * If **needzeroed** is non-zero, we call "calloc()" instead.
@@ -71,10 +77,10 @@ marble_ecode_t inline marble_system_alloc(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_system_cpystr(
-	char *restrict pz_dest,      /* destination memory */
-	char const *restrict pz_src, /* source memory */
-	size_t size				     /* destination size, in bytes */
+_Success_ok_ marble_ecode_t inline marble_system_cpystr(
+	_Maybe_out_z_ char *restrict pz_dest,      /* destination memory */
+	_In_opt_z_    char const *restrict pz_src, /* source memory */
+	_In_          size_t size				   /* destination size, in bytes */
 ) {
 	if (pz_dest == NULL || pz_src == NULL)
 		return MARBLE_EC_INTERNALPARAM;

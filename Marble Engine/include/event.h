@@ -125,9 +125,11 @@ struct marble_mouseevent {
  * Returns nothing.
  */
 extern void marble_event_construct(
-	void *p_evptr,           /* pointer to memory receiving data */
-	enum marble_evtype type, /* type of the event */ 
-	void const *p_evdata     /* additional data */
+	_Out_    void *p_evptr,           /* pointer to memory receiving data */
+	/* type of the event */ 
+	_In_range_(MARBLE_EVTYPE_UNKNOWN, __MARBLE_NUMEVTYPES__ - 1)
+	         enum marble_evtype type,
+	_In_opt_ void const *p_evdata     /* additional data */
 );
 
 /*

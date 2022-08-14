@@ -1,10 +1,6 @@
 #include <application.h>
 
 
-void marble_layer_destroy(
-	struct marble_layer **pps_layer
-);
-
 /* Global layer ID; gets incremented whenever a layer gets created. */
 static int volatile gl_layerid = 0;
 
@@ -25,9 +21,9 @@ static int volatile gl_layerid = 0;
  * validation before invoking the them.
  */
 #pragma region dummy callbacks
-static marble_layer_callback_onpush __marble_layer_internal_cbpush__(
-	int layerid,
-	void *p_userdata
+_Success_ok_ static marble_layer_callback_onpush __marble_layer_internal_cbpush__(
+	         int layerid,
+	_In_opt_ void *p_userdata
 ) {
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(p_userdata);
@@ -35,9 +31,9 @@ static marble_layer_callback_onpush __marble_layer_internal_cbpush__(
 	return MARBLE_EC_OK;
 }
 
-static marble_layer_callback_onpop __marble_layer_internal_cbpop__(
-	int layerid,
-	void *p_userdata
+_Success_ok_ static marble_layer_callback_onpop __marble_layer_internal_cbpop__(
+	         int layerid,
+	_In_opt_ void *p_userdata
 ) {
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(p_userdata);
@@ -45,10 +41,10 @@ static marble_layer_callback_onpop __marble_layer_internal_cbpop__(
 	return MARBLE_EC_OK;
 }
 
-static marble_layer_callback_onupdate __marble_layer_internal_cbupdate__(
-	int layerid,
-	float ft,
-	void *p_userdata
+_Success_ok_ static marble_layer_callback_onupdate __marble_layer_internal_cbupdate__(
+	         int layerid,
+	         float ft,
+	_In_opt_ void *p_userdata
 ) {
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(ft);
@@ -57,10 +53,10 @@ static marble_layer_callback_onupdate __marble_layer_internal_cbupdate__(
 	return MARBLE_EC_OK;
 }
 
-static marble_layer_callback_onevent __marble_layer_internal_cbevent__(
-	int layerid,
-	struct marble_event *p_event,
-	void *p_userdata
+_Success_ok_ static marble_layer_callback_onevent __marble_layer_internal_cbevent__(
+	         int layerid,
+	_In_     struct marble_event *p_event,
+	_In_opt_ void *p_userdata
 ) {
 	UNREFERENCED_PARAMETER(layerid);
 	UNREFERENCED_PARAMETER(p_event);
@@ -78,7 +74,7 @@ static marble_layer_callback_onevent __marble_layer_internal_cbevent__(
  * directly, and without extra validation.
  */
 static void marble_layer_internal_fixcbs(
-	struct marble_layer_callbacks *ps_cbs /* callback structure to "fix" */
+	_In_ struct marble_layer_cbs *ps_cbs /* callback structure to "fix" */
 ) {
 	ps_cbs->cb_onpush   = ps_cbs->cb_onpush   ? ps_cbs->cb_onpush   : (marble_layer_callback_onpush)&__marble_layer_internal_cbpush__;
 	ps_cbs->cb_onpop    = ps_cbs->cb_onpop    ? ps_cbs->cb_onpop    : (marble_layer_callback_onpop)&__marble_layer_internal_cbpop__;
@@ -92,8 +88,8 @@ static void marble_layer_internal_fixcbs(
  * Returns nothing.
  */
 static void marble_layer_internal_setcbs(
-	struct marble_layer_callbacks *restrict ps_dest,     /* callback structure to set */
-	struct marble_layer_callbacks const *restrict ps_src /* source callback structure */
+	_In_     struct marble_layer_cbs *restrict ps_dest,     /* callback structure to set */
+	_In_opt_ struct marble_layer_cbs const *restrict ps_src /* source callback structure */
 ) {
 	if (ps_src != NULL)
 		*ps_dest = *ps_src;
@@ -111,8 +107,8 @@ static void marble_layer_internal_setcbs(
  * Returns old userdata.
  */
 static void *marble_layer_setuserdata(
-	void **pp_dest,   /* userdata to set */
-	void const *p_src /* userdata pointer */
+	_Inout_ _Outptr_ void **pp_dest,   /* userdata to set */
+	_In_             void const *p_src /* userdata pointer */
 ) {
 	void *p_oldudata = *pp_dest;
 
@@ -128,9 +124,9 @@ static void *marble_layer_setuserdata(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_layer_internal_create(
-	bool isenabled,
-	struct marble_layer **pps_layer
+_Critical_ static marble_ecode_t marble_layer_internal_create(
+	                  bool isenabled,
+	_Init_(pps_layer) struct marble_layer **pps_layer
 ) { MB_ERRNO
 	if (pps_layer == NULL)
 		return MARBLE_EC_INTERNALPARAM;
@@ -153,9 +149,9 @@ static marble_ecode_t marble_layer_internal_create(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_layer_internal_push(
-	struct marble_layer *ps_layer, /* layer to push */
-	bool istopmost                 /* push as topmost? */
+_Success_ok_ static marble_ecode_t marble_layer_internal_push(
+	_In_ struct marble_layer *ps_layer, /* layer to push */
+	     bool istopmost                 /* push as topmost? */
 ) { MB_ERRNO
 	if (ps_layer == NULL)
 		return MARBLE_EC_INTERNALPARAM;
@@ -193,11 +189,11 @@ static marble_ecode_t marble_layer_internal_push(
 /*
  * Removes a layer from the layer stack. 
  */
-static marble_ecode_t marble_layer_internal_pop(
-	struct marble_layer *ps_layer /* layer to pop */
+_Success_ok_ static marble_ecode_t marble_layer_internal_pop(
+	_In_ struct marble_layer *ps_layer /* layer to pop */
 ) {
-	if (ps_layer == NULL)
-		return MARBLE_EC_INTERNALPARAM;
+	if (ps_layer == NULL)                       return MARBLE_EC_INTERNALPARAM;
+	if (gl_app.ms_layerstack.m_isinit == false) return MARBLE_EC_COMPSTATE;
 
 	/* Scan the entire layer stack. */
 	size_t index = marble_util_vec_find(
@@ -239,10 +235,48 @@ static marble_ecode_t marble_layer_internal_pop(
 }
 
 
+/*
+ * Destroys a layer.
+ * 
+ * If the layer that is to be destroyed is still pushed onto 
+ * the layer stack, it will be popped automatically.
+ * 
+ * Returns nothing.
+ */
+void marble_layer_destroy(
+	_Uninit_(pps_layer) struct marble_layer **pps_layer /* layer to destroy */
+) {
+	if (pps_layer == NULL || *pps_layer == NULL)
+		return;
+
+	/*
+	 * Pop the layer. Ideally, the "cb_onpop" handler will take care of
+	 * free'ing the userdata. If the user fails to do so, the memory that
+	 * is being occupied by the userdata will leak. This is only true, however,
+	 * when **marble_layer::mp_userdata** itself points to dynamically allocated memory
+	 * or **marble_layer::mp_userdata** contains pointers to dynamically allocated
+	 * memory.
+	 * We cannot do anything with the userdata here because we do now know the layout
+	 * of the struct.
+	 */
+	marble_layer_internal_pop(*pps_layer);
+
+	/* Free-up layer memory. */
+	free(*pps_layer);
+	*pps_layer = NULL;
+}
+
+
+/*
+ * The function underneath this comment does not have any annotations, as it
+ * can be called from outside the application, and I do not want to enfore the
+ * use of annotations outside of the engine itself.
+ */
+
 marble_ecode_t marble_application_createlayer(
 	bool isenabled,
 	bool istopmost,
-	struct marble_layer_callbacks const *p_callbacks,
+	struct marble_layer_cbs const *p_callbacks,
 	void const *p_userdata,                          													  
 	char const *pz_stringid,
 	int *p_layerid
@@ -255,7 +289,7 @@ marble_ecode_t marble_application_createlayer(
 		return MARBLE_EC_COMPSTATE;
 	}
 
-	struct marble_layer *ps_layer;
+	struct marble_layer *ps_layer = NULL;
 	ecode = marble_layer_internal_create(isenabled, &ps_layer);
 	if (ecode != MARBLE_EC_OK) {
 		*p_layerid = -1;
@@ -278,39 +312,6 @@ marble_ecode_t marble_application_createlayer(
 	marble_system_cpystr(ps_layer->maz_stringid, pz_stringid, MB_STRINGIDMAX);
 
 	return MARBLE_EC_OK;
-}
-
-/*
- * Destroys a layer.
- * 
- * If the layer that is to be destroyed is still pushed onto 
- * the layer stack, it will be popped automatically.
- * 
- * Returns nothing.
- */
-void marble_layer_destroy(
-	struct marble_layer **pps_layer /* layer to destroy */
-) { MB_ERRNO
-	if (pps_layer == NULL || *pps_layer == NULL || gl_app.ms_layerstack.m_isinit == false)
-		return;
-
-	/*
-	 * Pop the layer. Ideally, the "cb_onpop" handler will take care of
-	 * free'ing the userdata. If the user fails to do so, the memory that
-	 * is being occupied by the userdata will leak. This is only true, however,
-	 * when **marble_layer::mp_userdata** itself points to dynamically allocated memory
-	 * or **marble_layer::mp_userdata** contains pointers to dynamically allocated
-	 * memory.
-	 * We cannot do anything with the userdata here because we do now know the layout
-	 * of the struct.
-	 */
-	ecode = marble_layer_internal_pop(*pps_layer);
-	if (ecode != MARBLE_EC_OK)
-		return;
-
-	/* Free-up layer memory. */
-	free(*pps_layer);
-	*pps_layer = NULL;
 }
 
 

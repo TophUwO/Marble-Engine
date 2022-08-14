@@ -31,7 +31,7 @@ marble_ecode_t MB_CALLBACK marble_layer1_onupdate(int layerid, float frametime, 
 }
 
 marble_ecode_t MB_CALLBACK marble_callback_userinit(char const *pz_cmdline) {
-	struct marble_layer_callbacks s_callbacks = {
+	struct marble_layer_cbs s_callbacks = {
 		.cb_onpush   = &marble_layer1_onpush,
 		.cb_onupdate = &marble_layer1_onupdate
 	};

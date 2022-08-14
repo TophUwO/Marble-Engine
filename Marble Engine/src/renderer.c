@@ -132,7 +132,7 @@ D2D1_BITMAP_PROPERTIES1 const gls_d2dbmpprops = {
  * Returns nothing.
  */
 static void marble_d2drenderer_internal_releaseintermresources(
-	struct marble_d2drenderer_intermres *ps_resources /* resources to free */
+	_Inout_ struct marble_d2drenderer_intermres *ps_resources /* resources to free */
 ) {
 	marble_d2drenderer_release_s_Vtbl(ps_resources->ps_dxgibuf);
 	marble_d2drenderer_release_s_Vtbl(ps_resources->ps_dxgifac);
@@ -146,18 +146,19 @@ static void marble_d2drenderer_internal_releaseintermresources(
  * 
  * Passes through **ecode** variable as return value.
  */
-static marble_ecode_t marble_d2drenderer_internal_cleanup(
-	struct marble_renderer_d2d *ps_renderer, /* renderer to free resources of */
-	int ecode,                               /* pass-through error code */
-	HWND *p_restoredhwnd                     /* HWND used to recreate renderer if needed */
+_Success_ok_ static marble_ecode_t marble_d2drenderer_internal_cleanup(
+	_Inout_       struct marble_renderer_d2d *ps_renderer, /* renderer to free resources of */
+	              int ecode,                               /* pass-through error code */
+	_Maybe_valid_ HWND *p_restoredhwnd                     /* HWND used to recreate renderer if needed */
 ) {
+	*p_restoredhwnd = NULL;
 	/*
-	 * If the error code variable is set and **p_restoredhwnd** is non-NULL,
+	 * If the error code variable is set,
 	 * (e.g. when we want to recreate the renderer), save the underlying window
 	 * handle so we can associate our recreated renderer with it.
 	 */
 	if (ecode) {
-		if (p_restoredhwnd && MB_D2DSWAPCHAIN_DIR(ps_renderer))
+		if (MB_D2DSWAPCHAIN_DIR(ps_renderer))
 			MB_D2DSWAPCHAIN_VT_DIR(ps_renderer)->GetHwnd(MB_D2DSWAPCHAIN_DIR(ps_renderer), p_restoredhwnd);
 
 		marble_d2drenderer_release_s(ID2D1Factory *, D2DWr_Factory_Release, ps_renderer->mp_d2dfactory);
@@ -177,13 +178,13 @@ static marble_ecode_t marble_d2drenderer_internal_cleanup(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_d2drenderer_internal_init(
-	HWND p_target, /* window to associate renderer with */
+_Critical_ static marble_ecode_t marble_d2drenderer_internal_init(
+	_In_  HWND p_target, /* window to associate renderer with */
 	/*
 	 * Pointer to a "marble_renderer_direct2drenderer" structure whose members
 	 * will be initialized one-by-one.
 	 */
-	struct marble_renderer_d2d *ps_renderer
+	_Out_ struct marble_renderer_d2d *ps_renderer
 ) { MB_ERRNO; MB_COMERRNO
 	ID3D11Device  *ps_d3d11dev    = NULL;
 	IDXGIDevice   *ps_dxgidev     = NULL;
@@ -356,9 +357,10 @@ lbl_CLEANUP:
  * Returns nothing.
  */
 static void marble_d2drenderer_internal_destroy(
-	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer to destroy */
+	_Inout_ struct marble_renderer_d2d *ps_renderer /* Direct2D renderer to destroy */
 ) {
-	marble_d2drenderer_internal_cleanup(ps_renderer, MARBLE_EC_UNKNOWN, NULL);
+	HWND p_dummywnd = NULL;
+	marble_d2drenderer_internal_cleanup(ps_renderer, MARBLE_EC_UNKNOWN, &p_dummywnd);
 }
 
 /*
@@ -369,11 +371,11 @@ static void marble_d2drenderer_internal_destroy(
  * Returns nothing.
  */
 static void marble_d2drenderer_internal_clear(
-	struct marble_renderer_d2d *ps_renderer, /* Direct2D renderer */
-	float fRed,                              /* red component */
-	float fGreen,                            /* green component */
-	float fBlue,                             /* blue component */
-	float fAlpha                             /* alpha component */
+	_In_ struct marble_renderer_d2d *ps_renderer, /* Direct2D renderer */
+	     float fRed,                              /* red component */
+	     float fGreen,                            /* green component */
+	     float fBlue,                             /* blue component */
+	     float fAlpha                             /* alpha component */
 ) {
 	D2D1_COLOR_F const sColor = {
 		.r = fRed,
@@ -391,7 +393,7 @@ static void marble_d2drenderer_internal_clear(
  * Returns nothing.
  */
 static void marble_d2drenderer_internal_begindraw(
-	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer */
+	_In_ struct marble_renderer_d2d *ps_renderer /* Direct2D renderer */
 ) {
 	D2DWr_DeviceContext_BeginDraw(ps_renderer->mp_devicectxt);
 }
@@ -402,7 +404,7 @@ static void marble_d2drenderer_internal_begindraw(
  * Returns nothing.
  */
 static void marble_d2drenderer_internal_enddraw(
-	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer */
+	_In_ struct marble_renderer_d2d *ps_renderer /* Direct2D renderer */
 ) {
 	D2DWr_DeviceContext_EndDraw(ps_renderer->mp_devicectxt, NULL, NULL);
 }
@@ -412,8 +414,8 @@ static void marble_d2drenderer_internal_enddraw(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_d2drenderer_internal_recreatedevctxt(
-	struct marble_renderer_d2d *ps_renderer /* Direct2D renderer to recreate */
+_Critical_ static marble_ecode_t marble_d2drenderer_internal_recreatedevctxt(
+	_In_ struct marble_renderer_d2d *ps_renderer /* Direct2D renderer to recreate */
 ) { MB_ERRNO
 	HRESULT res = S_OK;
 	IDXGISurface *ps_dxgibackbuf = NULL;
@@ -481,10 +483,10 @@ lbl_CLEANUP:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_d2drenderer_internal_resize(
-	struct marble_renderer_d2d *ps_renderer, /* Direct2D renderer to resize */
-	UINT newwidth,                           /* new width, in pixels */
-	UINT newheight                           /* new height, in pixels */
+_Critical_ static marble_ecode_t marble_d2drenderer_internal_resize(
+	_In_ struct marble_renderer_d2d *ps_renderer, /* Direct2D renderer to resize */
+	     UINT newwidth,                           /* new width, in pixels */
+	     UINT newheight                           /* new height, in pixels */
 ) {
 	/*
 	 * Release outstanding references to DXGI's backbuffer,
@@ -518,8 +520,8 @@ static marble_ecode_t marble_d2drenderer_internal_resize(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_d2drenderer_internal_recreate(
-	struct marble_renderer_d2d *ps_renderer
+_Critical_ static marble_ecode_t marble_d2drenderer_internal_recreate(
+	_In_ struct marble_renderer_d2d *ps_renderer
 ) {
 	/*
 	 * Because the reference to the window handle is lost when we destroy the window,
@@ -538,14 +540,15 @@ static marble_ecode_t marble_d2drenderer_internal_recreate(
 #pragma endregion
 
 
-marble_ecode_t marble_renderer_create(
-	enum marble_renderer_api api,
-	HWND p_target,
-	struct marble_renderer **pps_renderer
+_Critical_ marble_ecode_t marble_renderer_create(
+	                     enum marble_renderer_api api,
+	_In_                 HWND p_target,
+	_Init_(pps_renderer) struct marble_renderer **pps_renderer
 ) { MB_ERRNO
 	if (pps_renderer == NULL || p_target == NULL)
 		return MARBLE_EC_INTERNALPARAM;
 
+	*pps_renderer = NULL;
 	ecode = marble_system_alloc(
 		sizeof **pps_renderer,
 		false,
@@ -578,9 +581,9 @@ marble_ecode_t marble_renderer_create(
 }
 
 void marble_renderer_destroy(
-	struct marble_renderer **pps_renderer
+	_Uninit_(pps_renderer) struct marble_renderer **pps_renderer
 ) {
-	if (pps_renderer == NULL || *pps_renderer == NULL || (*pps_renderer)->m_isinit == false)
+	if (pps_renderer == NULL || *pps_renderer == NULL)
 		return;
 
 	/* Release render API-specific objects. */
@@ -597,7 +600,7 @@ void marble_renderer_destroy(
 }
 
 void marble_renderer_begindraw(
-	struct marble_renderer *ps_renderer
+	_In_ struct marble_renderer *ps_renderer
 ) {
 	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
 		return;
@@ -612,7 +615,7 @@ void marble_renderer_begindraw(
 }
 
 void marble_renderer_enddraw(
-	struct marble_renderer *ps_renderer
+	_In_ struct marble_renderer *ps_renderer
 ) {
 	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
 		return;
@@ -626,8 +629,8 @@ void marble_renderer_enddraw(
 	}
 }
 
-marble_ecode_t marble_renderer_present(
-	struct marble_renderer **pps_renderer
+_Critical_ marble_ecode_t marble_renderer_present(
+	_In_ struct marble_renderer **pps_renderer
 ) { MB_ERRNO
 	if (pps_renderer == NULL || *pps_renderer == NULL) return MARBLE_EC_INTERNALPARAM;
 	if ((*pps_renderer)->m_isinit == false)            return MARBLE_EC_COMPSTATE;
@@ -660,10 +663,10 @@ marble_ecode_t marble_renderer_present(
 	return MARBLE_EC_OK;
 }
 
-marble_ecode_t marble_renderer_resize(
-	struct marble_renderer *ps_renderer,
-	uint32_t newwidth,
-	uint32_t newheight
+_Success_ok_ marble_ecode_t marble_renderer_resize(
+	_In_ struct marble_renderer *ps_renderer,
+	     uint32_t newwidth,
+	     uint32_t newheight
 ) {
 	if (ps_renderer == NULL)            return MARBLE_EC_INTERNALPARAM;
 	if (ps_renderer->m_isinit == false) return MARBLE_EC_COMPSTATE;
@@ -677,11 +680,11 @@ marble_ecode_t marble_renderer_resize(
 }
 
 void marble_renderer_clear(
-	struct marble_renderer *ps_renderer,
-	float red,
-	float green,
-	float blue,
-	float alpha
+	_In_ struct marble_renderer *ps_renderer,
+	     float red,
+	     float green,
+	     float blue,
+	     float alpha
 ) {
 	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
 		return;

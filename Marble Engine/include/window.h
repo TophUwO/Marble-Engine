@@ -44,17 +44,17 @@ struct marble_window {
  * 
  * Returns non-zero on failure, 0 on success.
  */
-extern marble_ecode_t marble_window_create(
-	char const *pz_title, /* window title */
-	uint32_t width,       /* width in pixels */
-	uint32_t height,      /* height in pixels */
-	bool isvsync,         /* Should VSync be enabled? */
+_Critical_ extern marble_ecode_t marble_window_create(
+	_In_z_          char const *pz_title, /* window title */
+	_In_            uint32_t width,       /* width in pixels */
+	_In_            uint32_t height,      /* height in pixels */
+	                bool isvsync,         /* Should VSync be enabled? */
 	/*
 	 * Pointer to a pointer to a "marble_window" structure
 	 * that will receive the freshly-created window. 
 	 * This parameter must not be NULL.
 	 */
-	struct marble_window **pps_window
+	_Init_(pps_wnd) struct marble_window **pps_wnd
 );
 
 /*
@@ -72,7 +72,7 @@ extern void marble_window_destroy(
 	 * structure that should be destroyed.
 	 * This parameter must not be NULL. 
 	 */
-	struct marble_window **pps_window
+	_Uninit_(pps_wnd) struct marble_window **pps_wnd
 );
 
 /*
@@ -81,8 +81,8 @@ extern void marble_window_destroy(
  * Returns nothing.
  */
 extern void inline marble_window_setfullscreen(
-	struct marble_window *ps_window, /* window to be modified */
-	bool isenabled                  /* enable or disable */
+	_In_ struct marble_window *ps_wnd, /* window to be modified */
+	     bool isenabled                /* enable or disable */
 );
 
 /*
@@ -91,8 +91,8 @@ extern void inline marble_window_setfullscreen(
 * Returns nothing.
 */
 extern void inline marble_window_setvsync(
-	struct marble_window *ps_window, /* window to be modified */
-	bool isenabled                  /* enable or disable */
+	_In_ struct marble_window *ps_wnd, /* window to be modified */
+	     bool isenabled                /* enable or disable */
 );
 
 /*
@@ -104,8 +104,8 @@ extern void inline marble_window_setvsync(
  * Returns nothing.
  */
 extern void marble_window_update(
-	struct marble_window *ps_window, /* window to be modified */
-	float frametime                 /* current frametime */
+	_In_ struct marble_window *ps_wnd, /* window to be modified */
+	     float frametime               /* current frametime */
 );
 
 /*
@@ -119,10 +119,10 @@ extern void marble_window_update(
  * Returns nothing.
  */
 extern void marble_window_resize(
-	struct marble_window *ps_window, /* window to be modified */
-	uint32_t width,                 /* width, in tiles */
-	uint32_t height,                /* height, in tiles */
-	uint32_t tsize                  /* tile size, in pixels */
+	_In_ struct marble_window *ps_wnd, /* window to be modified */
+	     uint32_t width,               /* width, in tiles */
+	     uint32_t height,              /* height, in tiles */
+	     uint32_t tsize                /* tile size, in pixels */
 );
 
 

@@ -13,6 +13,12 @@
  * readability.
  */
 #if (defined MB_DYNAMIC_LIBRARY)
+	#define _Init_(param)      _Post_satisfies_(*param != NULL) _On_failure_(_Post_satisfies_(param != NULL ? (*param == NULL) : 1))
+	#define _Uninit_(param)    _Post_satisfies_(*param == NULL)
+	#define _Success_ok_       _Success_(return == MARBLE_EC_OK)
+	#define _Critical_         _Check_return_ _Success_ok_
+	#define _Size_(size)       _Out_writes_bytes_(size)
+	#define _Maybe_valid_      _Outptr_result_maybenull_
 #endif
 
 

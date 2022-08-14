@@ -220,29 +220,29 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 }
 
 
-marble_ecode_t marble_window_create(
-	char const *const pz_title,
-	uint32_t width,
-	uint32_t height,
-	bool isvsync,
-	struct marble_window **pps_window
+_Critical_ marble_ecode_t marble_window_create(
+	_In_z_          char const *const pz_title,
+	_In_            uint32_t width,
+	_In_            uint32_t height,
+	                bool isvsync,
+	_Init_(pps_wnd) struct marble_window **pps_wnd
 ) { MB_ERRNO
-	if (pps_window == NULL)
+	if (pps_wnd == NULL)
 		return MARBLE_EC_PARAM;
 
 	ecode = marble_system_alloc(
-		sizeof **pps_window,
+		sizeof **pps_wnd,
 		true,
 		false,
-		pps_window
+		pps_wnd
 	);
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_ERROR;
 
-	(*pps_window)->ms_data.ms_extends.ms_window = (struct marble_sizei2d){ width, height };
-	(*pps_window)->ms_data.m_isvsync            = isvsync;
-	(*pps_window)->ms_data.m_isfscreen          = FALSE;
-	(*pps_window)->ms_data.m_style              = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
+	(*pps_wnd)->ms_data.ms_extends.ms_window = (struct marble_sizei2d){ width, height };
+	(*pps_wnd)->ms_data.m_isvsync            = isvsync;
+	(*pps_wnd)->ms_data.m_isfscreen          = FALSE;
+	(*pps_wnd)->ms_data.m_style              = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
 
 	WNDCLASSEX s_wndclassdesc = {
 		.cbSize        = sizeof s_wndclassdesc,
@@ -260,11 +260,11 @@ marble_ecode_t marble_window_create(
 		goto lbl_ERROR;
 	}
 
-	(*pps_window)->mp_handle = CreateWindowEx(
+	(*pps_wnd)->mp_handle = CreateWindowEx(
 		0, 
 		glpz_wndclassname, 
 		TEXT("(placeholder window title)"), 
-		(*pps_window)->ms_data.m_style,
+		(*pps_wnd)->ms_data.m_style,
 		CW_USEDEFAULT, 
 		CW_USEDEFAULT, 
 		(int)width, 
@@ -272,9 +272,9 @@ marble_ecode_t marble_window_create(
 		NULL, 
 		NULL, 
 		gl_app.mp_inst,
-		*pps_window
+		*pps_wnd
 	);
-	if (*pps_window == NULL) {
+	if (*pps_wnd == NULL) {
 		// TODO: add support for creating non-main windows
 		ecode = MARBLE_EC_CREATEMAINWND;
 
@@ -282,9 +282,9 @@ marble_ecode_t marble_window_create(
 	}
 
 	RECT s_clientrect;
-	GetClientRect((*pps_window)->mp_handle, &s_clientrect);
+	GetClientRect((*pps_wnd)->mp_handle, &s_clientrect);
 
-	(*pps_window)->ms_data.ms_extends.ms_client = (struct marble_sizei2d){
+	(*pps_wnd)->ms_data.ms_extends.ms_client = (struct marble_sizei2d){
 		(uint32_t)s_clientrect.right,
 		(uint32_t)s_clientrect.bottom
 	};
@@ -293,24 +293,24 @@ marble_ecode_t marble_window_create(
 
 lbl_ERROR:
 	UnregisterClass(glpz_wndclassname, gl_app.mp_inst);
-	marble_window_destroy(pps_window);
+	marble_window_destroy(pps_wnd);
 
 	return ecode;
 }
 
 void marble_window_destroy(
-	struct marble_window **pps_window
+	_Uninit_(pps_wnd) struct marble_window **pps_wnd
 ) {
-	if (pps_window == NULL)
+	if (pps_wnd == NULL)
 		return;
 
-	free(*pps_window);
-	*pps_window = NULL;
+	free(*pps_wnd);
+	*pps_wnd = NULL;
 }
 
 void marble_window_setfullscreen(
-	struct marble_window *ps_window,
-	bool isenabled
+	_In_ struct marble_window *ps_window,
+	     bool isenabled
 ) {
 	if (ps_window == NULL)
 		return;
@@ -326,28 +326,28 @@ void marble_window_setfullscreen(
 }
 
 void marble_window_setvsync(
-	struct marble_window *ps_window,
-	bool isenabled
+	_In_ struct marble_window *ps_wnd,
+	     bool isenabled
 ) {
 	/*
 	 * We just have to set this boolean variable to the
 	 * value we want. The renderer will automatically
 	 * query the value every time it presents a frame.
 	 */
-	if (ps_window != NULL)
-		ps_window->ms_data.m_isvsync = isenabled;
+	if (ps_wnd != NULL)
+		ps_wnd->ms_data.m_isvsync = isenabled;
 }
 
 void marble_window_update(
-	struct marble_window *ps_window,
-	float fFrameTime
+	_In_ struct marble_window *ps_wnd,
+	     float fFrameTime
 ) {
 	LARGE_INTEGER u_time;
 	QueryPerformanceCounter(&u_time);
 
 	/* Set window text to show current FPS. */
-	if (u_time.QuadPart - ps_window->ms_data.m_lastupdate > 0.5f * gl_pfreq) {
-		ps_window->ms_data.m_lastupdate = u_time.QuadPart;
+	if (u_time.QuadPart - ps_wnd->ms_data.m_lastupdate > 0.5f * gl_pfreq) {
+		ps_wnd->ms_data.m_lastupdate = u_time.QuadPart;
 
 		TCHAR az_buffer[256] = { 0 };
 		_stprintf_s(
@@ -357,30 +357,30 @@ void marble_window_update(
 			(int)(1.0f / fFrameTime)
 		);
 
-		SetWindowText(ps_window->mp_handle, az_buffer);
+		SetWindowText(ps_wnd->mp_handle, az_buffer);
 	}
 }
 
 void marble_window_resize(
-	struct marble_window *ps_window,
-	uint32_t width,
-	uint32_t height,
-	uint32_t tsize
+	_In_ struct marble_window *ps_wnd,
+	     uint32_t width,
+	     uint32_t height,
+	     uint32_t tsize
 ) {
-	if (ps_window == NULL || width * height * tsize == 0)
+	if (ps_wnd == NULL || width * height * tsize == 0)
 		return;
 
 	/* Get window info and window's monitor size. */
 	MONITORINFO s_moninfo = { .cbSize = sizeof s_moninfo };
 	HMONITOR p_monitor = MonitorFromWindow(
-		ps_window->mp_handle,
+		ps_wnd->mp_handle,
 		MONITOR_DEFAULTTOPRIMARY
 	);
 	GetMonitorInfo(p_monitor, &s_moninfo);
 
 	/* Compute total window size based on requested render target size. */
 	RECT s_wndrect = { 0, 0, (LONG)(width * tsize), (LONG)(height * tsize) };
-	AdjustWindowRect(&s_wndrect, ps_window->ms_data.m_style, FALSE);
+	AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, FALSE);
 
 	/* Is our desired size too large for our display device? */
 	float const scr_w = (float)abs(s_moninfo.rcWork.right - s_moninfo.rcWork.left);
@@ -398,16 +398,16 @@ void marble_window_resize(
 			(int)(width * scale) * tsize,
 			(int)(height * scale) * tsize
 		};
-		AdjustWindowRect(&s_wndrect, ps_window->ms_data.m_style, FALSE);
+		AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, FALSE);
 
 		/* Calculate window and render area size. */
-		ps_window->ms_data.ms_extends.m_tsize = tsize;
+		ps_wnd->ms_data.ms_extends.m_tsize = tsize;
 
-		ps_window->ms_data.ms_extends.ms_client = (struct marble_sizei2d){
+		ps_wnd->ms_data.ms_extends.ms_client = (struct marble_sizei2d){
 			(SHORT)(width * scale) * tsize,
 			(SHORT)(height * scale) * tsize
 		};
-		ps_window->ms_data.ms_extends.ms_window = (struct marble_sizei2d){
+		ps_wnd->ms_data.ms_extends.ms_window = (struct marble_sizei2d){
 			abs(s_wndrect.right - s_wndrect.left),
 			abs(s_wndrect.bottom - s_wndrect.top)
 		};
@@ -415,13 +415,13 @@ void marble_window_resize(
 
 	/* Resize window and renderer. */
 	MoveWindow(
-		ps_window->mp_handle,
+		ps_wnd->mp_handle,
 		0, 0,
-		ps_window->ms_data.ms_extends.ms_window.m_width,
-		ps_window->ms_data.ms_extends.ms_window.m_height,
+		ps_wnd->ms_data.ms_extends.ms_window.m_width,
+		ps_wnd->ms_data.ms_extends.ms_window.m_height,
 		TRUE
 	);
-	marble_window_internal_computedrawingorigin(ps_window);
+	marble_window_internal_computedrawingorigin(ps_wnd);
 }
 
 

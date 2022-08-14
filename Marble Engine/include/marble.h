@@ -35,7 +35,7 @@ struct marble_app_settings {
 
 
 #pragma region marble_application
-struct marble_layer_callbacks;
+struct marble_layer_cbs;
 
 /*
  * Creates a user-defined layer.
@@ -59,8 +59,8 @@ MB_API marble_ecode_t marble_application_createlayer(
 	 * will always be rendered in the order they were pushed.
 	 */
 	bool istopmost,
-	struct marble_layer_callbacks const *p_callbacks, /* user-defined callback functions */
-	void const *p_userdata,                           /* optional userdata */
+	struct marble_layer_cbs const *p_callbacks, /* user-defined callback functions */
+	void const *p_userdata,                     /* optional userdata */
 	/*
 	 * Optional string id; used only internally.
 	 * 
@@ -112,7 +112,7 @@ typedef marble_ecode_t (MB_CALLBACK *marble_layer_callback_onevent)(
  * cb_onupdate: Called once every frame.
  * cb_onevent:  Called upon receiving a system event.
  */
-struct marble_layer_callbacks {
+struct marble_layer_cbs {
 	marble_layer_callback_onpush   cb_onpush;
 	marble_layer_callback_onpop    cb_onpop;
 	marble_layer_callback_onupdate cb_onupdate;

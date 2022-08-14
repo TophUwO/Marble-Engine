@@ -59,9 +59,7 @@ typedef enum marble_ecode {
 	MARBLE_EC_RENDERAPI,
 	MARBLE_EC_CREATERENDERER,//
 
-#if (defined MB_DYNAMIC_LIBRARY)
 	__MARBLE_NUMERRORCODES__ /* for internal use */
-#endif
 } marble_ecode_t;
 
 
@@ -75,7 +73,9 @@ typedef enum marble_ecode {
  * Returns error code string.
  */
 MB_API char const *const marble_error_getstr(
-	marble_ecode_t ecode /* error code to get string representation for */
+	/* error code to get string representation for */
+	_In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
+	marble_ecode_t ecode
 );
 
 /*
@@ -91,7 +91,9 @@ MB_API char const *const marble_error_getstr(
  * Returns error code description string.
  */
 MB_API char const *const marble_error_getdesc(
-	marble_ecode_t ecode /* error code to get description string for */
+	/* error code to get description string for */
+	_In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
+	marble_ecode_t ecode
 );
 
 

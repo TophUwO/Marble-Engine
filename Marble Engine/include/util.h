@@ -38,7 +38,7 @@ struct marble_util_vec {
  * Returns nothing.
  */
 void inline marble_util_vec_destroy(
-	struct marble_util_vec **pps_vector /* vector to destroy */ 
+	_Uninit_(pps_vector) struct marble_util_vec **pps_vector /* vector to destroy */ 
 ) {
 	if (pps_vector == NULL || *pps_vector == NULL)
 		return;
@@ -59,14 +59,14 @@ void inline marble_util_vec_destroy(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_vec_create(
-	size_t startcap,                      /* initial capacity */
-	void (MB_CALLBACK *fn_dest)(void **), /* object destructor */
+_Critical_ marble_ecode_t inline marble_util_vec_create(
+	_In_opt_           size_t startcap,                      /* initial capacity */
+	_In_opt_           void (MB_CALLBACK *fn_dest)(void **), /* object destructor */
 	/*
 	 * Pointer to a "struct marble_util_vec *" pointer that will
 	 * receive the pointer to the newly-created vector.
 	 */
-	struct marble_util_vec **pps_vector
+	_Init_(pps_vector) struct marble_util_vec **pps_vector
 ) { MB_ERRNO
 	if (pps_vector == NULL)
 		return MARBLE_EC_PARAM;
@@ -124,10 +124,10 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_vec_insert(
-	struct marble_util_vec *ps_vector, /* vector to modify */
-	void *p_obj,                       /* object pointer to insert */
-	size_t index                       /* position where to insert **p_obj** */
+_Success_ok_ marble_ecode_t inline marble_util_vec_insert(
+	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
+	_In_ void *p_obj,                       /* object pointer to insert */
+	     size_t index                       /* position where to insert **p_obj** */
 ) {
 	if (ps_vector == NULL || p_obj == NULL || index > ps_vector->m_size)
 		return MARBLE_EC_PARAM;
@@ -188,9 +188,9 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_vec_pushback(
-	struct marble_util_vec *ps_vector, /* vector to modify */
-	void *p_obj                        /* object to insert */
+_Success_ok_ marble_ecode_t inline marble_util_vec_pushback(
+	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
+	_In_ void *p_obj                        /* object to insert */
 ) {
 	return marble_util_vec_insert(ps_vector, p_obj, ps_vector->m_size);
 }
@@ -201,9 +201,9 @@ marble_ecode_t inline marble_util_vec_pushback(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_vec_pushfront(
-	struct marble_util_vec *ps_vector, /* vector to modify */
-	void *p_obj                        /* object to insert */
+_Success_ok_ marble_ecode_t inline marble_util_vec_pushfront(
+	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
+	_In_ void *p_obj                        /* object to insert */
 ) {
 	return marble_util_vec_insert(ps_vector, p_obj, 0);
 }
@@ -219,14 +219,14 @@ marble_ecode_t inline marble_util_vec_pushfront(
  * object was not freed.
  */
 void inline *marble_util_vec_erase(
-	struct marble_util_vec *ps_vector, /* vector to modify */
-	size_t index,                      /* object to insert */
-	/*
-	 * This member can be used to override the freeing-behavior
-	 * of this function. If this parameter is non-zero, it will
-	 * not run the destructor, even if it is set and valid.
-	 */
-	bool rundest
+	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
+	     size_t index,                      /* object to insert */
+	     /*
+	      * This member can be used to override the freeing-behavior
+	      * of this function. If this parameter is non-zero, it will
+	      * not run the destructor, even if it is set and valid.
+	      */
+	     bool rundest
 ) {
 	if (ps_vector == NULL || index >= ps_vector->m_size)
 		return NULL;
@@ -271,8 +271,8 @@ void inline *marble_util_vec_erase(
  * it.
  */
 void inline *marble_util_vec_popback(
-	struct marble_util_vec *ps_vector, /* vector to modify */
-	bool rundest                       /* run object destructor? */
+	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
+	     bool rundest                       /* run object destructor? */
 ) {
 	return marble_util_vec_erase(ps_vector, ps_vector->m_size - 1, rundest);
 }
@@ -286,8 +286,8 @@ void inline *marble_util_vec_popback(
  * it.
  */
 void inline *marble_util_vec_popfront(
-	struct marble_util_vec *ps_vector, /* vector to modify */
-	bool rundest                       /* run object destructor? */
+	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
+	     bool rundest                       /* run object destructor? */
 ) {
 	return marble_util_vec_erase(ps_vector, 0, rundest);
 }
@@ -303,10 +303,10 @@ void inline *marble_util_vec_popfront(
  * returns (size_t)(-1).
  */
 size_t inline marble_util_vec_find(
-	struct marble_util_vec *ps_vector, /* vector to modify */
-	void *p_obj,                       /* object to search for */
-	size_t start,                      /* first index of searching range */
-	size_t end                         /* last index of searching range */
+	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
+	_In_ void *p_obj,                       /* object to search for */
+	     size_t start,                      /* first index of searching range */
+	     size_t end                         /* last index of searching range */
 ) {
 	if (ps_vector == NULL || p_obj == NULL || start > end || start >= ps_vector->m_size || end >= ps_vector->m_size)
 		return MARBLE_EC_PARAM;
@@ -345,7 +345,7 @@ size_t inline marble_util_vec_find(
  * on error.
  */
 void inline *marble_util_vec_get(
-	struct marble_util_vec *ps_vector, /* vector to read */
+	_In_ struct marble_util_vec *ps_vector, /* vector to read */
 	     size_t index                       /* index */
 ) {
 	if (ps_vector == NULL || index >= ps_vector->m_size)
@@ -376,7 +376,7 @@ struct marble_util_clock {
  * Returns nothing.
  */
 void inline marble_util_clock_start(
-	struct marble_util_clock *ps_clock /* clock to start/reset */
+	_Out_ struct marble_util_clock *ps_clock /* clock to start/reset */
 ) {
 #if (defined MB_PLATFORM_WINDOWS)
 	QueryPerformanceCounter((LARGE_INTEGER *)&ps_clock->m_tstart);
@@ -390,7 +390,7 @@ void inline marble_util_clock_start(
  * Returns nothing.
  */
 void inline marble_util_clock_stop(
-	struct marble_util_clock *ps_clock /* clock to stop */
+	_Out_ struct marble_util_clock *ps_clock /* clock to stop */
 ) {
 #if (defined MB_PLATFORM_WINDOWS)
 	QueryPerformanceCounter((LARGE_INTEGER *)&ps_clock->m_tend);
@@ -404,7 +404,7 @@ void inline marble_util_clock_stop(
  * Returns elapsed time, in seconds.
  */
 double inline marble_util_clock_assec(
-	struct marble_util_clock *ps_clock /* clock */
+	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (double)gl_pfreq;
 }
@@ -416,7 +416,7 @@ double inline marble_util_clock_assec(
  * Returns elapsed time, in milliseconds.
  */
 double inline marble_util_clock_asmsec(
-	struct marble_util_clock *ps_clock /* clock */
+	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+3);
 }
@@ -428,7 +428,7 @@ double inline marble_util_clock_asmsec(
  * Returns elapsed time, in microseconds.
  */
 double inline marble_util_clock_asmcsec(
-	struct marble_util_clock *ps_clock /* clock */
+	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+6);
 }
@@ -440,7 +440,7 @@ double inline marble_util_clock_asmcsec(
  * Returns elapsed time, in nanoseconds.
  */
 double inline marble_util_clock_asnsec(
-	struct marble_util_clock *ps_clock /* clock */
+	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+9);
 }
@@ -476,7 +476,7 @@ struct marble_util_file {
  * Returns nothing.
  */
 void inline marble_util_file_destroy(
-	struct marble_util_file **pps_file /* file to destroy */
+	_Uninit_(pps_file) struct marble_util_file **pps_file /* file to destroy */
 ) {
 	if (pps_file == NULL || *pps_file == NULL)
 		return;
@@ -492,14 +492,14 @@ void inline marble_util_file_destroy(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_file_open(
-	char const *pz_path,               /* file path */
-	enum marble_util_file_perms perms, /* permissions */
-	/*
-	 * pointer to receive the pointer
-	 * to the file object
-	 */
-	struct marble_util_file **pps_file
+_Critical_ marble_ecode_t inline marble_util_file_open(
+	_In_z_           char const *pz_path,               /* file path */
+	                 enum marble_util_file_perms perms, /* permissions */
+	                 /*
+	                  * pointer to receive the pointer
+	                  * to the file object
+	                  */
+	_Init_(pps_file) struct marble_util_file **pps_file
 ) { MB_ERRNO
 	if (pz_path == NULL || pps_file == NULL)
 		return MARBLE_EC_PARAM;
@@ -535,9 +535,9 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_file_goto(
-	struct marble_util_file *ps_file,
-	size_t newpos
+_Success_ok_ marble_ecode_t inline marble_util_file_goto(
+	_In_ struct marble_util_file *ps_file,
+	     size_t newpos
 ) {
 	if (ps_file == NULL)
 		return MARBLE_EC_PARAM;
@@ -553,10 +553,10 @@ marble_ecode_t inline marble_util_file_goto(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_file_read(
-	struct marble_util_file *ps_file, /* file object */
-	size_t size,                      /* number of bytes to read */
-	void *p_dest                      /* buffer to write read bytes to */
+_Success_ok_ marble_ecode_t inline marble_util_file_read(
+	_In_         struct marble_util_file *ps_file, /* file object */
+	             size_t size,                      /* number of bytes to read */
+	_Size_(size) void *p_dest                      /* buffer to write read bytes to */
 ) {
 	if (ps_file == NULL || size == 0 || p_dest == NULL)
 		return MARBLE_EC_PARAM;
@@ -571,9 +571,9 @@ marble_ecode_t inline marble_util_file_read(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_file_read8(
-	struct marble_util_file *ps_file, /* file object */
-	uint8_t *p_dest                   /* destination buffer */
+_Success_ok_ marble_ecode_t inline marble_util_file_read8(
+	_In_  struct marble_util_file *ps_file, /* file object */
+	_Out_ uint8_t *p_dest                   /* destination buffer */
 ) {
 	return marble_util_file_read(ps_file, 1, p_dest);
 }
@@ -584,9 +584,9 @@ marble_ecode_t inline marble_util_file_read8(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_file_read16(
-	struct marble_util_file *ps_file, /* file object */
-	uint16_t *p_dest				  /* destination buffer */
+_Success_ok_ marble_ecode_t inline marble_util_file_read16(
+	_In_  struct marble_util_file *ps_file, /* file object */
+	_Out_ uint16_t *p_dest				    /* destination buffer */
 ) {
 	return marble_util_file_read(ps_file, 2, p_dest);
 }
@@ -597,9 +597,9 @@ marble_ecode_t inline marble_util_file_read16(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_file_read32(
-	struct marble_util_file *ps_file, /* file object */
-	uint32_t *p_dest				  /* destination buffer */
+_Success_ok_ marble_ecode_t inline marble_util_file_read32(
+	_In_  struct marble_util_file *ps_file, /* file object */
+	_Out_ uint32_t *p_dest				    /* destination buffer */
 ) {
 	return marble_util_file_read(ps_file, 4, p_dest);
 }
@@ -610,6 +610,8 @@ marble_ecode_t inline marble_util_file_read32(
  * Structure representing a basic hashtable. 
  */
 #pragma region UTIL-HASHTABLE
+#define MB_UTIL_HTABLE_DEFNBUCKETS (128)
+
 struct marble_util_htable {
 	size_t m_cbucket;                     /* number of buckets */
 	struct marble_util_vec **pps_storage; /* bucket array */
@@ -630,9 +632,9 @@ struct marble_util_htable {
  * Returns nothing.
  */
 void inline marble_util_htable_destroy(
-	struct marble_util_htable **pps_hashtable /* hashtable to destroy */
+	_Uninit_(pps_htable) struct marble_util_htable **pps_htable /* hashtable to destroy */
 ) {
-	if (pps_hashtable == NULL || *pps_hashtable == NULL)
+	if (pps_htable == NULL || *pps_htable == NULL)
 		return;
 
 	/*
@@ -640,12 +642,12 @@ void inline marble_util_htable_destroy(
 	 * objects will be taken care of by their
 	 * buckets.
 	 */
-	for (size_t i = 0; i < (*pps_hashtable)->m_cbucket; i++)
-		marble_util_vec_destroy(&(*pps_hashtable)->pps_storage[i]);
+	for (size_t i = 0; i < (*pps_htable)->m_cbucket; i++)
+		marble_util_vec_destroy(&(*pps_htable)->pps_storage[i]);
 
-	free((*pps_hashtable)->pps_storage);
-	free(*pps_hashtable);
-	*pps_hashtable = NULL;
+	free((*pps_htable)->pps_storage);
+	free(*pps_htable);
+	*pps_htable = NULL;
 }
 
 /*
@@ -656,20 +658,44 @@ void inline marble_util_htable_destroy(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_htable_create(
-	size_t nbuckets,          /* number of buckets */
-	void (*fn_dest)(void **), /* object destructor */
-	/*
-	 * pointer to receive the pointer
-	 * to the hashtable object
-	 */
-	struct marble_util_htable **pps_hashtable
-) {
-	if (pps_hashtable == NULL)
+_Critical_ marble_ecode_t inline marble_util_htable_create(
+	_In_opt_           size_t nbuckets,          /* number of buckets */
+	_In_opt_           void (*fn_dest)(void **), /* object destructor */
+	                   /*
+	                    * pointer to receive the pointer
+	                    * to the hashtable object
+	                    */
+	_Init_(pps_htable) struct marble_util_htable **pps_htable
+) { MB_ERRNO
+	if (pps_htable == NULL)
 		return MARBLE_EC_PARAM;
 
-	*pps_hashtable = NULL;
-	return MARBLE_EC_OK;
+	ecode = marble_system_alloc(
+		sizeof **pps_htable,
+		false,
+		false,
+		pps_htable
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
+
+	(*pps_htable)->m_cbucket = nbuckets != 0 ? nbuckets : MB_UTIL_HTABLE_DEFNBUCKETS;
+	ecode = marble_system_alloc(
+		sizeof *(*pps_htable)->pps_storage * (*pps_htable)->m_cbucket,
+		true,
+		false,
+		(void **)&(*pps_htable)->pps_storage
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
+
+	(*pps_htable)->mfn_dest = fn_dest;
+
+lbl_END:
+	if (ecode != MARBLE_EC_OK)
+		marble_util_htable_destroy(pps_htable);
+
+	return ecode;
 }
 
 /*
@@ -679,10 +705,10 @@ marble_ecode_t inline marble_util_htable_create(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline marble_util_htable_insert(
-	struct marble_util_htable *ps_hashtable, /* hashtable */
-	char const *pz_key,                      /* **p_obj**'s key */
-	void *p_obj                              /* object to insert */
+_Success_ok_ marble_ecode_t inline marble_util_htable_insert(
+	_In_   struct marble_util_htable *ps_htable, /* hashtable */
+	_In_z_ char const *pz_key,                   /* **p_obj**'s key */
+	_In_   void *p_obj                           /* object to insert */
 ) {
 	return MARBLE_EC_UNIMPLFEATURE;
 }
@@ -697,16 +723,16 @@ marble_ecode_t inline marble_util_htable_insert(
  * the element's pointer on success.
  */
 void inline *marble_util_htable_erase(
-	struct marble_util_htable *ps_hashtable, /* hashtable */
-	char const *pz_key,                      /* key */
+	_In_   struct marble_util_htable *ps_htable, /* hashtable */
+	_In_z_ char const *pz_key,                   /* key */
 	/*
 	 * The callback function shall return non-zero if
 	 * the element was found, and 'false' if not.
 	 * If this parameter is NULL, the function fails
 	 * and returns NULL.
 	 */
-	bool (*fn_find)(char const *, void *),
-	bool rundest                             /* destroy (found) object? */
+	_In_   bool (*fn_find)(char const *, void *),
+	       bool rundest                          /* destroy (found) object? */
 ) {
 	return NULL;
 }
@@ -719,15 +745,15 @@ void inline *marble_util_htable_erase(
  * on error or if the object cannot be found.
  */
 void inline *marble_util_htable_find(
-	struct marble_util_htable *ps_hashtable, /* hashtable */
-	char const *pz_key,                      /* key to find */
+	_In_   struct marble_util_htable *ps_htable, /* hashtable */
+	_In_z_ char const *pz_key,                   /* key to find */
 	/*
 	 * The callback function shall return non-zero if
 	 * the element was found, and 'false' if not.
 	 * If this parameter is NULL, the function fails
 	 * and returns NULL.
 	 */
-	bool (*fn_find)(char const *, void *)
+	_In_   bool (*fn_find)(char const *, void *)
 ) {
 	return NULL;
 }

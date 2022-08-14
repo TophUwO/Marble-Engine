@@ -6,7 +6,9 @@ struct marble_application gl_app = { NULL };
 
 
 #pragma region ASSETMAN
-extern void marble_asset_destroy(struct marble_asset **pps_asset);
+extern void marble_asset_destroy(
+	_Uninit_(pps_asset) struct marble_asset **pps_asset
+);
 
 
 /* 
@@ -34,7 +36,7 @@ static void marble_application_internal_uninitassetman(void) {
  * 
  * Returns 0 on success, non-zero on error.
  */
-static marble_ecode_t marble_application_internal_initassetman(void) { MB_ERRNO
+_Critical_ static marble_ecode_t marble_application_internal_initassetman(void) { MB_ERRNO
 	/* 
 	* If asset manager is already initialized, block further
 	* attempts to (re-)initialize. 
@@ -64,7 +66,9 @@ lbl_CLEANUP:
 
 
 #pragma region LAYERSTACK
-extern void marble_layer_destroy(struct marble_layer **pps_layer);
+extern void marble_layer_destroy(
+	_Uninit_(pps_layer) struct marble_layer **pps_layer
+);
 
 
 /*
@@ -102,7 +106,7 @@ static void marble_application_internal_uninitlayerstack(void) {
  * 
  * Returns 0 on success, non-zero on failure.
  */
-static marble_ecode_t marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
+_Critical_ static marble_ecode_t marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
 	if (gl_app.ms_layerstack.m_isinit == true)
 		return MARBLE_EC_COMPSTATE;
 	
@@ -135,7 +139,7 @@ static marble_ecode_t marble_application_internal_initlayerstack_impl(void) { MB
  */
 #pragma region initialization functions
 static void marble_application_internal_initdebugcon(
-	marble_ecode_t *p_ecode /* pointer to error code variable */
+	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -162,7 +166,7 @@ lbl_ERROR:
 }
 
 static void marble_application_internal_inithpc(
-	marble_ecode_t *p_ecode /* pointer to error code variable */
+	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -178,7 +182,7 @@ static void marble_application_internal_inithpc(
 }
 
 static void marble_application_internal_initcom(
-	marble_ecode_t *p_ecode /* pointer to error code variable */
+	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) { MB_ERRNO
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -199,8 +203,8 @@ static void marble_application_internal_initcom(
 }
 
 static void marble_application_internal_initstate(
-	marble_ecode_t *p_ecode, /* pointer to error code variable */
-	HINSTANCE p_inst         /* application instance */
+	_Inout_ marble_ecode_t *p_ecode, /* pointer to error code variable */
+	_In_    HINSTANCE p_inst         /* application instance */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -216,8 +220,8 @@ static void marble_application_internal_initstate(
 }
 
 static void marble_application_internal_createmainwindow(
-	marble_ecode_t *p_ecode,                     /* pointer to error code variable */
-	struct marble_app_settings const *p_settings /* pointer to user-specified settings */
+	_Inout_ marble_ecode_t *p_ecode,                     /* pointer to error code variable */
+	_In_    struct marble_app_settings const *p_settings /* pointer to user-specified settings */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -236,7 +240,7 @@ static void marble_application_internal_createmainwindow(
 }
 
 static void marble_application_internal_createrenderer(
-	marble_ecode_t *p_ecode /* pointer to error code variable */
+	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -255,7 +259,7 @@ static void marble_application_internal_createrenderer(
 }
 
 static void marble_application_internal_initlayerstack(
-	marble_ecode_t *p_ecode /* pointer to error code variable */
+	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -268,7 +272,7 @@ static void marble_application_internal_initlayerstack(
 }
 
 static void marble_application_internal_initassetmanager(
-	marble_ecode_t *p_ecode /* pointer to error code variable */
+	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -281,9 +285,9 @@ static void marble_application_internal_initassetmanager(
 }
 
 static void marble_application_internal_douserinit(
-	marble_ecode_t *p_ecode,
-	char const *pz_cmdline,
-	int (MB_CALLBACK *cb_userinit)(_In_z_ char const *)
+	_Inout_ marble_ecode_t *p_ecode,
+	_In_z_  char const *pz_cmdline,
+	_In_    int (MB_CALLBACK *cb_userinit)(_In_z_ char const *)
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
@@ -303,7 +307,7 @@ static void marble_application_internal_douserinit(
 #pragma endregion
 
 
-static marble_ecode_t marble_application_internal_updateandrender(
+_Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 	float frametime /* time it took to render and present last frame */
 ) {
 	marble_renderer_begindraw(gl_app.mps_renderer);
@@ -348,7 +352,7 @@ static marble_ecode_t marble_application_internal_updateandrender(
  * Passes through the given error code to the host environment.
  * Returns passed error code.
  */
-static marble_ecode_t marble_application_internal_cleanup(
+_Success_ok_ static marble_ecode_t marble_application_internal_cleanup(
 	marble_ecode_t ecode /* error code to return to system */
 ) {
 	marble_window_destroy(&gl_app.mps_window);
@@ -378,6 +382,12 @@ void marble_application_setstate(
 	};
 }
 
+
+/*
+ * The functions underneath this comment do not have any annotations, as they
+ * can be called from outside the application, and I do not want to enfore the
+ * use of annotations outside of the engine itself.
+ */
 
 MB_API marble_ecode_t __cdecl marble_application_init(
 	HINSTANCE p_inst,
