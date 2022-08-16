@@ -23,8 +23,10 @@ extern void marble_application_raisefatalerror(marble_ecode_t ecode);
  * initialized with NULL.
  */
 _Critical_ marble_ecode_t inline marble_system_alloc(
-	_In_           size_t size,     /* requested size of the memory block, in bytes */
-	               bool needzeroed, /* Should the requested memory be zeroed? */
+	_In_opt_z_     char const *pz_fn, /* caller function */
+	_In_opt_       size_t line,       /* line in caller file */
+	_In_           size_t size,       /* requested size of the memory block, in bytes */
+	               bool needzeroed,   /* Should the requested memory be zeroed? */
 	               /*
 	                * If this parameter is set to true, the allocation is considered
 	                * critical; if the allocation fails, the function raises a fatal
@@ -63,8 +65,10 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
 	}
 
 	MB_LOG_DEBUG(
-		"Allocator: size=%zu",
-		(int)size
+		"Allocator: sz=%zu [ori: %s (l: %zu)]",
+		(int)size,
+		pz_fn,
+		line
 	);
 
 	return MARBLE_EC_OK;

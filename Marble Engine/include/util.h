@@ -82,6 +82,7 @@ _Critical_ marble_ecode_t inline marble_util_vec_create(
 
 	/* Allocate memory for vector. */
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		sizeof **pps_vector,
 		false,
 		false,
@@ -96,6 +97,7 @@ _Critical_ marble_ecode_t inline marble_util_vec_create(
 	 * actual data.
 	 */
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		startcap * sizeof *pps_vector,
 		true,
 		false,
@@ -506,6 +508,7 @@ _Critical_ marble_ecode_t inline marble_util_file_open(
 
 	/* Allocate memory file object. */
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		sizeof **pps_file,
 		false,
 		false,
@@ -806,6 +809,7 @@ _Critical_ marble_ecode_t inline marble_util_htable_create(
 		return MARBLE_EC_PARAM;
 
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		sizeof **pps_htable,
 		false,
 		false,
@@ -816,6 +820,7 @@ _Critical_ marble_ecode_t inline marble_util_htable_create(
 
 	(*pps_htable)->m_cbucket = nbuckets != 0 ? nbuckets : MB_UTIL_HTABLE_DEFNBUCKETS;
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		sizeof *(*pps_htable)->pps_storage * (*pps_htable)->m_cbucket,
 		true,
 		false,

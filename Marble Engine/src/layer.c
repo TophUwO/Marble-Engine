@@ -123,7 +123,13 @@ _Critical_ static marble_ecode_t marble_layer_internal_create(
 	if (pps_layer == NULL)
 		return MARBLE_EC_INTERNALPARAM;
 
-	ecode = marble_system_alloc(sizeof **pps_layer, false, false, pps_layer);
+	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
+		sizeof **pps_layer,
+		false,
+		false,
+		pps_layer
+	);
 	if (ecode != MARBLE_EC_OK)
 		return ecode;
 

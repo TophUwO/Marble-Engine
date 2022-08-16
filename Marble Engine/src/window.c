@@ -230,6 +230,7 @@ _Critical_ marble_ecode_t marble_window_create(
 		return MARBLE_EC_PARAM;
 
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		sizeof **pps_wnd,
 		true,
 		false,

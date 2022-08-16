@@ -550,6 +550,7 @@ _Critical_ marble_ecode_t marble_renderer_create(
 
 	*pps_renderer = NULL;
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		sizeof **pps_renderer,
 		false,
 		false,

@@ -112,6 +112,10 @@
 	 * in the given range (bounds not exclusive).
 	 */
 	#define MB_INRANGE_INCL(n, lo, hi) ((bool)(n >= lo && n <= hi))
+	/*
+	 * Shorten __func__, __LINE__ parameters. 
+	 */
+	#define MB_CALLER_INFO __func__, (size_t)(__LINE__)
 #endif
 
 

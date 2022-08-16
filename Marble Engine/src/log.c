@@ -271,6 +271,7 @@ _Critical_ marble_ecode_t marble_log_init(
 	 * This buffer should be reasonably large.
 	 */
 	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
 		gl_bufsize,
 		true,
 		false,
