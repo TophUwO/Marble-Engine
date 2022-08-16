@@ -9,6 +9,7 @@
 #include <window.h>
 #include <renderer.h>
 #include <asset.h>
+#include <log.h>
 
 
 /*
@@ -135,6 +136,14 @@ extern void marble_application_setstate(
 void inline marble_application_raisefatalerror(
 	marble_ecode_t ecode /* error code that will be returned to host environment */
 ) {
+	marble_log_fatal(
+		NULL,
+		"Fatal error occurred: (%i)\n    %s\n    %s",
+		(int)ecode,
+		marble_error_getstr(ecode),
+		marble_error_getdesc(ecode)
+	);
+
 	marble_application_setstate(
 		true,
 		ecode,

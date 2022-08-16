@@ -91,7 +91,7 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Marble Sandbox\bin\</OutDir>
     <TargetName>marblemn_$(PlatformShortName)d</TargetName>
-    <IncludePath>$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\TophUwU\source\repos\Marble\Marble Engine\include\external;$(SolutionDir)Marble Engine\include;$(SolutionDir)Marble Wrappers\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
     <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
@@ -188,7 +188,9 @@
     <ClCompile Include="..\src\asset.c" />
     <ClCompile Include="..\src\error.c" />
     <ClCompile Include="..\src\event.c" />
+    <ClCompile Include="..\src\external\tfmt.c" />
     <ClCompile Include="..\src\layer.c" />
+    <ClCompile Include="..\src\log.c" />
     <ClCompile Include="..\src\renderer.c" />
     <ClCompile Include="..\src\window.c" />
   </ItemGroup>
@@ -199,6 +201,8 @@
     <ClInclude Include="..\include\def.h" />
     <ClInclude Include="..\include\entrypoint.h" />
     <ClInclude Include="..\include\event.h" />
+    <ClInclude Include="..\include\external\tfmt.h" />
+    <ClInclude Include="..\include\log.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
     <ClInclude Include="..\include\platform.h" />

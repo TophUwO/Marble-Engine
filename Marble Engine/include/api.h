@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdarg.h>
 #include <sys/stat.h>
 #include <time.h>
 #ifdef _DEBUG

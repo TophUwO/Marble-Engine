@@ -19,6 +19,12 @@
     <Filter Include="Resource Files\Tools">
       <UniqueIdentifier>{bfebc9d8-c995-4875-b795-e6cbe6a5f0a4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\external">
+      <UniqueIdentifier>{782eae2f-5cdc-4b95-b312-27c06760d333}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\external">
+      <UniqueIdentifier>{93573c63-f270-423e-954f-1eb9e55318e5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\event.c">
@@ -40,6 +46,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\asset.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\external\tfmt.c">
+      <Filter>Source Files\external</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\log.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -82,6 +94,12 @@
     </ClInclude>
     <ClInclude Include="..\include\system.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\external\tfmt.h">
+      <Filter>Header Files\external</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

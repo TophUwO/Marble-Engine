@@ -139,31 +139,17 @@ _Critical_ static marble_ecode_t marble_application_internal_initlayerstack_impl
  * perform a forced shutdown.
  */
 #pragma region initialization functions
-static void marble_application_internal_initdebugcon(
+static void marble_application_internal_initlog(
 	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	if (AllocConsole()) {
-		FILE *p_tmp = NULL;
-		/*
-		 * Redirect stdout to our newly-allocated console.
-		 * 
-		 * This allows us to use standard C I/O functions
-		 * such as printf() and friends.
-		 */
-		if (freopen_s(&p_tmp, "CONOUT$", "w", stdout) != 0)
-			goto lbl_ERROR;
+	*p_ecode = marble_log_init("log.txt");
+	if (*p_ecode != MARBLE_EC_OK)
+		marble_application_raisefatalerror(*p_ecode);
 
-		printf("init: debug console\n");
-
-		*p_ecode = MARBLE_EC_OK;
-		return;
-	}
-
-lbl_ERROR:
-	*p_ecode = MARBLE_EC_DEBUGCON;
+	marble_log_info(NULL, "init: log");
 }
 
 static void marble_application_internal_inithpc(
@@ -172,7 +158,7 @@ static void marble_application_internal_inithpc(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 		
-	printf("init: high-precision clock\n");
+	marble_log_info(NULL, "init: high-precision clock");
 
 	/*
 	 * Check whether an HPC is present in the system; should
@@ -188,7 +174,7 @@ static void marble_application_internal_initcom(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	printf("init: component object model (COM)\n");
+	marble_log_info(NULL, "init: component object model (COM)");
 
 	/*
 	 * Initialize COM. If "CoInitializeEx()" returns non-zero,
@@ -210,7 +196,7 @@ static void marble_application_internal_initstate(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	printf("init: application state\n");
+	marble_log_info(NULL, "init: application state");
 
 	marble_application_setstate(
 		false,
@@ -227,7 +213,7 @@ static void marble_application_internal_createmainwindow(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	printf("init: main window\n");
+	marble_log_info(NULL, "init: main window");
 
 	*p_ecode = marble_window_create(
 		"Marble Engine Sandbox",
@@ -247,7 +233,7 @@ static void marble_application_internal_createrenderer(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	printf("init: renderer\n");
+	marble_log_info(NULL, "init: renderer");
 
 	*p_ecode = marble_renderer_create(
 		MARBLE_RENDERAPI_DIRECT2D,
@@ -266,7 +252,7 @@ static void marble_application_internal_initlayerstack(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	printf("init: layer stack\n");
+	marble_log_info(NULL, "init: layer stack");
 
 	*p_ecode = marble_application_internal_initlayerstack_impl();
 	if (*p_ecode != MARBLE_EC_OK)
@@ -279,7 +265,7 @@ static void marble_application_internal_initassetmanager(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	printf("init: asset manager\n");
+	marble_log_info(NULL, "init: asset manager");
 
 	*p_ecode = marble_application_internal_initassetman();
 	if (*p_ecode != MARBLE_EC_OK)
@@ -294,7 +280,7 @@ static void marble_application_internal_douserinit(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	printf("init: user application\n");
+	marble_log_info(NULL, "init: user application");
 
 	/*
 	 * When user initialization fails, this is also considered
@@ -357,11 +343,14 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 _Success_ok_ static marble_ecode_t marble_application_internal_cleanup(
 	marble_ecode_t ecode /* error code to return to system */
 ) {
+	marble_log_info(NULL, "System shutdown ...", 0);
+
 	marble_window_destroy(&gl_app.mps_window);
 	marble_renderer_destroy(&gl_app.mps_renderer);
 
 	marble_application_internal_uninitlayerstack();
 	marble_application_internal_uninitassetman();
+	marble_log_uninit();
 	CoUninitialize();
 
 #if (defined _DEBUG)
@@ -400,18 +389,12 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 	gl_hashseed         = (uint32_t)time(NULL);
 	gl_app.mp_mainthrd  = GetCurrentThread();
 	gl_app.m_hasmainwnd = false;
- 
-#if (defined _DEBUG) || (defined MB_DEVBUILD)
-	marble_application_internal_initdebugcon(&ecode);
-
-	if (ecode != MARBLE_EC_OK)
-		return ecode;
-#endif
 
 	/* Get submitted user settings. */
 	struct marble_app_settings s_settings = { 0 };
 	cb_usersubmitsettings(pz_cmdline, &s_settings);
 
+	marble_application_internal_initlog(&ecode);
 	marble_application_internal_initstate(&ecode, p_inst);
 	marble_application_internal_inithpc(&ecode);
 	marble_application_internal_initcom(&ecode);
@@ -434,12 +417,21 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 }
 
 MB_API marble_ecode_t __cdecl marble_application_run(void) {
+	/*
+	 * If a fatal error occurred during initialization,
+	 * do not even start the main loop.
+	 */
+	if (gl_app.ms_state.m_isfatal == true)
+		goto lbl_CLEANUP;
+
 	/* update application state now that the main loop is about to start */
 	marble_application_setstate(
 		false,
 		MARBLE_EC_OK,
 		MARBLE_APPSTATE_RUNNING
 	);
+
+	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
  
 	while (true) {
 		MSG s_msg;
@@ -462,6 +454,8 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 	}
 	
 lbl_CLEANUP:
+	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
+
 	if (gl_app.ms_state.m_isfatal) {
 		TCHAR a_buf[1024] = { 0 };
 

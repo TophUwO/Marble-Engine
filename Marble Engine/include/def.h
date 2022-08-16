@@ -67,6 +67,7 @@
  * 0 = indev > development version; first release version is 1.0.
  */
 #define MB_VERSION     ((uint32_t)(0))
+#define MB_VERSIONSTR  "indev"
 /*
  * Maximum number of characters in an ID string (incl.
  * NUL-terminator). Bytes outside of this boundary are ignored,
@@ -79,6 +80,25 @@
  * default (sometimes system-defined) values.
  */
 #define MB_DEFAULT     (-1)
+/*
+ * String macro representing the current build config.
+ * Used by the logging library.
+ */
+#if (defined _DEBUG)
+	#define MB_BUILDCONFIG "Release"
+#elif (defined MB_DEVBUILD)
+	#define MB_BUILDCONFIG "Development Build"
+#else
+	#define MB_BUILDCONFIG "Debug"
+#endif
+/*
+ * String representation of target architecture (n bits).
+ */
+#if (defined _WIN64)
+	#define MB_ARCHSTR "x86-64"
+#else
+	#define MB_ARCHSTR "x86"
+#endif
 
 
 #if (defined MB_DYNAMIC_LIBRARY)

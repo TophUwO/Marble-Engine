@@ -2,6 +2,7 @@
 
 #include <api.h>
 #include <error.h>
+#include <log.h>
 
 #define _Maybe_out_z_ _When_(return == MARBLE_EC_OK, _Out_writes_z_(size))
 
@@ -61,9 +62,9 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
 		return MARBLE_EC_MEMALLOC;
 	}
 
-	printf("Allocator: Allocated memory of %i bytes, starting at address: 0x%p.\n", 
-		(int)size,
-		*pp_mpt
+	MB_LOG_DEBUG(
+		"Allocator: size=%zu",
+		(int)size
 	);
 
 	return MARBLE_EC_OK;

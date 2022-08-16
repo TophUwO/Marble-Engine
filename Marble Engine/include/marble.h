@@ -2,6 +2,7 @@
 
 #include <event.h>
 #include <error.h>
+#include <log.h>
 
 
 /*
