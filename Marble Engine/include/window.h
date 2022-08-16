@@ -35,7 +35,7 @@ struct marble_window {
 			struct marble_sizei2d ms_client;
 			/* extends of window area, in pixels */
 			struct marble_sizei2d ms_window;
-		} ms_extends;
+		} ms_ext;
 	} ms_data;
 };
 

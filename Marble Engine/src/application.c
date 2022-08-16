@@ -306,8 +306,8 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 	D2D1_RECT_F s_rect = {
 		gls_app.mps_renderer->m_orix,
 		gls_app.mps_renderer->m_oriy,
-		gls_app.mps_renderer->m_orix + gls_app.mps_window->ms_data.ms_extends.ms_client.m_width,
-		gls_app.mps_renderer->m_oriy + gls_app.mps_window->ms_data.ms_extends.ms_client.m_width
+		gls_app.mps_renderer->m_orix + gls_app.mps_window->ms_data.ms_ext.ms_client.m_width,
+		gls_app.mps_renderer->m_oriy + gls_app.mps_window->ms_data.ms_ext.ms_client.m_width
 	};
 	D2D1_BRUSH_PROPERTIES s_brushprops = {
 		.opacity = 1.0f

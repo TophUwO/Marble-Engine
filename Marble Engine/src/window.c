@@ -19,8 +19,8 @@ static void marble_window_internal_computedrawingorigin(
 	RECT s_clientrect;
 	GetClientRect(ps_window->mp_handle, &s_clientrect);
 
-	ps_window->mps_renderer->m_orix = s_clientrect.right  / 2.0f - ps_window->ms_data.ms_extends.ms_client.m_width  / 2.0f;
-	ps_window->mps_renderer->m_oriy = s_clientrect.bottom / 2.0f - ps_window->ms_data.ms_extends.ms_client.m_height / 2.0f;
+	ps_window->mps_renderer->m_orix = s_clientrect.right  / 2.0f - ps_window->ms_data.ms_ext.ms_client.m_width  / 2.0f;
+	ps_window->mps_renderer->m_oriy = s_clientrect.bottom / 2.0f - ps_window->ms_data.ms_ext.ms_client.m_height / 2.0f;
 }
 
 /*
@@ -131,8 +131,8 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 						p_window, 
 						HWND_TOP,
 						0, 0,
-						ps_wnddata->ms_data.ms_extends.ms_window.m_width,
-						ps_wnddata->ms_data.ms_extends.ms_window.m_height,
+						ps_wnddata->ms_data.ms_ext.ms_window.m_width,
+						ps_wnddata->ms_data.ms_ext.ms_window.m_height,
 						SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
 					);
 
@@ -238,7 +238,7 @@ _Critical_ marble_ecode_t marble_window_create(
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_ERROR;
 
-	(*pps_wnd)->ms_data.ms_extends.ms_window = (struct marble_sizei2d){ width, height };
+	(*pps_wnd)->ms_data.ms_ext.ms_window = (struct marble_sizei2d){ width, height };
 	(*pps_wnd)->ms_data.m_isvsync            = isvsync;
 	(*pps_wnd)->ms_data.m_isfscreen          = false;
 	(*pps_wnd)->ms_data.m_style              = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
@@ -283,7 +283,7 @@ _Critical_ marble_ecode_t marble_window_create(
 	RECT s_clientrect;
 	GetClientRect((*pps_wnd)->mp_handle, &s_clientrect);
 
-	(*pps_wnd)->ms_data.ms_extends.ms_client = (struct marble_sizei2d){
+	(*pps_wnd)->ms_data.ms_ext.ms_client = (struct marble_sizei2d){
 		(uint32_t)s_clientrect.right,
 		(uint32_t)s_clientrect.bottom
 	};
@@ -404,13 +404,13 @@ void marble_window_resize(
 		AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, false);
 
 		/* Calculate window and render area size. */
-		ps_wnd->ms_data.ms_extends.m_tsize = tsize;
+		ps_wnd->ms_data.ms_ext.m_tsize = tsize;
 
-		ps_wnd->ms_data.ms_extends.ms_client = (struct marble_sizei2d){
+		ps_wnd->ms_data.ms_ext.ms_client = (struct marble_sizei2d){
 			(SHORT)(width * scale) * tsize,
 			(SHORT)(height * scale) * tsize
 		};
-		ps_wnd->ms_data.ms_extends.ms_window = (struct marble_sizei2d){
+		ps_wnd->ms_data.ms_ext.ms_window = (struct marble_sizei2d){
 			abs(s_wndrect.right - s_wndrect.left),
 			abs(s_wndrect.bottom - s_wndrect.top)
 		};
@@ -420,8 +420,8 @@ void marble_window_resize(
 	MoveWindow(
 		ps_wnd->mp_handle,
 		0, 0,
-		ps_wnd->ms_data.ms_extends.ms_window.m_width,
-		ps_wnd->ms_data.ms_extends.ms_window.m_height,
+		ps_wnd->ms_data.ms_ext.ms_window.m_width,
+		ps_wnd->ms_data.ms_ext.ms_window.m_height,
 		true
 	);
 	marble_window_internal_computedrawingorigin(ps_wnd);
