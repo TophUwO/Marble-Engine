@@ -438,8 +438,8 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 		uint64_t time;
 
 		QueryPerformanceCounter((LARGE_INTEGER *)&time);
-		float frametime = (time - gls_app.m_perfcounter.QuadPart) / (float)gl_pfreq;
-		gls_app.m_perfcounter.QuadPart = time;
+		float frametime = (time - gls_app.m_perfcounter) / (float)gl_pfreq;
+		gls_app.m_perfcounter = time;
 
 		while (PeekMessage(&s_msg, NULL, 0, 0, PM_REMOVE) > 0) {
 			if (s_msg.message == WM_QUIT || s_msg.message == MB_WM_FATAL)
