@@ -151,18 +151,18 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_push(
 		return MARBLE_EC_LAYERALREADYPUSHED;
 
 	if (istopmost)
-		ecode = marble_util_vec_pushback(gl_app.ms_layerstack.mps_vec, ps_layer);
+		ecode = marble_util_vec_pushback(gls_app.ms_layerstack.mps_vec, ps_layer);
 	else
 		ecode = marble_util_vec_insert(
-			gl_app.ms_layerstack.mps_vec,
+			gls_app.ms_layerstack.mps_vec,
 			ps_layer,
-			gl_app.ms_layerstack.m_lastlayer
+			gls_app.ms_layerstack.m_lastlayer
 		);
 
 	if (ecode == MARBLE_EC_OK) {
 		ps_layer->m_istopmost = istopmost;
 		if (!istopmost)
-			++gl_app.ms_layerstack.m_lastlayer;
+			++gls_app.ms_layerstack.m_lastlayer;
 
 		/*
 		 * We will simply pass-through the return value. If "cb_onpush"
@@ -182,11 +182,11 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 	_In_ struct marble_layer *ps_layer /* layer to pop */
 ) {
 	if (ps_layer == NULL)                       return MARBLE_EC_INTERNALPARAM;
-	if (gl_app.ms_layerstack.m_isinit == false) return MARBLE_EC_COMPSTATE;
+	if (gls_app.ms_layerstack.m_isinit == false) return MARBLE_EC_COMPSTATE;
 
 	/* Scan the entire layer stack. */
 	size_t index = marble_util_vec_find(
-		gl_app.ms_layerstack.mps_vec, 
+		gls_app.ms_layerstack.mps_vec, 
 		ps_layer,
 		0,
 		0
@@ -198,7 +198,7 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 	 */
 	if (index != (size_t)(-1)) {
 		marble_util_vec_erase(
-			gl_app.ms_layerstack.mps_vec,
+			gls_app.ms_layerstack.mps_vec,
 			index,
 			false
 		);
@@ -217,7 +217,7 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 		}
 
 		if (ps_layer->m_istopmost == false)
-			--gl_app.ms_layerstack.m_lastlayer;
+			--gls_app.ms_layerstack.m_lastlayer;
 	}
 
 	return MARBLE_EC_OK;
@@ -272,7 +272,7 @@ marble_ecode_t marble_application_createlayer(
 ) { MB_ERRNO
 	if (p_layerid == NULL)
 		return MARBLE_EC_PARAM;
-	if (gl_app.ms_layerstack.m_isinit == false) {
+	if (gls_app.ms_layerstack.m_isinit == false) {
 		*p_layerid = -1;
 
 		return MARBLE_EC_COMPSTATE;

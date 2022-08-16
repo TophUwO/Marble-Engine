@@ -38,8 +38,8 @@ static void marble_window_internal_onevent(
 	* Traverse layer stack top to bottom, having topmost layers
 	* get the chance to handle the event first.
 	*/
-	for (size_t i = gl_app.ms_layerstack.mps_vec->m_size - 1; i && i != (size_t)(-1) && !ps_event->m_ishandled; i--) {
-		struct marble_layer *ps_layer = marble_util_vec_get(gl_app.ms_layerstack.mps_vec, i);
+	for (size_t i = gls_app.ms_layerstack.mps_vec->m_size - 1; i && i != (size_t)(-1) && !ps_event->m_ishandled; i--) {
+		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 
 		if (ps_layer->m_isenabled)
 			(*ps_layer->ms_cbs.cb_onevent)(ps_layer->m_id, ps_event, ps_layer->mp_userdata);
@@ -208,7 +208,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 			 * a forced shutdown, in which case we will use a custom return
 			 * value and do not need WM_QUIT to make us leave the main loop.
 			 */
-			if (ps_wnddata->ms_data.m_ismainwnd == true && gl_app.ms_state.m_id == MARBLE_APPSTATE_SHUTDOWN)
+			if (ps_wnddata->ms_data.m_ismainwnd == true && gls_app.ms_state.m_id == MARBLE_APPSTATE_SHUTDOWN)
 				PostQuitMessage(0);
 
 			return 0;
@@ -245,7 +245,7 @@ _Critical_ marble_ecode_t marble_window_create(
 
 	WNDCLASSEX s_wndclassdesc = {
 		.cbSize        = sizeof s_wndclassdesc,
-		.hInstance     = gl_app.mp_inst,
+		.hInstance     = gls_app.mp_inst,
 		.lpszClassName = glpz_wndclassname,
 		.lpfnWndProc   = (WNDPROC)&marble_window_internal_windowproc,
 		.hCursor       = LoadCursor(NULL, IDC_ARROW),
@@ -270,7 +270,7 @@ _Critical_ marble_ecode_t marble_window_create(
 		(int)height, 
 		NULL, 
 		NULL, 
-		gl_app.mp_inst,
+		gls_app.mp_inst,
 		*pps_wnd
 	);
 	if (*pps_wnd == NULL) {
@@ -288,14 +288,14 @@ _Critical_ marble_ecode_t marble_window_create(
 		(uint32_t)s_clientrect.bottom
 	};
 
-	(*pps_wnd)->ms_data.m_ismainwnd = gl_app.m_hasmainwnd == true
+	(*pps_wnd)->ms_data.m_ismainwnd = gls_app.m_hasmainwnd == true
 		? false
 		: ismainwnd
 	;
 	return MARBLE_EC_OK;
 
 lbl_ERROR:
-	UnregisterClass(glpz_wndclassname, gl_app.mp_inst);
+	UnregisterClass(glpz_wndclassname, gls_app.mp_inst);
 	marble_window_destroy(pps_wnd);
 
 	return ecode;

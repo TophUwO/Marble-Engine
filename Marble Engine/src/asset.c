@@ -50,7 +50,7 @@ static bool marble_asset_internal_isassetalreadyloaded(
 	_Maybe_valid_ struct marble_asset **pps_assetptr /* optional pointer to receive existing asset pointer */
 ) {
 	struct marble_asset *ps_found = marble_util_htable_find(
-		gl_app.ms_assets.mps_table,
+		gls_app.ms_assets.mps_table,
 		pz_id,
 		&marble_asset_internal_cbfind
 	);
@@ -108,11 +108,11 @@ static int marble_asset_internal_isusableid(
 _Success_ok_ static marble_ecode_t marble_asset_internal_register(
 	_In_ struct marble_asset *ps_asset /* asset to register */
 ) { MB_ERRNO
-	if (ps_asset == NULL || gl_app.ms_assets.m_isinit == false)
+	if (ps_asset == NULL || gls_app.ms_assets.m_isinit == false)
 		return ps_asset ? MARBLE_EC_PARAM : MARBLE_EC_COMPSTATE;
 	
 	ecode = marble_util_htable_insert(
-		gl_app.ms_assets.mps_table, 
+		gls_app.ms_assets.mps_table, 
 		ps_asset->mz_strid, 
 		ps_asset
 	);
@@ -148,11 +148,11 @@ _Success_ok_ static marble_ecode_t marble_asset_internal_unregister(
 	_In_ struct marble_asset *ps_asset, /* asset to register */
 	     bool dofree                    /* Destroy asset as well? */
 ) {
-	if (ps_asset == NULL || gl_app.ms_assets.m_isinit == false)
+	if (ps_asset == NULL || gls_app.ms_assets.m_isinit == false)
 		return ps_asset != NULL ? MARBLE_EC_PARAM : MARBLE_EC_COMPSTATE;
 
 	void *p_asset = marble_util_htable_erase(
-		gl_app.ms_assets.mps_table,
+		gls_app.ms_assets.mps_table,
 		ps_asset->mz_strid,
 		&marble_asset_internal_cbfind,
 		dofree

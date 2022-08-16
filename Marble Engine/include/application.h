@@ -107,7 +107,7 @@ extern struct marble_application {
 
 		struct marble_util_htable *mps_table; /* asset storage */
 	} ms_assets;
-} gl_app;
+} gls_app;
 
 
 /*
@@ -151,7 +151,7 @@ void inline marble_application_raisefatalerror(
 	);
 
 	/* Ask our main thread to quit. */
-	PostThreadMessage(GetThreadId(gl_app.mp_mainthrd), MB_WM_FATAL, 0, 0);
+	PostThreadMessage(GetThreadId(gls_app.mp_mainthrd), MB_WM_FATAL, 0, 0);
 }
 
 
