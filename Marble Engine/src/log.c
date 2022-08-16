@@ -33,14 +33,14 @@ static struct {
 } gls_logctxt = { 0 };
 
 #if (MB_LOG_LARGEBUF != false)
-static size_t const      gl_bufsize   = 512 * 4;         /* large buffer size, in bytes */
+static size_t const      gl_bufsize   = 512 * 4;       /* large buffer size, in bytes */
 #else
-static size_t const      gl_bufsize   = 512;             /* normal buffer size, in bytes */
+static size_t const      gl_bufsize   = 512;           /* normal buffer size, in bytes */
 #endif
-static char const *const glpz_mcreate = "w";             /* create fopen flag */
-static char const *const glpz_mappend = "a";             /* append fopen flag */
-static char const *const glpz_pattern = "%s %-5s %s%s";  /* log message pattern */
-static char const *const glpz_tstamp  = "%T";            /* time-stamp pattern */
+static char const *const glpz_mcreate = "w";           /* create fopen flag */
+static char const *const glpz_mappend = "a";           /* append fopen flag */
+static char const *const glpz_pattern = " %-5s %s%s";  /* log message pattern */
+static char const *const glpz_tstamp  = "%T";          /* time-stamp pattern */
 
 /*
  * Look-up table with log levels and their respective color code. Color
@@ -186,14 +186,17 @@ static bool marble_log_internal_formatmessage(
 	if (isplain == true)
 		goto lbl_FMTMSG;
 
-	char a_tsbuf[16] = { 0 };
-	tfmt_strftime(a_tsbuf, glpz_tstamp, sizeof a_tsbuf, NULL);
-
-	written = (size_t)sprintf_s(
+	written = tfmt_strftime(
 		gls_logctxt.pz_buffer,
+		glpz_tstamp,
+		gl_bufsize,
+		NULL
+	) - 1;
+
+	written += (size_t)sprintf_s(
+		gls_logctxt.pz_buffer + written,
 		gl_bufsize,
 		glpz_pattern,
-		a_tsbuf,
 		glsa_loglvlinfo[lvl].mpz_str,
 		pz_function == NULL ? "" : pz_function,
 		pz_function == NULL ? "" : "(): "
@@ -247,8 +250,8 @@ static void marble_log_internal_outputmessage(
 static void marble_log_internal_welcomemessage(void) {
 	marble_log_plain(
 		u8"*******************************************************************************\n"
-		u8" Marble Engine (" MB_VERSIONSTR ", " MB_ARCHSTR ")\n"
-		u8" (C) 2022 TophUwO <tophuwo01@gmail.com> All rights reserved.\n"
+		u8"Marble Engine (" MB_VERSIONSTR ", " MB_ARCHSTR ")\n"
+		u8"(C) 2022 TophUwO <tophuwo01@gmail.com> All rights reserved.\n"
 		u8"*******************************************************************************\n\n",
 	NULL);
 }
