@@ -380,7 +380,8 @@ void marble_window_resize(
 		ps_wnd->mp_handle,
 		MONITOR_DEFAULTTOPRIMARY
 	);
-	GetMonitorInfo(p_monitor, &s_moninfo);
+	if (p_monitor == NULL || GetMonitorInfo(p_monitor, &s_moninfo) == false)
+		return;
 
 	/* Compute total window size based on requested render target size. */
 	RECT s_wndrect = { 0, 0, (LONG)(width * tsize), (LONG)(height * tsize) };
