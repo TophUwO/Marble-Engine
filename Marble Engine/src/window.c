@@ -350,7 +350,7 @@ void marble_window_update(
 	QueryPerformanceCounter(&u_time);
 
 	/* Set window text to show current FPS. */
-	if (u_time.QuadPart - ps_wnd->ms_data.m_lastupdate > 0.5f * gl_pfreq) {
+	if (u_time.QuadPart - ps_wnd->ms_data.m_lastupdate > 1.0f * gl_pfreq) {
 		ps_wnd->ms_data.m_lastupdate = u_time.QuadPart;
 
 		TCHAR az_buffer[256] = { 0 };
