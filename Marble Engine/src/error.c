@@ -56,7 +56,7 @@ static char const *const glapz_ecodedescs[] = {
 	"Ok; no error occurred.",
 	"Unknown error code.",
 
-	"Currently unimplemented feature.",
+	"The requested feature is currently unimplemented.",
 	"Failed to create debug console.",
 	"Failed to allocate memory.",
 	"Failed to change array size.",
