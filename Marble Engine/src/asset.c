@@ -33,7 +33,7 @@ static bool MB_CALLBACK marble_asset_internal_cbfind(
 	_In_z_ char const *pz_key, /* key */
 	_In_   void *p_asset       /* asset to check key against */
 ) {
-	return (bool)!strcmp(pz_key, ((struct marble_asset *)p_asset)->mz_strid);
+	return (bool)!strcmp(pz_key, ((struct marble_asset *)p_asset)->maz_strid);
 }
 
 /*
@@ -68,7 +68,7 @@ static void marble_asset_internal_setid(
 	_In_z_ char const *pz_newid           /* new ID to copy */
 ) {
 	marble_system_cpystr(
-		ps_asset->mz_strid,
+		ps_asset->maz_strid,
 		pz_newid,
 		MB_STRINGIDMAX
 	);
@@ -113,12 +113,12 @@ _Success_ok_ static marble_ecode_t marble_asset_internal_register(
 	
 	ecode = marble_util_htable_insert(
 		gls_app.ms_assets.mps_table, 
-		ps_asset->mz_strid, 
+		ps_asset->maz_strid, 
 		ps_asset
 	);
 	if (ecode != MARBLE_EC_OK) {
 		printf("AssetManager: Failed to register asset \"%s\" (type = %i); error code: %i (%s).\n",
-			ps_asset->mz_strid,
+			ps_asset->maz_strid,
 			ps_asset->m_type,
 			ecode,
 			marble_error_getstr(ecode)
@@ -128,7 +128,7 @@ _Success_ok_ static marble_ecode_t marble_asset_internal_register(
 	}
 	
 	printf("AssetManager: Successfully registered asset \"%s\" (type = %i).\n",
-		ps_asset->mz_strid,
+		ps_asset->maz_strid,
 		ps_asset->m_type
 	);
 	
@@ -153,7 +153,7 @@ _Success_ok_ static marble_ecode_t marble_asset_internal_unregister(
 
 	void *p_asset = marble_util_htable_erase(
 		gls_app.ms_assets.mps_table,
-		ps_asset->mz_strid,
+		ps_asset->maz_strid,
 		&marble_asset_internal_cbfind,
 		dofree
 	);
@@ -191,7 +191,7 @@ static void marble_asset_internal_release(
 
 	// TODO: add asset type id strings
 	printf("AssetManager: Releasing asset \"%s\" (type = %i); current ref-count: %i.\n",
-		ps_asset->mz_strid,
+		ps_asset->maz_strid,
 		ps_asset->m_type,
 		ps_asset->m_type
 	);
@@ -384,7 +384,7 @@ _Critical_ static marble_ecode_t marble_asset_internal_loadfromfile(
 
 		ecode = marble_asset_internal_create(
 			s_commonhead.m_assettype, 
-			s_commonhead.mz_strid,
+			s_commonhead.maz_strid,
 			pps_asset
 		);
 		if (ecode != MARBLE_EC_OK)
@@ -413,7 +413,7 @@ lbl_CLEANUP:
 		marble_asset_destroy(pps_asset);
 
 		printf("AssetManager: Failed to create asset \"%s\"; error: %i (%s).\n",
-			s_commonhead.mz_strid,
+			s_commonhead.maz_strid,
 			ecode,
 			marble_error_getstr(ecode)
 		);
@@ -466,7 +466,7 @@ void marble_asset_destroy(
 	}
 
 	printf("AssetManager: Destroyed asset \"%s\" (type = %i), at address 0x%p (remaining references: %i).\n",
-		(*pps_asset)->mz_strid,
+		(*pps_asset)->maz_strid,
 		(*pps_asset)->m_type,
 		*pps_asset,
 		(*pps_asset)->m_refcount

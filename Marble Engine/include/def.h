@@ -57,7 +57,7 @@
 	/*
 	 * Writes data if function succeeds, leaves the buffer unchanged on failure. 
 	 */
-	#define _Mayble_out_    _When_(return == MARBLE_EC_OK, _Out_)
+	#define _Maybe_out_     _When_(return == MARBLE_EC_OK, _Out_)
 #endif
 
 
@@ -120,6 +120,10 @@
 	 * Shorten __func__, __LINE__ parameters. 
 	 */
 	#define MB_CALLER_INFO __func__, (size_t)(__LINE__)
+	/*
+	 * Shorten char const * pointer validation.
+	 */
+	#define MB_ISINVSTR(str) str == NULL || *str == '\0'
 #endif
 
 

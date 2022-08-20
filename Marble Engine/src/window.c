@@ -127,9 +127,9 @@ _Success_ok_ static marble_ecode_t marble_window_internal_calcdimensions(
  * Returns nothing.
  */
 _Success_ok_ static marble_ecode_t marble_window_internal_querydimensions(
-	_In_         HWND p_hwnd,                      /* window handle */
-	_Mayble_out_ struct marble_sizei2d *ps_client, /* destination client size */
-	_Mayble_out_ struct marble_sizei2d *ps_window  /* destination window size */
+	_In_        HWND p_hwnd,                      /* window handle */
+	_Maybe_out_ struct marble_sizei2d *ps_client, /* destination client size */
+	_Maybe_out_ struct marble_sizei2d *ps_window  /* destination window size */
 ) {
 	if (p_hwnd == NULL || ps_client == NULL || ps_window == NULL)
 		return MARBLE_EC_INTERNALPARAM;
@@ -314,8 +314,17 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 	return DefWindowProc(p_window, msgid, wparam, lparam);
 }
 
+static void marble_window_internal_destroy(
+	_Uninit_(pps_wnd) struct marble_window **pps_wnd
+) {
+	if (pps_wnd == NULL)
+		return;
 
-_Critical_ marble_ecode_t marble_window_create(
+	free(*pps_wnd);
+	*pps_wnd = NULL;
+}
+
+_Critical_ static marble_ecode_t marble_window_internal_create(
 	_In_            struct marble_app_settings const *ps_settings,
 	                bool isvsync,
 	                bool ismainwnd,
@@ -350,22 +359,6 @@ _Critical_ marble_ecode_t marble_window_create(
 	(*pps_wnd)->ms_data.m_isvsync        = isvsync;
 	(*pps_wnd)->ms_data.m_isfscreen      = false;
 	(*pps_wnd)->ms_data.m_style          = gl_wndstyle;
-
-	WNDCLASSEX s_wndclassdesc = {
-		.cbSize        = sizeof s_wndclassdesc,
-		.hInstance     = gls_app.mp_inst,
-		.lpszClassName = glpz_wndclassname,
-		.lpfnWndProc   = (WNDPROC)&marble_window_internal_windowproc,
-		.hCursor       = LoadCursor(NULL, IDC_ARROW),
-		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
-		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
-		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1)
-	};
-	if (RegisterClassEx(&s_wndclassdesc) == false) {
-		ecode = MARBLE_EC_REGWNDCLASS;
-
-		goto lbl_END;
-	}
 
 	(*pps_wnd)->mp_handle = CreateWindowEx(
 		0, 
@@ -403,21 +396,12 @@ lbl_END:
 	if (ecode != MARBLE_EC_OK) {
 		UnregisterClass(glpz_wndclassname, gls_app.mp_inst);
 
-		marble_window_destroy(pps_wnd);
+		marble_window_internal_destroy(pps_wnd);
 	}
 
 	return ecode;
 }
 
-void marble_window_destroy(
-	_Uninit_(pps_wnd) struct marble_window **pps_wnd
-) {
-	if (pps_wnd == NULL)
-		return;
-
-	free(*pps_wnd);
-	*pps_wnd = NULL;
-}
 
 void marble_window_setfullscreen(
 	_In_ struct marble_window *ps_window,
@@ -511,5 +495,140 @@ void marble_window_resize(
 	);
 	marble_window_internal_computedrawingorigin(ps_wnd);
 }
+
+
+#pragma region WINDOWMAN
+static bool marble_window_internal_findfn(
+	_In_z_ char const *pz_key,
+	_In_ struct marble_window const *pz_wnd
+) {
+	return !strcmp(pz_key, pz_wnd->maz_strid);
+}
+
+
+_Critical_ marble_ecode_t marble_windowman_init(
+	_Pre_valid_ _Maybe_out_ struct marble_windowman *ps_wndman
+) { MB_ERRNO
+	if (ps_wndman == NULL)           return MARBLE_EC_PARAM;
+	if (ps_wndman->m_isinit == true) return MARBLE_EC_COMPSTATE;
+
+	ps_wndman->mps_mainwnd = NULL;
+	ecode = marble_util_htable_create(
+		1,
+		(void (*)(void **))
+			&marble_window_internal_destroy,
+		&ps_wndman->mps_ht
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
+
+	ps_wndman->m_isinit = true;
+
+	/* Register window class. */
+	WNDCLASSEX s_wndclassdesc = {
+		.cbSize        = sizeof s_wndclassdesc,
+		.hInstance     = gls_app.mp_inst,
+		.lpszClassName = glpz_wndclassname,
+		.lpfnWndProc   = (WNDPROC)&marble_window_internal_windowproc,
+		.hCursor       = LoadCursor(NULL, IDC_ARROW),
+		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
+		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
+		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1)
+	};
+	if (RegisterClassEx(&s_wndclassdesc) == false)
+		goto lbl_END;
+
+lbl_END:
+	if (ecode != MARBLE_EC_OK)
+		marble_windowman_uninit(ps_wndman);
+
+	return MARBLE_EC_OK;
+}
+
+void marble_windowman_uninit(
+	struct marble_windowman *ps_wndman
+) {
+	if (ps_wndman == NULL || ps_wndman->m_isinit == false)
+		return;
+
+	marble_util_htable_destroy(&ps_wndman->mps_ht);
+	ps_wndman->m_isinit = false;
+}
+
+_Critical_ marble_ecode_t marble_windowman_createwindow(
+	_In_   struct marble_windowman *ps_wndman,
+	_In_   struct marble_app_settings const *ps_settings,
+	       bool isvsync,
+	       bool ismainwnd,
+	_In_z_ char const *pz_id
+) { MB_ERRNO
+	if (ps_settings == NULL || MB_ISINVSTR(pz_id))
+		return MARBLE_EC_PARAM;
+
+	struct marble_window *ps_tmp;
+	ecode = marble_window_internal_create(
+		ps_settings,
+		isvsync,
+		ismainwnd,
+		&ps_tmp
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
+	marble_system_cpystr(ps_tmp->maz_strid, pz_id, MB_STRINGIDMAX);
+
+	ecode = marble_util_htable_insert(
+		ps_wndman->mps_ht,
+		pz_id,
+		ps_tmp
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
+
+	if (ps_tmp->ms_data.m_ismainwnd == true)
+		ps_wndman->mps_mainwnd = ps_tmp;
+
+lbl_END:
+	return ecode;
+}
+
+void marble_windowman_destroywindow(
+	_In_   struct marble_windowman *ps_wndman,
+	_In_z_ char const *pz_id
+) {
+	if (ps_wndman == NULL || ps_wndman->m_isinit == false || MB_ISINVSTR(pz_id))
+		return;
+
+	struct marble_window *ps_tmp;
+	ps_tmp = marble_util_htable_erase(
+		ps_wndman->mps_ht,
+		pz_id,
+		(bool (*)(char const *, void *))
+			&marble_window_internal_findfn,
+		false
+	);
+	if (ps_tmp == NULL)
+		return;
+
+	if (ps_tmp->ms_data.m_ismainwnd == true)
+		ps_wndman->mps_mainwnd = NULL;
+
+	marble_window_internal_destroy(&ps_tmp);
+}
+
+struct marble_window *marble_windowman_findwindow(
+	_In_   struct marble_windowman *ps_wndman,
+	_In_z_ char const *pz_id 
+) {
+	if (ps_wndman == NULL || ps_wndman->m_isinit == false || MB_ISINVSTR(pz_id))
+		return NULL;
+
+	return marble_util_htable_find(
+		ps_wndman->mps_ht,
+		pz_id,
+		(bool (*)(char const *, void *))
+			&marble_window_internal_findfn
+	);
+}
+#pragma endregion
 
 

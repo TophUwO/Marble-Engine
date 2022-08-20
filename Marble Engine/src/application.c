@@ -207,20 +207,31 @@ static void marble_application_internal_initstate(
 }
 
 static void marble_application_internal_createmainwindow(
-	_Inout_ marble_ecode_t *p_ecode,                     /* pointer to error code variable */
-	_In_    struct marble_app_settings const *p_settings /* pointer to user-specified settings */
+	_Inout_ marble_ecode_t *p_ecode,                      /* pointer to error code variable */
+	_In_    struct marble_app_settings const *ps_settings /* pointer to user-specified settings */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
+	/* Initialize window manager. */
+	marble_log_info(NULL, "init: window manager");
+
+	*p_ecode = marble_windowman_init(&gls_app.ms_wndman);
+	if (*p_ecode != MARBLE_EC_OK)
+		goto lbl_END;
+
+	/* Create main window. */
 	marble_log_info(NULL, "init: main window");
 
-	*p_ecode = marble_window_create(
-		p_settings,
+	*p_ecode = marble_windowman_createwindow(
+		&gls_app.ms_wndman,
+		ps_settings,
 		true,
 		true,
-		&gls_app.mps_window
+		"mb_mainwnd"
 	);
+
+lbl_END:
 	if (*p_ecode != MARBLE_EC_OK)
 		marble_application_raisefatalerror(*p_ecode);
 }
@@ -235,13 +246,13 @@ static void marble_application_internal_createrenderer(
 
 	*p_ecode = marble_renderer_create(
 		MARBLE_RENDERAPI_DIRECT2D,
-		gls_app.mps_window->mp_handle,
+		gls_app.ms_wndman.mps_mainwnd->mp_handle,
 		&gls_app.mps_renderer
 	);
 	if (*p_ecode != MARBLE_EC_OK)
 		marble_application_raisefatalerror(*p_ecode);
 
-	gls_app.mps_window->mps_renderer = gls_app.mps_renderer;
+	gls_app.ms_wndman.mps_mainwnd->mps_renderer = gls_app.mps_renderer;
 }
 
 static void marble_application_internal_initlayerstack(
@@ -299,13 +310,15 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 	marble_renderer_begindraw(gls_app.mps_renderer);
 	marble_renderer_clear(gls_app.mps_renderer, 0.0f, 0.0f, 0.0f, 1.0f);
 
+	struct marble_window *ps_tmp = gls_app.ms_wndman.mps_mainwnd;
+
 	/* just for debugging purposes */
 #if (defined _DEBUG) || (defined MB_DEVBUILD)
 	D2D1_RECT_F s_rect = {
 		gls_app.mps_renderer->m_orix,
 		gls_app.mps_renderer->m_oriy,
-		gls_app.mps_renderer->m_orix + gls_app.mps_window->ms_data.ms_ext.ms_client.m_width,
-		gls_app.mps_renderer->m_oriy + gls_app.mps_window->ms_data.ms_ext.ms_client.m_width
+		gls_app.mps_renderer->m_orix + ps_tmp->ms_data.ms_ext.ms_client.m_width,
+		gls_app.mps_renderer->m_oriy + ps_tmp->ms_data.ms_ext.ms_client.m_width
 	};
 	D2D1_BRUSH_PROPERTIES s_brushprops = {
 		.opacity = 1.0f
@@ -326,7 +339,7 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 	}
 
 	marble_renderer_enddraw(gls_app.mps_renderer);
-	marble_window_update(gls_app.mps_window, frametime);
+	marble_window_update(ps_tmp, frametime);
 
 	return marble_renderer_present(&gls_app.mps_renderer);
 }
@@ -343,7 +356,7 @@ _Success_ok_ static marble_ecode_t marble_application_internal_cleanup(
 ) {
 	marble_log_info(NULL, "System shutdown ...", 0);
 
-	marble_window_destroy(&gls_app.mps_window);
+	marble_windowman_uninit(&gls_app.ms_wndman);
 	marble_renderer_destroy(&gls_app.mps_renderer);
 
 	marble_application_internal_uninitlayerstack();
@@ -406,9 +419,9 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 
 	/* At last, present the window. */
 	if (!ecode) {
-		UpdateWindow(gls_app.mps_window->mp_handle);
+		UpdateWindow(gls_app.ms_wndman.mps_mainwnd->mp_handle);
 
-		ShowWindow(gls_app.mps_window->mp_handle, SW_SHOWNORMAL);
+		ShowWindow(gls_app.ms_wndman.mps_mainwnd->mp_handle, SW_SHOWNORMAL);
 	}
 
 	return MARBLE_EC_OK;
@@ -447,7 +460,7 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 			DispatchMessage(&s_msg);
 		}
 
-		if (gls_app.mps_window->ms_data.m_isminimized == false)
+		if (gls_app.ms_wndman.mps_mainwnd->ms_data.m_isminimized == false)
 			marble_application_internal_updateandrender(frametime);
 	}
 	

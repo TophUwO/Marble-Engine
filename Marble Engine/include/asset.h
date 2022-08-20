@@ -64,10 +64,10 @@ struct marble_asset_commonhead {
 	* [0] ... asset is persistent (will not be unloaded when refcount becomes 0)
 	*/
 	uint32_t m_flags;
-	char     mz_strid[MB_STRINGIDMAX]; /* asset string ID */
-	uint32_t m_numofdeps;              /* number of dependency table entries */
-	uint32_t m_depheadoff;             /* offset to asset-specific head from begin of file */
-	uint32_t m_dataoff;                /* offset to asset data from begin of file */
+	char     maz_strid[MB_STRINGIDMAX]; /* asset string ID */
+	uint32_t m_numofdeps;               /* number of dependency table entries */
+	uint32_t m_depheadoff;              /* offset to asset-specific head from begin of file */
+	uint32_t m_dataoff;                 /* offset to asset data from begin of file */
 };
 
 /*
@@ -78,7 +78,7 @@ struct marble_asset_commonhead {
  */
 struct marble_asset {
 	int   m_type;                     /* asset type ID */
-	char  mz_strid[MB_STRINGIDMAX];   /* asset string ID */
+	char  maz_strid[MB_STRINGIDMAX];   /* asset string ID */
 	int   m_refcount;                 /* internal ref-count */
 
 	struct marble_util_vec *mps_deps; /* dependencies loaded by the asset */ 

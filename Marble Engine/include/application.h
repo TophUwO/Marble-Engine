@@ -80,8 +80,8 @@ extern struct marble_application {
 		int  m_param;   /* additional parameter */
 	} ms_state;
 
-	struct marble_window   *mps_window;   /* main window */
-	struct marble_renderer *mps_renderer; /* renderer associated with main window */
+	struct marble_windowman  ms_wndman;    /* window manager */
+	struct marble_renderer  *mps_renderer; /* renderer associated with main window */
 	/* 
 	 * Layer stack
 	 * 
