@@ -54,6 +54,10 @@
 	 * used with a function parameter.
 	 */
 	#define _Maybe_valid_   _Outptr_result_maybenull_
+	/*
+	 * Writes data if function succeeds, leaves the buffer unchanged on failure. 
+	 */
+	#define _Mayble_out_    _When_(return == MARBLE_EC_OK, _Out_)
 #endif
 
 

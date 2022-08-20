@@ -2,7 +2,7 @@
 
 
 static TCHAR const *const glpz_wndclassname = TEXT("marble_window");
-
+static DWORD const        gl_wndstyle       = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
 
 /*
  * Calculate coordinates of drawing origin.
@@ -38,12 +38,110 @@ static void marble_window_internal_onevent(
 	* Traverse layer stack top to bottom, having topmost layers
 	* get the chance to handle the event first.
 	*/
-	for (size_t i = gls_app.ms_layerstack.mps_vec->m_size - 1; i && i != (size_t)(-1) && !ps_event->m_ishandled; i--) {
+	for (size_t i = gls_app.ms_layerstack.mps_vec->m_size - 1; i && i != (size_t)(-1) && ps_event->m_ishandled == false; i--) {
 		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 
 		if (ps_layer->m_isenabled)
 			(*ps_layer->ms_cbs.cb_onevent)(ps_layer->m_id, ps_event, ps_layer->mp_userdata);
 	}
+}
+
+/*
+ * Calculates the window dimensions of a new or already existing window, based
+ * on the parameters passed as **width**, **height**, and **tsize**. If the desired
+ * window dimensions exceed the window's current (or primary) monitor's physical size,
+ * the window size will be chosen to maximize the client area while approximately
+ * maintaining the aspect ratio implicitly defined by the quotient of **width** and
+ * **height**.
+ * 
+ * The calculated values will be written to **p_width** and **p_height**. These values
+ * are then to be passed to "CreateWindow()" or "SetWindowPos()" directly.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+_Success_ok_ static marble_ecode_t marble_window_internal_calcdimensions(
+	_In_opt_ HWND p_hwnd,
+	         int width,
+	         int height,
+	         int tsize,
+	         DWORD style,
+	_Out_    int *p_width,
+	_Out_    int *p_height
+) {
+	if (p_width == NULL || p_height == NULL || width * height * tsize == 0)
+		return MARBLE_EC_INTERNALPARAM;
+
+	/*
+	 * (1) Get desired (physical) monitor handle.
+	 * (1.1) If **p_hwnd** is not NULL, get a handle to the
+	 *       monitor the window is currently placed on.
+	 * (1.2) Otherwise, get a handle to the primary monitor of
+	 *       the system.
+	 */
+	HMONITOR p_hmon = p_hwnd != NULL
+		? MonitorFromWindow(p_hwnd, MONITOR_DEFAULTTOPRIMARY)
+		: MonitorFromPoint((POINT){ 0, 0 }, MONITOR_DEFAULTTOPRIMARY)
+	;
+	/* (2) Get monitor info. */
+	MONITORINFO s_moninfo = { .cbSize = sizeof s_moninfo };
+	if (GetMonitorInfo(p_hmon, &s_moninfo) == false)
+		return MARBLE_EC_GETMONITORINFO;
+
+	/* 
+	 * (3) Calculate hypothetical window size based on the
+	 *     given dimensions.
+	 */
+	RECT s_clrect = { 0, 0, width * tsize, height * tsize };
+	if (AdjustWindowRect(&s_clrect, style, false) == false)
+		return MARBLE_EC_CALCWNDSIZE;
+
+	/*
+	 * (4) Check whether the window would be to large to be
+	 *     displayed on the primary monitor.
+	 */
+	int const scr_w = abs(s_moninfo.rcWork.right - s_moninfo.rcWork.left);
+	int const scr_h = abs(s_moninfo.rcWork.bottom - s_moninfo.rcWork.top);
+	int const wnd_w = abs(s_clrect.right - s_clrect.left);
+	int const wnd_h = abs(s_clrect.bottom - s_clrect.top);
+	if (scr_w < wnd_w || scr_h < wnd_h) {
+		/* (5) If the requested window dimensions are too large, scale it. */
+		float const scale = min(scr_w / (float)wnd_w, scr_h / (float)wnd_h);
+
+		/* (6) Request the new window size. */
+		s_clrect = (RECT) { 0, 0, (LONG)(width * scale) * tsize, (LONG)(height * scale) * tsize };
+		if (AdjustWindowRect(&s_clrect, style, false) == false)
+			return MARBLE_EC_CALCWNDSIZE;
+	}
+
+	/* (7) Return the width and the height of the window rectangle. */
+	*p_width  = s_clrect.right - s_clrect.left;
+	*p_height = s_clrect.bottom - s_clrect.top;
+
+	return MARBLE_EC_OK;
+}
+
+/*
+ * Queries current window and client size and writes it into
+ * the respective destination structures.
+ * 
+ * Returns nothing.
+ */
+_Success_ok_ static marble_ecode_t marble_window_internal_querydimensions(
+	_In_         HWND p_hwnd,                      /* window handle */
+	_Mayble_out_ struct marble_sizei2d *ps_client, /* destination client size */
+	_Mayble_out_ struct marble_sizei2d *ps_window  /* destination window size */
+) {
+	if (p_hwnd == NULL || ps_client == NULL || ps_window == NULL)
+		return MARBLE_EC_INTERNALPARAM;
+
+	RECT s_client, s_window;
+	if (GetClientRect(p_hwnd, &s_client) == false || GetWindowRect(p_hwnd, &s_window) == false)
+		return MARBLE_EC_QUERYWINDOWRECT;
+
+	*ps_client = (struct marble_sizei2d){ s_client.right - s_client.left, s_client.bottom - s_client.top };
+	*ps_window = (struct marble_sizei2d){ s_window.right - s_window.left, s_window.bottom - s_window.top };
+
+	return MARBLE_EC_OK;
 }
 
 /*
@@ -74,7 +172,6 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 
 			return 0;
 		case WM_SIZE: {
-			//ps_wnddata = (struct marble_window *)GetWindowLongPtr(p_window, GWLP_USERDATA);
 			ps_wnddata->ms_data.m_isminimized = wparam == SIZE_MINIMIZED;
 
 			/* Ignore message if window initialization is not complete yet. */
@@ -219,15 +316,26 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 
 
 _Critical_ marble_ecode_t marble_window_create(
-	_In_z_          char const *const pz_title,
-	_In_            uint32_t width,
-	_In_            uint32_t height,
+	_In_            struct marble_app_settings const *ps_settings,
 	                bool isvsync,
 	                bool ismainwnd,
 	_Init_(pps_wnd) struct marble_window **pps_wnd
 ) { MB_ERRNO
 	if (pps_wnd == NULL)
 		return MARBLE_EC_PARAM;
+
+	int width, height;
+	ecode = marble_window_internal_calcdimensions(
+		NULL,
+		ps_settings->m_width,
+		ps_settings->m_height,
+		ps_settings->m_tilesize,
+		gl_wndstyle,
+		&width,
+		&height
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
 
 	ecode = marble_system_alloc(
 		MB_CALLER_INFO,
@@ -237,12 +345,11 @@ _Critical_ marble_ecode_t marble_window_create(
 		pps_wnd
 	);
 	if (ecode != MARBLE_EC_OK)
-		goto lbl_ERROR;
+		goto lbl_END;
 
-	(*pps_wnd)->ms_data.ms_ext.ms_window = (struct marble_sizei2d){ width, height };
-	(*pps_wnd)->ms_data.m_isvsync            = isvsync;
-	(*pps_wnd)->ms_data.m_isfscreen          = false;
-	(*pps_wnd)->ms_data.m_style              = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
+	(*pps_wnd)->ms_data.m_isvsync        = isvsync;
+	(*pps_wnd)->ms_data.m_isfscreen      = false;
+	(*pps_wnd)->ms_data.m_style          = gl_wndstyle;
 
 	WNDCLASSEX s_wndclassdesc = {
 		.cbSize        = sizeof s_wndclassdesc,
@@ -257,18 +364,18 @@ _Critical_ marble_ecode_t marble_window_create(
 	if (RegisterClassEx(&s_wndclassdesc) == false) {
 		ecode = MARBLE_EC_REGWNDCLASS;
 
-		goto lbl_ERROR;
+		goto lbl_END;
 	}
 
 	(*pps_wnd)->mp_handle = CreateWindowEx(
 		0, 
 		glpz_wndclassname, 
 		TEXT("(placeholder window title)"), 
-		(*pps_wnd)->ms_data.m_style,
+		gl_wndstyle,
 		CW_USEDEFAULT, 
 		CW_USEDEFAULT, 
-		(int)width, 
-		(int)height, 
+		width, 
+		height, 
 		NULL, 
 		NULL, 
 		gls_app.mp_inst,
@@ -278,26 +385,26 @@ _Critical_ marble_ecode_t marble_window_create(
 		// TODO: add support for creating non-main windows
 		ecode = MARBLE_EC_CREATEMAINWND;
 
-		goto lbl_ERROR;
+		goto lbl_END;
 	}
 
-	RECT s_clientrect;
-	GetClientRect((*pps_wnd)->mp_handle, &s_clientrect);
-
-	(*pps_wnd)->ms_data.ms_ext.ms_client = (struct marble_sizei2d){
-		(uint32_t)s_clientrect.right,
-		(uint32_t)s_clientrect.bottom
-	};
+	marble_window_internal_querydimensions(
+		(*pps_wnd)->mp_handle,
+		&(*pps_wnd)->ms_data.ms_ext.ms_client,
+		&(*pps_wnd)->ms_data.ms_ext.ms_window
+	);
 
 	(*pps_wnd)->ms_data.m_ismainwnd = gls_app.m_hasmainwnd == true
 		? false
 		: ismainwnd
 	;
-	return MARBLE_EC_OK;
 
-lbl_ERROR:
-	UnregisterClass(glpz_wndclassname, gls_app.mp_inst);
-	marble_window_destroy(pps_wnd);
+lbl_END:
+	if (ecode != MARBLE_EC_OK) {
+		UnregisterClass(glpz_wndclassname, gls_app.mp_inst);
+
+		marble_window_destroy(pps_wnd);
+	}
 
 	return ecode;
 }
@@ -374,51 +481,27 @@ void marble_window_resize(
 	if (ps_wnd == NULL || width * height * tsize == 0)
 		return;
 
-	/* Get window info and window's monitor size. */
-	MONITORINFO s_moninfo = { .cbSize = sizeof s_moninfo };
-	HMONITOR p_monitor = MonitorFromWindow(
+	int nwidth, nheight;
+	if (marble_window_internal_calcdimensions(
 		ps_wnd->mp_handle,
-		MONITOR_DEFAULTTOPRIMARY
+		width,
+		height,
+		tsize,
+		ps_wnd->ms_data.m_style,
+		&nwidth,
+		&nheight
+	)) return;
+
+	marble_window_internal_querydimensions(
+		ps_wnd->mp_handle,
+		&ps_wnd->ms_data.ms_ext.ms_client,
+		&ps_wnd->ms_data.ms_ext.ms_window
 	);
-	if (p_monitor == NULL || GetMonitorInfo(p_monitor, &s_moninfo) == false)
-		return;
 
-	/* Compute total window size based on requested render target size. */
-	RECT s_wndrect = { 0, 0, (LONG)(width * tsize), (LONG)(height * tsize) };
-	AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, false);
-
-	/* Is our desired size too large for our display device? */
-	float const scr_w = (float)abs(s_moninfo.rcWork.right - s_moninfo.rcWork.left);
-	float const wnd_w = (float)abs(s_wndrect.right - s_wndrect.left);
-	float const scr_h = (float)abs(s_moninfo.rcWork.bottom - s_moninfo.rcWork.top);
-	float const wnd_h = (float)abs(s_wndrect.bottom - s_wndrect.top);
-	if (wnd_w > scr_w || wnd_h > scr_h) {
-		/* Get scale factor by which to scale tile sizes. */
-		float const scale = min(scr_w / wnd_w, scr_h / wnd_h);
-
-		/* Calculate new window size. */
-		s_wndrect = (RECT){
-			0,
-			0,
-			(int)(width * scale) * tsize,
-			(int)(height * scale) * tsize
-		};
-		AdjustWindowRect(&s_wndrect, ps_wnd->ms_data.m_style, false);
-
-		/* Calculate window and render area size. */
-		ps_wnd->ms_data.ms_ext.m_tsize = tsize;
-
-		ps_wnd->ms_data.ms_ext.ms_client = (struct marble_sizei2d){
-			(SHORT)(width * scale) * tsize,
-			(SHORT)(height * scale) * tsize
-		};
-		ps_wnd->ms_data.ms_ext.ms_window = (struct marble_sizei2d){
-			abs(s_wndrect.right - s_wndrect.left),
-			abs(s_wndrect.bottom - s_wndrect.top)
-		};
-	}
-
-	/* Resize window and renderer. */
+	/*
+	 * Resize window and renderer according
+	 * to the new dimensions.
+	 */
 	MoveWindow(
 		ps_wnd->mp_handle,
 		0, 0,

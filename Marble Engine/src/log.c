@@ -195,7 +195,7 @@ static bool marble_log_internal_formatmessage(
 
 	written += (size_t)sprintf_s(
 		gls_logctxt.pz_buffer + written,
-		gl_bufsize,
+		gl_bufsize - written,
 		glpz_pattern,
 		glsa_loglvlinfo[lvl].mpz_str,
 		pz_function == NULL ? "" : pz_function,

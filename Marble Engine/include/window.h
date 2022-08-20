@@ -2,6 +2,7 @@
 
 #include <api.h>
 #include <error.h>
+#include <marble.h>
 
 
 /*
@@ -46,11 +47,10 @@ struct marble_window {
  * Returns non-zero on failure, 0 on success.
  */
 _Critical_ extern marble_ecode_t marble_window_create(
-	_In_z_          char const *pz_title, /* window title */
-	_In_            uint32_t width,       /* width in pixels */
-	_In_            uint32_t height,      /* height in pixels */
-	                bool isvsync,         /* Should VSync be enabled? */
-	                bool ismainwnd,       /* Should the window be the main window? */
+	/* window and application settings */
+	_In_            struct marble_app_settings const *ps_settings,
+	                bool isvsync,   /* Should VSync be enabled? */
+	                bool ismainwnd, /* Should the window be the main window? */
 	/*
 	 * Pointer to a pointer to a "marble_window" structure
 	 * that will receive the freshly-created window. 

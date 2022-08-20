@@ -17,21 +17,10 @@
  *       of the system.
  */
 struct marble_app_settings {
-	/*
-	 * x position, in pixels,
-	 * relative to the upper-left corner of
-	 * the physical screen
-	 */
-	int m_xpos;
-	/*
-	 * y position, in pixels,
-	 * relative to the upper-left corner of
-	 * the physical screen
-	 */
-	int m_ypos;
-	int m_width;    /* width, in tiles */
-	int m_height;   /* height, in tiles */
-	int m_tilesize; /* size of a tile, in pixels */
+	char const *mpz_title; /* window title */
+	int m_width;           /* width, in tiles */
+	int m_height;          /* height, in tiles */
+	int m_tilesize;        /* size of a tile, in pixels */
 };
 
 

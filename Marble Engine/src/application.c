@@ -216,9 +216,7 @@ static void marble_application_internal_createmainwindow(
 	marble_log_info(NULL, "init: main window");
 
 	*p_ecode = marble_window_create(
-		"Marble Engine Sandbox",
-		512,
-		512,
+		p_settings,
 		true,
 		true,
 		&gls_app.mps_window

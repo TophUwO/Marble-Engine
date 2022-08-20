@@ -45,7 +45,10 @@ static char const *const glapz_ecodestrs[] = {
 	"MARBLE_EC_LAYERSTATE",
 	"MARBLE_EC_RENDERAPI",
 	"MARBLE_EC_CREATERENDERER",
-	"MARBLE_EC_NOTFOUND"
+	"MARBLE_EC_NOTFOUND",
+	"MARBLE_EC_GETMONITORINFO",
+	"MARBLE_EC_CALCWNDSIZE",
+	"MARBLE_EC_QUERYWINDOWRECT"
 };
 
 /* Error code descriptions */
@@ -92,7 +95,10 @@ static char const *const glapz_ecodedescs[] = {
 	"Operation could not be carried out due to an incorrect layer state.",
 	"Invalid renderer API.",
 	"Failed to create and initialize renderer.",
-	"The specified object could not be found."
+	"The specified object could not be found.",
+	"Could not get monitor info.",
+	"Could not calculate window dimensions.",
+	"Could not query window or client rectangle."
 };
 
 
