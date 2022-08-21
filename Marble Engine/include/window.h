@@ -29,7 +29,6 @@ struct marble_window {
 
 	/* Structure containing all miscelleneous window data */
 	struct marble_window_data {
-		bool     m_isvsync;     /* VSync state */
 		bool     m_isfscreen;   /* fullscreen state */
 		bool     m_isminimized; /* window size state */
 		bool     m_ismainwnd;   /* Is the window the main window? */
@@ -58,7 +57,7 @@ struct marble_window {
  * 
  * Returns nothing.
  */
-extern void inline marble_window_setfullscreen(
+extern void marble_window_setfullscreen(
 	_In_ struct marble_window *ps_wnd, /* window to be modified */
 	     bool isenabled                /* enable or disable */
 );
@@ -68,7 +67,7 @@ extern void inline marble_window_setfullscreen(
 * 
 * Returns nothing.
 */
-extern void inline marble_window_setvsync(
+extern void marble_window_setvsync(
 	_In_ struct marble_window *ps_wnd, /* window to be modified */
 	     bool isenabled                /* enable or disable */
 );

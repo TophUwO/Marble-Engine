@@ -36,9 +36,10 @@ struct marble_renderer_d2d {
 struct marble_renderer {
 	enum marble_renderer_api m_api; /* API */
 
-    float m_orix;   /* x-Origin of drawing area */
-    float m_oriy;   /* y-Origin of drawing area */
-	bool  m_isinit; /* Is renderer ready? */
+    float m_orix;    /* x-Origin of drawing area */
+    float m_oriy;    /* y-Origin of drawing area */
+	bool  m_isinit;  /* Is renderer ready? */
+	bool  m_isvsync; /* VSync state */
 
 	/* Collection of renderer API structures */
 	union {
@@ -58,6 +59,7 @@ struct marble_renderer {
  */
 _Critical_ extern marble_ecode_t marble_renderer_create(
 	                     enum marble_renderer_api api, /* API the renderer will use */
+	                     bool isvsync,                 /* VSync enabled? */
 	_In_                 HWND p_target,                /* window handle the renderer will be associated with */
 	/*
 	 * Pointer to a pointer to a "marble_renderer" structure that will receive

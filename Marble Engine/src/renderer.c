@@ -542,6 +542,7 @@ _Critical_ static marble_ecode_t marble_d2drenderer_internal_recreate(
 
 _Critical_ marble_ecode_t marble_renderer_create(
 	                     enum marble_renderer_api api,
+	                     bool isvsync,
 	_In_                 HWND p_target,
 	_Init_(pps_renderer) struct marble_renderer **pps_renderer
 ) { MB_ERRNO
@@ -575,7 +576,8 @@ _Critical_ marble_ecode_t marble_renderer_create(
 		(*pps_renderer)->m_orix = 0;
 		(*pps_renderer)->m_oriy = 0;
 
-		(*pps_renderer)->m_isinit = true;
+		(*pps_renderer)->m_isvsync = isvsync;
+		(*pps_renderer)->m_isinit  = true;
 	}
 
 	return ecode;
@@ -641,7 +643,7 @@ _Critical_ marble_ecode_t marble_renderer_present(
 		case MARBLE_RENDERAPI_DIRECT2D: {
 			HRESULT res = MB_D2DSWAPCHAIN_VT(*pps_renderer)->Present(
 				MB_D2DSWAPCHAIN(*pps_renderer),
-				1, /* TODO: will be VSync state of window */
+				(*pps_renderer)->m_isvsync,
 				0
 			);
 

@@ -320,6 +320,8 @@ static void marble_window_internal_destroy(
 	if (pps_wnd == NULL)
 		return;
 
+	marble_renderer_destroy(&(*pps_wnd)->mps_renderer);
+
 	free(*pps_wnd);
 	*pps_wnd = NULL;
 }
@@ -356,7 +358,6 @@ _Critical_ static marble_ecode_t marble_window_internal_create(
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
 
-	(*pps_wnd)->ms_data.m_isvsync        = isvsync;
 	(*pps_wnd)->ms_data.m_isfscreen      = false;
 	(*pps_wnd)->ms_data.m_style          = gl_wndstyle;
 
@@ -391,6 +392,14 @@ _Critical_ static marble_ecode_t marble_window_internal_create(
 		? false
 		: ismainwnd
 	;
+
+	/* Create renderer. */
+	ecode = marble_renderer_create(
+		MARBLE_RENDERAPI_DIRECT2D,
+		isvsync,
+		(*pps_wnd)->mp_handle,
+		&(*pps_wnd)->mps_renderer
+	);
 
 lbl_END:
 	if (ecode != MARBLE_EC_OK) {
@@ -427,10 +436,10 @@ void marble_window_setvsync(
 	/*
 	 * We just have to set this boolean variable to the
 	 * value we want. The renderer will automatically
-	 * query the value every time it presents a frame.
+	 * use the new value every time it presents a frame.
 	 */
-	if (ps_wnd != NULL)
-		ps_wnd->ms_data.m_isvsync = isenabled;
+	if (ps_wnd != NULL && ps_wnd->mps_renderer != NULL && ps_wnd->mps_renderer->m_isinit == true)
+		ps_wnd->mps_renderer->m_isvsync = isenabled;
 }
 
 void marble_window_update(
@@ -565,7 +574,7 @@ _Critical_ marble_ecode_t marble_windowman_createwindow(
 	if (ps_settings == NULL || MB_ISINVSTR(pz_id))
 		return MARBLE_EC_PARAM;
 
-	struct marble_window *ps_tmp;
+	struct marble_window *ps_tmp = NULL;
 	ecode = marble_window_internal_create(
 		ps_settings,
 		isvsync,
