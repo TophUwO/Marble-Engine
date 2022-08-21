@@ -206,29 +206,27 @@ static void marble_application_internal_initstate(
 	gls_app.mp_inst = p_inst;
 }
 
-static void marble_application_internal_createmainwindow(
+static void marble_application_internal_createwindow(
 	_Inout_ marble_ecode_t *p_ecode,                      /* pointer to error code variable */
 	_In_    struct marble_app_settings const *ps_settings /* pointer to user-specified settings */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	/* Initialize window manager. */
-	marble_log_info(NULL, "init: window manager");
+	/* Initialize window system. */
+	marble_log_info(NULL, "init: window system");
 
-	*p_ecode = marble_windowman_init(&gls_app.ms_wndman);
+	*p_ecode = marble_windowsys_init();
 	if (*p_ecode != MARBLE_EC_OK)
 		goto lbl_END;
 
-	/* Create main window. */
-	marble_log_info(NULL, "init: main window");
+	/* Initialize window. */
+	marble_log_info(NULL, "init: window");
 
-	*p_ecode = marble_windowman_createwindow(
-		&gls_app.ms_wndman,
+	*p_ecode = marble_window_create(
 		ps_settings,
 		true,
-		true,
-		"mb_mainwnd"
+		&gls_app.ps_wnd
 	);
 
 lbl_END:
@@ -341,11 +339,12 @@ _Success_ok_ static marble_ecode_t marble_application_internal_cleanup(
 ) {
 	marble_log_info(NULL, "System shutdown ...", 0);
 
-	marble_windowman_uninit(&gls_app.ms_wndman);
+	marble_window_destroy(&gls_app.ps_wnd);
 
 	marble_application_internal_uninitlayerstack();
 	marble_application_internal_uninitassetman();
 	marble_log_uninit();
+	marble_windowsys_uninit();
 	CoUninitialize();
 
 #if (defined _DEBUG)
@@ -393,7 +392,7 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 	marble_application_internal_initstate(&ecode, p_inst);
 	marble_application_internal_inithpc(&ecode);
 	marble_application_internal_initcom(&ecode);
-	marble_application_internal_createmainwindow(&ecode, &s_settings);
+	marble_application_internal_createwindow(&ecode, &s_settings);
 	marble_application_internal_initlayerstack(&ecode);
 	marble_application_internal_initassetmanager(&ecode);
 
@@ -402,9 +401,9 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 
 	/* At last, present the window. */
 	if (!ecode) {
-		UpdateWindow(gls_app.ms_wndman.mps_mainwnd->mp_handle);
+		UpdateWindow(gls_app.ps_wnd->mp_handle);
 
-		ShowWindow(gls_app.ms_wndman.mps_mainwnd->mp_handle, SW_SHOWNORMAL);
+		ShowWindow(gls_app.ps_wnd->mp_handle, SW_SHOWNORMAL);
 	}
 
 	return MARBLE_EC_OK;
@@ -443,8 +442,8 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 			DispatchMessage(&s_msg);
 		}
 
-		if (gls_app.ms_wndman.mps_mainwnd->ms_data.m_isminimized == false)
-			marble_application_internal_updateandrender(gls_app.ms_wndman.mps_mainwnd, frametime);
+		if (gls_app.ps_wnd->ms_data.m_isminimized == false)
+			marble_application_internal_updateandrender(gls_app.ps_wnd, frametime);
 	}
 	
 lbl_CLEANUP:

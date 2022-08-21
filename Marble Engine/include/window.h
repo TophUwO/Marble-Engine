@@ -6,32 +6,19 @@
 
 
 /*
- * Structure holding information on the window manager. The only instance of
- * this structure is within "marble_application".
- */
-struct marble_windowman {
-	bool m_isinit;                       /* Is the window manager present? */
-
-	struct marble_util_htable *mps_ht;   /* list of windows */
-	struct marble_window   *mps_mainwnd; /* ref to the main window */
-};
-
-/*
  * Structure holding all information
  * about a window.
  * Note that some data, such as the window 
  * title, is not cached.
  */
 struct marble_window {
-	HWND                    mp_handle;                 /* handle to the window */
-	char                    maz_strid[MB_STRINGIDMAX]; /* string id */
-	struct marble_renderer *mps_renderer;              /* the window's renderer */
+	HWND                    mp_handle;    /* handle to the window */
+	struct marble_renderer *mps_renderer; /* the window's renderer */
 
 	/* Structure containing all miscelleneous window data */
 	struct marble_window_data {
 		bool     m_isfscreen;   /* fullscreen state */
 		bool     m_isminimized; /* window size state */
-		bool     m_ismainwnd;   /* Is the window the main window? */
 		uint64_t m_lastupdate;  /* timestamp of last update */
 		/* window styles (system-specific) */
 		uint32_t m_style;
@@ -51,6 +38,27 @@ struct marble_window {
 	} ms_data;
 };
 
+
+/*
+ * Creates a window.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+_Critical_ extern marble_ecode_t marble_window_create(
+	_In_            struct marble_app_settings const *ps_settings, /* window and app settings */
+	                bool isvsync,                                  /* VSync state */
+	_Init_(pps_wnd) struct marble_window **pps_wnd                 /* pointer to destination structure */
+);
+
+/*
+ * Destroys a window and its renderer.
+ * All resources occupied by this window are released.
+ * 
+ * Returns nothing.
+ */
+extern void marble_window_destroy(
+	_Uninit_(pps_wnd) struct marble_window **pps_wnd
+);
 
 /*
  * Sets fullscreen state of a window.
@@ -97,61 +105,29 @@ extern void marble_window_update(
  */
 extern void marble_window_resize(
 	_In_ struct marble_window *ps_wnd, /* window to be modified */
-	     uint32_t width,               /* width, in tiles */
-	     uint32_t height,              /* height, in tiles */
-	     uint32_t tsize                /* tile size, in pixels */
-);
-
-
-#pragma region WINDOWMAN
-_Critical_ extern marble_ecode_t marble_windowman_init(
-	_Pre_valid_ _Maybe_out_ struct marble_windowman *ps_wndman
-);
-
-extern void marble_windowman_uninit(
-	struct marble_windowman *ps_wndman
+	     int width,                    /* width, in tiles */
+	     int height,                   /* height, in tiles */
+	     int tsize                     /* tile size, in pixels */
 );
 
 
 /*
- * Creates a window.
+ * Initializes the window system. This must be done before a window
+ * can be created.
  * 
- * Returns non-zero on failure, 0 on success.
+ * Returns 0 on success, non-zero on failure.
  */
-_Critical_ extern marble_ecode_t marble_windowman_createwindow(
-	/* window manager */
-	_In_            struct marble_windowman *ps_wndman,
-	/* window and application settings */
-	_In_            struct marble_app_settings const *ps_settings,
-	                bool isvsync,     /* Should VSync be enabled? */
-	                bool ismainwnd,   /* Should the window be the main window? */
-	_In_z_          char const *pz_id /* window identifier */
+_Critical_ extern marble_ecode_t marble_windowsys_init(
+	void
 );
 
 /*
- * Destroys a window.
+ * Uninitializes the window system.
  * 
- * If the window that is to be destroyed is the main application
- * window, the app will subsequently perform an orderly
- * shutdown.
- * 
- * Returns nothing.
+ * Returns othing.
  */
-extern void marble_windowman_destroywindow(
-	_In_   struct marble_windowman *ps_wndman, /* window manager */
-	_In_z_ char const *pz_id                   /* window id */
+extern void marble_windowsys_uninit(
+	void
 );
-
-/*
- * Finds a window based on its string identifier.
- * 
- * Returns window handle is the window could be found,
- * or NULL if not or if an error occurred.
- */
-extern struct marble_window *marble_windowman_findwindow(
-	_In_   struct marble_windowman *ps_wndman, /* window manager */
-	_In_z_ char const *pz_id                   /* window id */
-);
-#pragma endregion
 
 
