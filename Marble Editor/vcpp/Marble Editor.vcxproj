@@ -177,6 +177,7 @@
     <ClCompile Include="..\src\tsetview.c">
       <FileType>CppHeader</FileType>
     </ClCompile>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Marble Editor.rc" />

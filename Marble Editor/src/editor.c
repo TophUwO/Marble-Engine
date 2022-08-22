@@ -8,8 +8,6 @@ static void mbeditor_internal_opendebugcon(void) {
 	if (AllocConsole() == TRUE) {
 		FILE *p_file;
 		freopen_s(&p_file, "CONOUT$", "wb", stdout);
-
-		printf("Hello, world");
 	}
 }
 
@@ -64,6 +62,13 @@ static LRESULT CALLBACK mbeditor_internal_wndproc(
 				GET_X_LPARAM(lparam),
 				GET_Y_LPARAM(lparam)
 			);
+
+			return 0;
+		case WM_COMMAND:
+			switch (wparam) {
+				case ID_CREATE_TILESET:
+					return mbeditor_tsetview_newtsdlg(&gls_editorapp.ms_tsview);
+			}
 
 			return 0;
 		case WM_CLOSE:

@@ -8,9 +8,10 @@
  * Structure representing a logical tileset. 
  */
 struct mbeditor_tset {
-	int m_id;                       /* tileset ID */
-	char maz_name[MBE_MAXTSETNAME]; /* tileset name */
-	HWND p_hwnd;                    /* tileset view window */
+	int m_id;                     /* tileset ID */
+	char maz_name[MBE_MAXTSNAME]; /* tileset name */
+	char maz_cmt[MBE_MAXCMT];     /* comment/descriptio*/
+	HWND p_hwnd;                  /* tileset view window */
 
 	/*
 	 * Information regarding the dimensions of the in-memory
@@ -51,6 +52,10 @@ extern void mbeditor_tsetview_resize(
 	struct mbeditor_tsetview *ps_tsetview,
 	int nwidth,
 	int nheight
+);
+
+extern marble_ecode_t mbeditor_tsetview_newtsdlg(
+	struct mbeditor_tsetview *ps_tsetview
 );
 
 
