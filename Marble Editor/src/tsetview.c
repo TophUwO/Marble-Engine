@@ -11,11 +11,12 @@ marble_ecode_t mbeditor_tsetview_init(
 	if (ps_tsetview == NULL)
 		return MARBLE_EC_PARAM;
 
+	/* Create tab view window. */
 	ps_tsetview->mp_hwnd = CreateWindowEx(
 		WS_EX_WINDOWEDGE | WS_EX_COMPOSITED,
 		WC_TABCONTROL,
 		TEXT(""),
-		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_VERTICAL | TCS_MULTILINE,
+		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
 		0,
 		0,
 		150,
@@ -28,13 +29,20 @@ marble_ecode_t mbeditor_tsetview_init(
 	if (ps_tsetview->mp_hwnd == NULL)
 		return MARBLE_EC_CREATEWND;
 
-	for (int i = 0; i < 10; i++) {
-		TCITEM s_item = {
-			.mask = TCIF_TEXT,
-			.pszText = TEXT("Test")
-		};
-		TabCtrl_InsertItem(ps_tsetview->mp_hwnd, 0, &s_item);
-	}
+	/* Set tab text font. */
+	SendMessage(
+		ps_tsetview->mp_hwnd,
+		WM_SETFONT,
+		(WPARAM)gls_editorapp.ms_res.mp_hguifont,
+		(LPARAM)TRUE
+	);
+
+	/* Add dummy item. */
+	TCITEM s_item = {
+		.mask    = TCIF_TEXT,
+		.pszText = TEXT("<empty>")
+	};
+	TabCtrl_InsertItem(ps_tsetview->mp_hwnd, 0, &s_item);
 
 	return MARBLE_EC_OK;
 }

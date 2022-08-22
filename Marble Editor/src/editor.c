@@ -4,7 +4,7 @@
 struct mbeditor_application gls_editorapp = { NULL };
 
 
-static void marble_editor_internal_opendebugcon(void) {
+static void mbeditor_internal_opendebugcon(void) {
 	if (AllocConsole() == TRUE) {
 		FILE *p_file;
 		freopen_s(&p_file, "CONOUT$", "wb", stdout);
@@ -13,7 +13,32 @@ static void marble_editor_internal_opendebugcon(void) {
 	}
 }
 
-static LRESULT CALLBACK marble_editor_internal_wndproc(
+static marble_ecode_t mbeditor_internal_loadresources(void) {
+	gls_editorapp.ms_res.mp_hguifont = CreateFont(
+		16,
+		0,
+		0,
+		0,
+		FW_NORMAL,
+		FALSE,
+		FALSE,
+		FALSE,
+		0,
+		0,
+		0,
+		CLEARTYPE_QUALITY,
+		FF_DONTCARE,
+		TEXT("Segoe UI")
+	);
+
+	return MARBLE_EC_OK;
+}
+
+static void mbeditor_internal_loadmenu(void) {
+	
+}
+
+static LRESULT CALLBACK mbeditor_internal_wndproc(
 	_In_ HWND p_hwnd,
 	_In_ UINT msg,
 	     WPARAM wparam,
@@ -23,6 +48,8 @@ static LRESULT CALLBACK marble_editor_internal_wndproc(
 
 	switch (msg) {
 		case WM_CREATE:
+			mbeditor_internal_loadresources();
+
 			ecode = mbeditor_tsetview_init(p_hwnd, &gls_editorapp.ms_tsview);
 			if (ecode != MARBLE_EC_OK)
 				return ecode;
@@ -49,10 +76,10 @@ static LRESULT CALLBACK marble_editor_internal_wndproc(
 	return DefWindowProc(p_hwnd, msg, wparam, lparam);
 }
 
-static marble_ecode_t marble_editor_internal_createwnd(
+static marble_ecode_t mbeditor_internal_createwnd(
 	HINSTANCE p_hinst
 ) {
-	marble_editor_internal_opendebugcon();
+	mbeditor_internal_opendebugcon();
 
 	/* Register editor window class. */
 	WNDCLASSEX s_class = {
@@ -63,7 +90,7 @@ static marble_ecode_t marble_editor_internal_createwnd(
 		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1),
 		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
 		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
-		.lpfnWndProc   = (WNDPROC)&marble_editor_internal_wndproc
+		.lpfnWndProc   = (WNDPROC)&mbeditor_internal_wndproc
 	};
 	if (RegisterClassEx(&s_class) == false)
 		return MARBLE_EC_REGWNDCLASS;
@@ -90,7 +117,7 @@ static marble_ecode_t marble_editor_internal_createwnd(
 }
 
 
-marble_ecode_t marble_editor_init(
+marble_ecode_t mbeditor_init(
 	_In_   HINSTANCE p_hinst,
 	_In_z_ LPSTR pz_cmdline
 ) {
@@ -101,7 +128,7 @@ marble_ecode_t marble_editor_init(
 	if (InitCommonControlsEx(&s_ctrls) == false)
 		return MARBLE_EC_REGWNDCLASS;
 
-	marble_ecode_t res = marble_editor_internal_createwnd(p_hinst);
+	marble_ecode_t res = mbeditor_internal_createwnd(p_hinst);
 	if (res != MARBLE_EC_OK)
 		return res;
 
@@ -111,7 +138,7 @@ marble_ecode_t marble_editor_init(
 	return MARBLE_EC_OK;
 }
 
-marble_ecode_t marble_editor_run(void) {
+marble_ecode_t mbeditor_run(void) {
 	MSG s_msg;
 	while (GetMessage(&s_msg, NULL, 0, 0) > 0) {
 		TranslateMessage(&s_msg);
