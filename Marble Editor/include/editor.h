@@ -1,5 +1,6 @@
 #pragma once
 
+#include <..\vcpp\resource.h>
 #include <tsetview.h>
 
 

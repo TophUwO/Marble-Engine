@@ -34,8 +34,10 @@ static marble_ecode_t mbeditor_internal_loadresources(void) {
 	return MARBLE_EC_OK;
 }
 
-static void mbeditor_internal_loadmenu(void) {
-	
+static void mbeditor_internal_loadmenu(HWND p_hwnd) {
+	HMENU p_hmenubar = LoadMenu(gls_editorapp.mp_hinst, MAKEINTRESOURCE(IDR_MENU1));
+
+	SetMenu(p_hwnd, p_hmenubar);
 }
 
 static LRESULT CALLBACK mbeditor_internal_wndproc(
@@ -48,6 +50,7 @@ static LRESULT CALLBACK mbeditor_internal_wndproc(
 
 	switch (msg) {
 		case WM_CREATE:
+			mbeditor_internal_loadmenu(p_hwnd);
 			mbeditor_internal_loadresources();
 
 			ecode = mbeditor_tsetview_init(p_hwnd, &gls_editorapp.ms_tsview);
