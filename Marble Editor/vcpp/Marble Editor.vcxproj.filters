@@ -21,7 +21,7 @@
     <ClCompile Include="..\src\editor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\tilebrowser.c">
+    <ClCompile Include="..\src\tsetview.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,7 +29,10 @@
     <ClInclude Include="..\include\editor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\tilebrowser.h">
+    <ClInclude Include="..\include\tsetview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

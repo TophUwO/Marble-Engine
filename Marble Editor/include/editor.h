@@ -1,16 +1,13 @@
 #pragma once
 
-#include <api.h>
-#include <error.h>
-
-#include <tilebrowser.h>
+#include <tsetview.h>
 
 
 extern struct marble_editor {
 	HINSTANCE mp_hinst;
 	HWND      mp_hwnd;
 
-	struct marble_tilebrowser *ps_tbrowser;
+	struct marble_editor_tsetview ms_tsview;
 } gls_editorapp;
 
 

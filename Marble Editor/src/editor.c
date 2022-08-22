@@ -1,10 +1,17 @@
 #include <editor.h>
 
-#include <windows.h>
-#include <commctrl.h>
 
 struct marble_editor gls_editorapp = { NULL };
 
+
+static void marble_editor_internal_opendebugcon(void) {
+	if (AllocConsole() == TRUE) {
+		FILE *p_file;
+		freopen_s(&p_file, "CONOUT$", "wb", stdout);
+
+		printf("Hello, world");
+	}
+}
 
 static LRESULT CALLBACK marble_editor_internal_wndproc(
 	_In_ HWND p_hwnd,
@@ -12,13 +19,25 @@ static LRESULT CALLBACK marble_editor_internal_wndproc(
 	     WPARAM wparam,
 	     LPARAM lparam
 ) {
+	marble_ecode_t ecode;
+
 	switch (msg) {
-		case WM_CLOSE:
-			DestroyWindow(p_hwnd);
+		case WM_CREATE:
+			ecode = mbeditor_tsetview_init(p_hwnd, &gls_editorapp.ms_tsview);
+			if (ecode != MARBLE_EC_OK)
+				return ecode;
 
 			return 0;
 		case WM_SIZE:
-			marble_tilebrowser_resize(gls_editorapp.ps_tbrowser, GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
+			mbeditor_tsetview_resize(
+				&gls_editorapp.ms_tsview,
+				GET_X_LPARAM(lparam),
+				GET_Y_LPARAM(lparam)
+			);
+
+			return 0;
+		case WM_CLOSE:
+			DestroyWindow(p_hwnd);
 
 			return 0;
 		case WM_DESTROY:
@@ -33,6 +52,8 @@ static LRESULT CALLBACK marble_editor_internal_wndproc(
 static marble_ecode_t marble_editor_internal_createwnd(
 	HINSTANCE p_hinst
 ) {
+	marble_editor_internal_opendebugcon();
+
 	/* Register editor window class. */
 	WNDCLASSEX s_class = {
 		.cbSize        = sizeof s_class,
@@ -65,8 +86,6 @@ static marble_ecode_t marble_editor_internal_createwnd(
 	if (gls_editorapp.mp_hwnd == NULL)
 		return MARBLE_EC_CREATEWND;
 
-	marble_tilebrowser_create(&gls_editorapp.ps_tbrowser);
-
 	return MARBLE_EC_OK;
 }
 
@@ -92,16 +111,14 @@ marble_ecode_t marble_editor_init(
 	return MARBLE_EC_OK;
 }
 
-marble_ecode_t marble_editor_run(
-	void
-) {
+marble_ecode_t marble_editor_run(void) {
 	MSG s_msg;
 	while (GetMessage(&s_msg, NULL, 0, 0) > 0) {
 		TranslateMessage(&s_msg);
 		DispatchMessage(&s_msg);
 	}
 
-	marble_tilebrowser_destroy(&gls_editorapp.ps_tbrowser);
+	mbeditor_tsetview_uninit(&gls_editorapp.ms_tsview);
 	return MARBLE_EC_OK;
 }
 

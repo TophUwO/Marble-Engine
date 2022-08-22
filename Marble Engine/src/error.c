@@ -48,7 +48,10 @@ static char const *const glapz_ecodestrs[] = {
 	"MARBLE_EC_NOTFOUND",
 	"MARBLE_EC_GETMONITORINFO",
 	"MARBLE_EC_CALCWNDSIZE",
-	"MARBLE_EC_QUERYWINDOWRECT"
+	"MARBLE_EC_QUERYWINDOWRECT",
+	"MARBLE_EC_LOADRESOURCE",
+	"MARBLE_EC_CREATEMEMDC",
+	"MARBLE_EC_CREATEMEMBITMAP"
 };
 
 /* Error code descriptions */
@@ -98,7 +101,10 @@ static char const *const glapz_ecodedescs[] = {
 	"The specified object could not be found.",
 	"Could not get monitor info.",
 	"Could not calculate window dimensions.",
-	"Could not query window or client rectangle."
+	"Could not query window or client rectangle.",
+	"Resource could not be loaded.",
+	"Could not create GDI memory device context.",
+	"Could not create GDI memory bitmap"
 };
 
 
