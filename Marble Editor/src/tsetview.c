@@ -6,7 +6,7 @@
 
 marble_ecode_t mbeditor_tsetview_init(
 	HWND p_hwndparent,
-	struct marble_editor_tsetview *ps_tsetview
+	struct mbeditor_tsetview *ps_tsetview
 ) {
 	if (ps_tsetview == NULL)
 		return MARBLE_EC_PARAM;
@@ -40,13 +40,13 @@ marble_ecode_t mbeditor_tsetview_init(
 }
 
 void mbeditor_tsetview_uninit(
-	struct marble_editor_tsetview *ps_tsetview
+	struct mbeditor_tsetview *ps_tsetview
 ) {
 	
 }
 
 void mbeditor_tsetview_resize(
-	struct marble_editor_tsetview *ps_tsetview,
+	struct mbeditor_tsetview *ps_tsetview,
 	int nwidth,
 	int nheight
 ) {

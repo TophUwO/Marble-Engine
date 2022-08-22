@@ -3,11 +3,11 @@
 #include <tsetview.h>
 
 
-extern struct marble_editor {
+extern struct mbeditor_application {
 	HINSTANCE mp_hinst;
 	HWND      mp_hwnd;
 
-	struct marble_editor_tsetview ms_tsview;
+	struct mbeditor_tsetview ms_tsview;
 } gls_editorapp;
 
 

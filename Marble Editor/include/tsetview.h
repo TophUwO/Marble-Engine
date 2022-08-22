@@ -7,7 +7,7 @@
 /*
  * Structure representing a logical tileset. 
  */
-struct marble_editor_tset {
+struct mbeditor_tset {
 	int m_id;                       /* tileset ID */
 	char maz_name[MBE_MAXTSETNAME]; /* tileset name */
 	HWND p_hwnd;                    /* tileset view window */
@@ -28,24 +28,27 @@ struct marble_editor_tset {
  * Structure representing the tileset view window. Will be implemented
  * as a tab-view.
  */
-struct marble_editor_tsetview {
-	HWND mp_hwnd; /* tab-view window */
+struct mbeditor_tsetview {
+	/* tab-view window */
+	HWND mp_hwnd;
 
-	struct marble_util_vec *mps_tsets; /* tilesets */
+	int m_nts;                          /* number of tilesets */
+	int m_curtsi;                       /* current tileset index */
+	struct mbeditor_tset mas_tsets[32]; /* tilesets */
 };
 
 
 extern marble_ecode_t mbeditor_tsetview_init(
 	HWND p_hwndparent,
-	struct marble_editor_tsetview *ps_tsetview
+	struct mbeditor_tsetview *ps_tsetview
 );
 
 extern void mbeditor_tsetview_uninit(
-	struct marble_editor_tsetview *ps_tsetview
+	struct mbeditor_tsetview *ps_tsetview
 );
 
 extern void mbeditor_tsetview_resize(
-	struct marble_editor_tsetview *ps_tsetview,
+	struct mbeditor_tsetview *ps_tsetview,
 	int nwidth,
 	int nheight
 );

@@ -1,7 +1,7 @@
 #include <editor.h>
 
 
-struct marble_editor gls_editorapp = { NULL };
+struct mbeditor_application gls_editorapp = { NULL };
 
 
 static void marble_editor_internal_opendebugcon(void) {
