@@ -4,97 +4,130 @@
 #include <tsetview.h>
 
 
-static const TCHAR *const glapz_n0thru255[] = {
-	TEXT("0"),
-	TEXT("1"),   TEXT("2"),   TEXT("3"),   TEXT("4"),   TEXT("5"),   TEXT("6"),   TEXT("7"),   TEXT("8"), 
-	TEXT("9"),   TEXT("10"),  TEXT("11"),  TEXT("12"),  TEXT("13"),  TEXT("14"),  TEXT("15"),  TEXT("16"), 
-	TEXT("17"),  TEXT("18"),  TEXT("19"),  TEXT("20"),  TEXT("21"),  TEXT("22"),  TEXT("23"),  TEXT("24"), 
-	TEXT("25"),  TEXT("26"),  TEXT("27"),  TEXT("28"),  TEXT("29"),  TEXT("30"),  TEXT("31"),  TEXT("32"), 
-	TEXT("33"),  TEXT("34"),  TEXT("35"),  TEXT("36"),  TEXT("37"),  TEXT("38"),  TEXT("39"),  TEXT("40"), 
-	TEXT("41"),  TEXT("42"),  TEXT("43"),  TEXT("44"),  TEXT("45"),  TEXT("46"),  TEXT("47"),  TEXT("48"), 
-	TEXT("49"),  TEXT("50"),  TEXT("51"),  TEXT("52"),  TEXT("53"),  TEXT("54"),  TEXT("55"),  TEXT("56"), 
-	TEXT("57"),  TEXT("58"),  TEXT("59"),  TEXT("60"),  TEXT("61"),  TEXT("62"),  TEXT("63"),  TEXT("64"), 
-	TEXT("65"),  TEXT("66"),  TEXT("67"),  TEXT("68"),  TEXT("69"),  TEXT("70"),  TEXT("71"),  TEXT("72"), 
-	TEXT("73"),  TEXT("74"),  TEXT("75"),  TEXT("76"),  TEXT("77"),  TEXT("78"),  TEXT("79"),  TEXT("80"), 
-	TEXT("81"),  TEXT("82"),  TEXT("83"),  TEXT("84"),  TEXT("85"),  TEXT("86"),  TEXT("87"),  TEXT("88"), 
-	TEXT("89"),  TEXT("90"),  TEXT("91"),  TEXT("92"),  TEXT("93"),  TEXT("94"),  TEXT("95"),  TEXT("96"), 
-	TEXT("97"),  TEXT("98"),  TEXT("99"),  TEXT("100"), TEXT("101"), TEXT("102"), TEXT("103"), TEXT("104"), 
-	TEXT("105"), TEXT("106"), TEXT("107"), TEXT("108"), TEXT("109"), TEXT("110"), TEXT("111"), TEXT("112"), 
-	TEXT("113"), TEXT("114"), TEXT("115"), TEXT("116"), TEXT("117"), TEXT("118"), TEXT("119"), TEXT("120"), 
-	TEXT("121"), TEXT("122"), TEXT("123"), TEXT("124"), TEXT("125"), TEXT("126"), TEXT("127"), TEXT("128"), 
-	TEXT("129"), TEXT("130"), TEXT("131"), TEXT("132"), TEXT("133"), TEXT("134"), TEXT("135"), TEXT("136"), 
-	TEXT("137"), TEXT("138"), TEXT("139"), TEXT("140"), TEXT("141"), TEXT("142"), TEXT("143"), TEXT("144"), 
-	TEXT("145"), TEXT("146"), TEXT("147"), TEXT("148"), TEXT("149"), TEXT("150"), TEXT("151"), TEXT("152"), 
-	TEXT("153"), TEXT("154"), TEXT("155"), TEXT("156"), TEXT("157"), TEXT("158"), TEXT("159"), TEXT("160"), 
-	TEXT("161"), TEXT("162"), TEXT("163"), TEXT("164"), TEXT("165"), TEXT("166"), TEXT("167"), TEXT("168"), 
-	TEXT("169"), TEXT("170"), TEXT("171"), TEXT("172"), TEXT("173"), TEXT("174"), TEXT("175"), TEXT("176"), 
-	TEXT("177"), TEXT("178"), TEXT("179"), TEXT("180"), TEXT("181"), TEXT("182"), TEXT("183"), TEXT("184"), 
-	TEXT("185"), TEXT("186"), TEXT("187"), TEXT("188"), TEXT("189"), TEXT("190"), TEXT("191"), TEXT("192"), 
-	TEXT("193"), TEXT("194"), TEXT("195"), TEXT("196"), TEXT("197"), TEXT("198"), TEXT("199"), TEXT("200"), 
-	TEXT("201"), TEXT("202"), TEXT("203"), TEXT("204"), TEXT("205"), TEXT("206"), TEXT("207"), TEXT("208"), 
-	TEXT("209"), TEXT("210"), TEXT("211"), TEXT("212"), TEXT("213"), TEXT("214"), TEXT("215"), TEXT("216"), 
-	TEXT("217"), TEXT("218"), TEXT("219"), TEXT("220"), TEXT("221"), TEXT("222"), TEXT("223"), TEXT("224"), 
-	TEXT("225"), TEXT("226"), TEXT("227"), TEXT("228"), TEXT("229"), TEXT("230"), TEXT("231"), TEXT("232"), 
-	TEXT("233"), TEXT("234"), TEXT("235"), TEXT("236"), TEXT("237"), TEXT("238"), TEXT("239"), TEXT("240"), 
-	TEXT("241"), TEXT("242"), TEXT("243"), TEXT("244"), TEXT("245"), TEXT("246"), TEXT("247"), TEXT("248"), 
-	TEXT("249"), TEXT("250"), TEXT("251"), TEXT("252"), TEXT("253"), TEXT("254"), TEXT("255")
-};
-
-#define MBE_RSTR(rgb) (rgb == (COLORREF)(-1) ? TEXT("") : glapz_n0thru255[GetRValue(rgb)])
-#define MBE_GSTR(rgb) (rgb == (COLORREF)(-1) ? TEXT("") : glapz_n0thru255[GetGValue(rgb)])
-#define MBE_BSTR(rgb) (rgb == (COLORREF)(-1) ? TEXT("") : glapz_n0thru255[GetBValue(rgb)])
-
-
+#pragma region CREATENEWTS-DLG
 /*
  * Structure used for "Create new tileset ..." dialog.
  * Logical tileset will be created based on these
  * parameters.
  */
-struct mbeditor_tset_createparams {
+struct mbeditor_tset_emptytsdlg_createparams {
 	TCHAR maz_name[MBE_MAXTSNAME]; /* tileset name */
 	TCHAR maz_cmt[MBE_MAXCMT];     /* comment/description */
 
-	int      m_width;   /* width, in tiles */
-	int      m_height;  /* height, in tiles */
-	int      m_tsize;   /* tile size, in pixels */
-	COLORREF m_col;     /* background color */
-	BOOL     m_istrans; /* transparent background? */
-};
+	int  m_width;   /* width, in tiles */
+	int  m_height;  /* height, in tiles */
+	int  m_tsize;   /* tile size, in pixels */
+	BOOL m_istrans; /* transparent background? */
+	/* information concerning aspect ratio lock state */
+	struct {
+		BOOL  m_islock; /* is locked? */
+		float m_aspect; /* aspect ratio */
+	} ms_aspect;
+	/* background color */
+	union {
+		/* individual color components */
+		struct {
+			BYTE m_r; /* red component */
+			BYTE m_g; /* green component */
+			BYTE m_b; /* blue component */
+			BYTE m_a; /* alpha component; unused */
+		};
+		COLORREF m_col; /* as integer */
+	};
+} ms_crps;
 
 
 /*
- * Sets-up edit controls to only accept a maximum number
- * of characters.
+ * Table representing the settings for the
+ * spin controls. 
+ */
+struct { int m_id, m_buddy; SHORT m_pos, m_min, m_max; size_t m_size, m_off; } const glas_udopts[] = {
+	{ EmptyTSDlg_SPIN_Width,  EmptyTSDlg_EDIT_Width,  1, 1, 1024, sizeof(int),  offsetof(struct mbeditor_tset_emptytsdlg_createparams, m_width)  },
+	{ EmptyTSDlg_SPIN_Height, EmptyTSDlg_EDIT_Height, 1, 1, 1024, sizeof(int),  offsetof(struct mbeditor_tset_emptytsdlg_createparams, m_height) },
+	{ EmptyTSDlg_SPIN_TSize,  EmptyTSDlg_EDIT_TSize,  8, 1, 128,  sizeof(int),  offsetof(struct mbeditor_tset_emptytsdlg_createparams, m_tsize)  },
+	{ EmptyTSDlg_SPIN_Red,    EmptyTSDlg_EDIT_Red,    0, 0, 255,  sizeof(BYTE), offsetof(struct mbeditor_tset_emptytsdlg_createparams, m_r)      },
+	{ EmptyTSDlg_SPIN_Green,  EmptyTSDlg_EDIT_Green,  0, 0, 255,  sizeof(BYTE), offsetof(struct mbeditor_tset_emptytsdlg_createparams, m_g)      },
+	{ EmptyTSDlg_SPIN_Blue,   EmptyTSDlg_EDIT_Blue,   0, 0, 255,  sizeof(BYTE), offsetof(struct mbeditor_tset_emptytsdlg_createparams, m_b)      }
+};
+size_t const gl_nudopts = ARRAYSIZE(glas_udopts);
+
+/*
+ * Table representing maximum character counts
+ * for all text fields of the dialog.
+ */
+static struct { int m_id; size_t m_len; } const glas_eclimits[] = {
+	{ EmptyTSDlg_EDIT_Name,    MBE_MAXTSNAME - 1 },
+	{ EmptyTSDlg_EDIT_Comment, MBE_MAXCMT - 1    },
+	{ EmptyTSDlg_EDIT_Width,   4                 },
+	{ EmptyTSDlg_EDIT_Height,  4                 },
+	{ EmptyTSDlg_EDIT_TSize,   4                 },
+	{ EmptyTSDlg_EDIT_Red,     3                 },
+	{ EmptyTSDlg_EDIT_Green,   3                 },
+	{ EmptyTSDlg_EDIT_Blue,    3                 }
+};
+size_t const gl_neclimits = ARRAYSIZE(glas_eclimits);
+
+
+/*
+ * Sets-up controls to only accept a maximum amount
+ * of imput, that is, max. number of characters, range,
+ * etc.
  * 
  * Returns nothing.
  */
-static void mbeditor_tsetview_emptytsdlg_seteditlimits(
-	HWND p_hwnd
+static void mbeditor_tsetview_emptytsdlg_setupcontrols(
+	HWND p_hwnd /* dialog window */
 ) {
-	/*
-	 * Table representing maximum character counts
-	 * for all text fields of the dialog.
-	 */
-	static struct { int m_id; size_t m_len; } const as_nlimits[] = {
-		{ EmptyTSDlg_EDIT_Name,    MBE_MAXTSNAME - 1 },
-		{ EmptyTSDlg_EDIT_Comment, MBE_MAXCMT - 1    },
-		{ EmptyTSDlg_EDIT_Width,   MBE_MAXNSTR - 1   },
-		{ EmptyTSDlg_EDIT_Height,  MBE_MAXNSTR - 1   },
-		{ EmptyTSDlg_EDIT_TSize,   MBE_MAXNSTR - 1   },
-		{ EmptyTSDlg_EDIT_Red,     3                 },
-		{ EmptyTSDlg_EDIT_Green,   3                 },
-		{ EmptyTSDlg_EDIT_Blue,    3                 }
-	};
-	size_t const nlimits = ARRAYSIZE(as_nlimits);
-
-	/* Set the limits. */
-	for (size_t i = 0; i < nlimits; i++)
+	/* Set the edit control limits. */
+	for (size_t i = 0; i < gl_neclimits; i++)
 		SendMessage(
-			GetDlgItem(p_hwnd, as_nlimits[i].m_id),
+			GetDlgItem(p_hwnd, glas_eclimits[i].m_id),
 			EM_SETLIMITTEXT,
-			(WPARAM)as_nlimits[i].m_len,
+			(WPARAM)glas_eclimits[i].m_len,
 			0
 		);
+
+	/*
+	 * Set default position, range, and buddy of all spin (up-down) controls.
+	 * The buddy of an up-down control is a control that displays the text
+	 * representation of the current (numeric) value (= position) of the
+	 * up-down control.
+	 */
+	for (size_t i = 0; i < gl_nudopts; i++) {
+		HWND const p_hdlgitem = GetDlgItem(p_hwnd, glas_udopts[i].m_id);
+
+		SendMessage(p_hdlgitem, UDM_SETPOS, 0, (LPARAM)glas_udopts[i].m_pos);
+		SendMessage(p_hdlgitem, UDM_SETRANGE, 0, MAKELONG(glas_udopts[i].m_max, glas_udopts[i].m_min));
+		SendMessage(p_hdlgitem, UDM_SETBUDDY, (WPARAM)GetDlgItem(p_hwnd, glas_udopts[i].m_buddy), 0);
+	}
+}
+
+/*
+ * Sets the background color to transparent, disabling all controls
+ * that may cause a conflict with this setting.
+ * 
+ * Returns nothing.
+ */
+static void mbeditor_tsetview_emptytsdlg_setcoltransparent(
+	HWND p_hwnd,                                           /* dialog window */
+	struct mbeditor_tset_emptytsdlg_createparams *ps_crps, /* create params */
+	BOOL istrans                                           /* new transparent setting */
+) {
+	/* Update internal state. */
+	ps_crps->m_istrans = istrans;
+
+	/* Disable necessary controls. */
+	for (size_t i = 0; i < gl_nudopts; i++) {
+		if (i < 3)
+			continue;
+
+		EnableWindow(GetDlgItem(p_hwnd, glas_udopts[i].m_id), !ps_crps->m_istrans);
+		EnableWindow(GetDlgItem(p_hwnd, glas_udopts[i].m_buddy), !ps_crps->m_istrans);
+	}
+	EnableWindow(GetDlgItem(p_hwnd, EmptyTSDlg_BTN_ChooseCol), !ps_crps->m_istrans);
+
+	/* Update checkbox state. */
+	CheckDlgButton(p_hwnd, EmptyTSDlg_CB_Transparent, (UINT)ps_crps->m_istrans);
 }
 
 /*
@@ -103,40 +136,23 @@ static void mbeditor_tsetview_emptytsdlg_seteditlimits(
  * Returns nothing.
  */
 static void mbeditor_tsetview_emptytsdlg_setfields(
-	HWND p_hwnd,
-	struct mbeditor_tset_createparams const *ps_cp
+	HWND p_hwnd,                                          /* dialog window */
+	struct mbeditor_tset_emptytsdlg_createparams *ps_crps /* create parameters */
 ) {
-	/*
-	 * Dynamically format width, height, and tile size, according
-	 * to the given values. Note that values will not be set
-	 * if they are passed as -1.
-	 * The same rule applies to the string fields inside
-	 * **as_strreps**.
-	 */
-	TCHAR apz_dbufs[3][MBE_MAXNSTR] = { 0 };
-	if (ps_cp->m_width != -1)  _stprintf_s(apz_dbufs[0], MBE_MAXNSTR, TEXT("%i"), ps_cp->m_width);
-	if (ps_cp->m_height != -1) _stprintf_s(apz_dbufs[1], MBE_MAXNSTR, TEXT("%i"), ps_cp->m_height);
-	if (ps_cp->m_tsize != -1)  _stprintf_s(apz_dbufs[2], MBE_MAXNSTR, TEXT("%i"), ps_cp->m_tsize);
-
 	/*
 	 * Table representing string fields.
 	 * Will be used to fill all dialog edit controls
 	 * with their respective values.
 	 */
-	struct { int m_id; TCHAR const *pz_str; } as_strreps[] = {
-		{ EmptyTSDlg_EDIT_Name,    ps_cp->maz_name        },
-		{ EmptyTSDlg_EDIT_Comment, ps_cp->maz_cmt         },
-		{ EmptyTSDlg_EDIT_Width,   apz_dbufs[0]           },
-		{ EmptyTSDlg_EDIT_Height,  apz_dbufs[1]           },
-		{ EmptyTSDlg_EDIT_TSize,   apz_dbufs[2]           },
-		{ EmptyTSDlg_EDIT_Red,     MBE_RSTR(ps_cp->m_col) },
-		{ EmptyTSDlg_EDIT_Green,   MBE_GSTR(ps_cp->m_col) },
-		{ EmptyTSDlg_EDIT_Blue,    MBE_BSTR(ps_cp->m_col) }
+	struct { int m_id; TCHAR const *pz_str; } const as_strreps[] = {
+		{ EmptyTSDlg_EDIT_Name,    ps_crps->maz_name },
+		{ EmptyTSDlg_EDIT_Comment, ps_crps->maz_cmt  }
 	};
 	size_t const nreps = ARRAYSIZE(as_strreps);
 
 	/*
-	 * Fill string fields (edit controls). 
+	 * Fill string fields (edit controls) without an assisting
+	 * spin control. 
 	 */
 	for (size_t i = 0; i < nreps; i++)
 		SetWindowText(
@@ -144,8 +160,21 @@ static void mbeditor_tsetview_emptytsdlg_setfields(
 			as_strreps[i].pz_str
 		);
 
-	/* Set checkbox. */
-	CheckDlgButton(p_hwnd, EmptyTSDlg_CB_Transparent, (UINT)ps_cp->m_istrans);
+	/*
+	 * Solely setting the up-down control position is enough, as the up-down controls
+	 * all have a "buddy" registered which will be automatically notified of the
+	 * position change and, if needed, will subsequently update its caption.
+	 */
+	SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Width), UDM_SETPOS, 0, (LPARAM)ps_crps->m_width);
+	SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Height), UDM_SETPOS, 0, (LPARAM)ps_crps->m_height);
+	SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_TSize), UDM_SETPOS, 0, (LPARAM)ps_crps->m_tsize);
+	SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Red), UDM_SETPOS, 0, (LPARAM)ps_crps->m_r);
+	SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Green), UDM_SETPOS, 0, (LPARAM)ps_crps->m_g);
+	SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Blue), UDM_SETPOS, 0, (LPARAM)ps_crps->m_b);
+
+	/* Set checkbox states. */
+	mbeditor_tsetview_emptytsdlg_setcoltransparent(p_hwnd, ps_crps, ps_crps->m_istrans);
+	CheckDlgButton(p_hwnd, EmptyTSDlg_CB_LockAspect, (UINT)ps_crps->ms_aspect.m_islock);
 }
 
 /*
@@ -159,7 +188,7 @@ static void mbeditor_tsetview_emptytsdlg_setfields(
  * .
  */
 static BOOL mbeditor_tsetview_emptytsdlg_handlecolordlg(
-	struct mbeditor_tset_createparams *ps_createparams
+	struct mbeditor_tset_emptytsdlg_createparams *ps_crps /* create parameters */
 ) {
 	static COLORREF a_custcol[16] = { 0 };
 
@@ -171,9 +200,12 @@ static BOOL mbeditor_tsetview_emptytsdlg_handlecolordlg(
 		.Flags        = CC_FULLOPEN | CC_RGBINIT
 	};
 	
-	/* Run system color dialog. */
+	/*
+	 * Run system color dialog, updating internal state
+	 * if the dialog succeeds.
+	 */
 	if (ChooseColor(&s_ccol) != FALSE) {
-		ps_createparams->m_col = s_ccol.rgbResult;
+		ps_crps->m_col = s_ccol.rgbResult;
 
 		return TRUE;
 	}
@@ -181,32 +213,68 @@ static BOOL mbeditor_tsetview_emptytsdlg_handlecolordlg(
 	return FALSE;
 }
 
-static BOOL CALLBACK mbeditor_tsetview_ontscreate_dlgproc(
+/*
+ * Updates the internal create parameters just before the dialog closes.
+ * 
+ * Returns nothing.
+ */
+static void mbeditor_tsetview_emptytsdlg_writebackvalues(
+	HWND p_hwnd,                                          /* dialog window */
+	struct mbeditor_tset_emptytsdlg_createparams *ps_crps /* destination */
+) {
+	GetWindowText(GetDlgItem(p_hwnd, EmptyTSDlg_EDIT_Name), ps_crps->maz_name, MBE_MAXTSNAME);
+	GetWindowText(GetDlgItem(p_hwnd, EmptyTSDlg_EDIT_Comment), ps_crps->maz_cmt, MBE_MAXCMT);
+
+	/*
+	 * Only issue an update if the values are needed
+	 * to create the tileset later.
+	 */
+	ps_crps->m_istrans = Button_GetCheck(GetDlgItem(p_hwnd, EmptyTSDlg_CB_Transparent));
+	if (ps_crps->m_istrans == FALSE)
+		for (size_t i = 0; i < gl_nudopts; i++) {
+			UINT res = SendMessage(GetDlgItem(p_hwnd, glas_udopts[i].m_id), UDM_GETPOS, 0, 0) & 0xFFFF;
+
+			CopyMemory((void *)((char *)ps_crps + glas_udopts[i].m_off), &res, glas_udopts[i].m_size);
+		}
+}
+
+static BOOL CALLBACK mbeditor_tsetview_emptytsdlg_dlgproc(
 	HWND p_hwnd,
 	UINT msg,
 	WPARAM wparam,
 	LPARAM lparam
 ) {
-	MBE_WNDUSERDATA(ps_param, struct mbeditor_tset_createparams *);
+	MBE_WNDUSERDATA(ps_param, struct mbeditor_tset_emptytsdlg_createparams *);
 
 	/* Default settings for this dialog. */
-	static struct mbeditor_tset_createparams const gls_defcps = {
-		.maz_name  = TEXT("unnamed_tileset"),
+	static struct mbeditor_tset_emptytsdlg_createparams const s_defcps = {
+		.maz_name  = TEXT("unnamed"),
 		.maz_cmt   = TEXT(""),
 		
-		.m_col     = (COLORREF)(-1),
+		.m_col     = RGB(0, 0, 0),
 		.m_istrans = FALSE,
-		.m_width   = -1,
-		.m_height  = -1,
-		.m_tsize   = -1
+		.ms_aspect = {
+			.m_islock = FALSE,
+			.m_aspect = 1.0f
+		},
+		.m_width   = 32,
+		.m_height  = 32,
+		.m_tsize   = 16
 	};
 
 	switch (msg) {
 		case WM_INITDIALOG:
+			/* Copy default values into the userdata pointer. */
+			CopyMemory((void *)lparam, &s_defcps, sizeof s_defcps);
+			/* Set userdata. */
 			SetWindowLongPtr(p_hwnd, GWLP_USERDATA, (LONG_PTR)lparam);
 
-			mbeditor_tsetview_emptytsdlg_seteditlimits(p_hwnd);
-			mbeditor_tsetview_emptytsdlg_setfields(p_hwnd, &gls_defcps);
+			/* Initialize dialog fields. */
+			mbeditor_tsetview_emptytsdlg_setupcontrols(p_hwnd);
+			mbeditor_tsetview_emptytsdlg_setfields(
+				p_hwnd,
+				(struct mbeditor_tset_emptytsdlg_createparams *)lparam
+			);
 			break;
 		case WM_CLOSE:
 			PostMessage(
@@ -219,26 +287,42 @@ static BOOL CALLBACK mbeditor_tsetview_ontscreate_dlgproc(
 			break;
 		case WM_COMMAND:
 			switch (wparam) {
-				case EmptyTSDlg_BTN_ChooseCol:
-					if (mbeditor_tsetview_emptytsdlg_handlecolordlg(ps_param) == TRUE) {
-						struct { TCHAR const *mpz_red, *mpz_green, *mpz_blue; } const s_compstrs = {
-							.mpz_red   = MBE_RSTR(ps_param->m_col),
-							.mpz_green = MBE_GSTR(ps_param->m_col),
-							.mpz_blue  = MBE_BSTR(ps_param->m_col)
-						};
+				case EmptyTSDlg_CB_Transparent:
+					mbeditor_tsetview_emptytsdlg_setcoltransparent(p_hwnd, ps_param, !ps_param->m_istrans);
 
-						SetWindowText(GetDlgItem(p_hwnd, EmptyTSDlg_EDIT_Red), s_compstrs.mpz_red);
-						SetWindowText(GetDlgItem(p_hwnd, EmptyTSDlg_EDIT_Green), s_compstrs.mpz_green);
-						SetWindowText(GetDlgItem(p_hwnd, EmptyTSDlg_EDIT_Blue), s_compstrs.mpz_blue);
+					break;
+				case EmptyTSDlg_CB_LockAspect:
+					if ((ps_param->ms_aspect.m_islock = !ps_param->ms_aspect.m_islock) == TRUE)
+						ps_param->ms_aspect.m_aspect = (float)ps_param->m_width / (float)ps_param->m_height;
+					else
+						ps_param->ms_aspect.m_aspect = 1.0f;
+
+					break;
+				case EmptyTSDlg_BTN_ChooseCol:
+					/* Open CHOOSECOLOR dialog. */
+					if (mbeditor_tsetview_emptytsdlg_handlecolordlg(ps_param) == TRUE) {
+						/*
+						 * Update positions of spin controls. Note that this will automatically
+						 * change the captions of the corresponding edit controls accordingly.
+						 */
+						SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Red), UDM_SETPOS, 0, ps_param->m_r);
+						SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Green), UDM_SETPOS, 0, ps_param->m_g);
+						SendMessage(GetDlgItem(p_hwnd, EmptyTSDlg_SPIN_Blue), UDM_SETPOS, 0, ps_param->m_b);
 					}
 
 					break;
 				case EmptyTSDlg_BTN_Reset:
-					mbeditor_tsetview_emptytsdlg_setfields(p_hwnd, &gls_defcps);
+					/* Copy default values into the userdata pointer. */
+					CopyMemory(ps_param, &s_defcps, sizeof s_defcps);
+
+					mbeditor_tsetview_emptytsdlg_setfields(p_hwnd, ps_param);
 
 					break;
 				case EmptyTSDlg_BTN_Ok:
 				case EmptyTSDlg_BTN_Cancel:
+					if (wparam == EmptyTSDlg_BTN_Ok)
+						mbeditor_tsetview_emptytsdlg_writebackvalues(p_hwnd, ps_param);
+
 					EndDialog(
 						p_hwnd,
 						wparam == EmptyTSDlg_BTN_Ok
@@ -252,24 +336,102 @@ static BOOL CALLBACK mbeditor_tsetview_ontscreate_dlgproc(
 
 	return FALSE;
 }
+#pragma endregion
+
+
+#pragma region TSVIEW-CTRL
+static TCHAR const *const glpz_tsviewwndclname = TEXT("mbeditor_tsview");
+
+/*
+ * Window procedure for single tileset views.
+ * Note that this is not for the container of the view which
+ * is a tab control, but for the controls that display
+ * the tiles themselves.
+ */
+static LRESULT CALLBACK mbeditor_tsetview_internal_wndproc(
+	HWND p_hwnd,
+	UINT msg,
+	WPARAM wparam,
+	LPARAM lparam
+) {
+	switch (msg) {
+
+	}
+
+	return DefWindowProc(p_hwnd, msg, wparam, lparam);
+}
+
+/*
+ * Creates a logical tileset.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static marble_ecode_t mbeditor_tsetview_internal_createemptyts(
+	struct mbeditor_tsetview *ps_parent,                   /* parent window */
+	struct mbeditor_tset_emptytsdlg_createparams *ps_crps, /* tileset parameters */
+	struct mbeditor_tset *ps_tset                          /* destination */
+) {
+	if (ps_parent == NULL || ps_crps == NULL || ps_tset == NULL)
+		return MARBLE_EC_INTERNALPARAM;
+
+	/* Get current size of tab view. */
+	RECT s_parentsize;
+	GetClientRect(ps_parent->mp_hwnd, &s_parentsize);
+	TabCtrl_AdjustRect(ps_parent->mp_hwnd, FALSE, &s_parentsize);
+
+	/* Create window of tileset view. */
+	ps_tset->p_hwnd = CreateWindowEx(
+		WS_EX_WINDOWEDGE | WS_EX_COMPOSITED,
+		glpz_tsviewwndclname,
+		NULL,
+		WS_CHILD | WS_VSCROLL | WS_HSCROLL | WS_CLIPSIBLINGS,
+		s_parentsize.left,
+		s_parentsize.top,
+		s_parentsize.right - s_parentsize.left,
+		s_parentsize.bottom - s_parentsize.top,
+		ps_parent->mp_hwnd,
+		NULL,
+		gls_editorapp.mp_hinst,
+		(LPVOID)ps_tset
+	);
+	if (ps_tset->p_hwnd == NULL)
+		return MARBLE_EC_CREATEWND;
+
+	/* Insert tab. */
+	TCITEM s_item = { .mask = TCIF_TEXT, .pszText = ps_crps->maz_name };
+	TabCtrl_InsertItem(ps_parent->mp_hwnd, ps_parent->m_nts++, &s_item);
+	return MARBLE_EC_OK;
+}
+#pragma endregion
 
 
 marble_ecode_t mbeditor_tsetview_init(
 	HWND p_hwndparent,
 	struct mbeditor_tsetview *ps_tsetview
 ) {
-	if (ps_tsetview == NULL)
-		return MARBLE_EC_PARAM;
+	if (ps_tsetview == NULL || p_hwndparent == NULL) return MARBLE_EC_PARAM;
+	if (ps_tsetview->m_isinit == TRUE)               return MARBLE_EC_COMPSTATE;
+
+	/* Register tileset view window class. */
+	WNDCLASSEX s_wndclass = {
+		.cbSize        = sizeof s_wndclass,
+		.hInstance     = gls_editorapp.mp_hinst,
+		.lpszClassName = glpz_tsviewwndclname,
+		.hCursor       = LoadCursor(NULL, IDC_ARROW),
+		.lpfnWndProc   = (WNDPROC)&mbeditor_tsetview_internal_wndproc
+	};
+	if (RegisterClassEx(&s_wndclass) == FALSE)
+		return MARBLE_EC_REGWNDCLASS;
 
 	/* Create tab view window. */
 	ps_tsetview->mp_hwnd = CreateWindowEx(
 		WS_EX_WINDOWEDGE | WS_EX_COMPOSITED,
 		WC_TABCONTROL,
-		TEXT(""),
+		NULL,
 		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
 		0,
 		0,
-		150,
+		200,
 		700,
 		p_hwndparent,
 		NULL,
@@ -287,6 +449,7 @@ marble_ecode_t mbeditor_tsetview_init(
 		(LPARAM)TRUE
 	);
 
+	ps_tsetview->m_isinit = TRUE;
 	return MARBLE_EC_OK;
 }
 
@@ -301,15 +464,33 @@ void mbeditor_tsetview_resize(
 	int nwidth,
 	int nheight
 ) {
+	if (ps_tsetview == NULL || ps_tsetview->mp_hwnd == NULL)
+		return;
+
 	SetWindowPos(
 		ps_tsetview->mp_hwnd,
 		NULL,
 		0,
 		0,
-		150,
+		200,
 		nheight,
 		SWP_NOACTIVATE | SWP_NOMOVE
 	);
+
+	RECT s_parentsize;
+	GetClientRect(ps_tsetview->mp_hwnd, &s_parentsize);
+	TabCtrl_AdjustRect(ps_tsetview->mp_hwnd, FALSE, &s_parentsize);
+
+	for (size_t i = 0; i < ps_tsetview->m_nts; i++)
+		SetWindowPos(
+			ps_tsetview->mas_tsets[i].p_hwnd,
+			NULL,
+			s_parentsize.left,
+			s_parentsize.top,
+			s_parentsize.right - s_parentsize.left,
+			s_parentsize.bottom - s_parentsize.top,
+			SWP_NOACTIVATE
+		);
 }
 
 marble_ecode_t mbeditor_tsetview_newtsdlg(
@@ -318,16 +499,39 @@ marble_ecode_t mbeditor_tsetview_newtsdlg(
 	if (ps_tsetview == NULL)
 		return MARBLE_EC_PARAM;
 
-	struct mbeditor_tset_createparams s_crparams;
+	/*
+	 * Checl whether the maximum number of tilesets per view
+	 * has been reached. If yes, output error message and return.
+	 * If not, open the dialog.
+	 */
+	if (ps_tsetview->m_nts == MBE_MAXTSC) {
+		MessageBox(
+			NULL,
+			TEXT("Could not create tileset.\n    The maximum number of tilesets per view has been reached."),
+			TEXT("Error"),
+			MB_ICONERROR | MB_OK
+		);
+
+		return MARBLE_EC_COMPSTATE;
+	}
+
+	struct mbeditor_tset_emptytsdlg_createparams s_crps;
 	if (DialogBoxParam(
 		gls_editorapp.mp_hinst,
 		MAKEINTRESOURCE(MBE_DLG_EmptyTS),
 		gls_editorapp.mp_hwnd,
-		(DLGPROC)&mbeditor_tsetview_ontscreate_dlgproc,
-		(LPARAM)&s_crparams
+		(DLGPROC)&mbeditor_tsetview_emptytsdlg_dlgproc,
+		(LPARAM)&s_crps
 	) != FALSE) {
-		/* TODO: Create tileset */
+		marble_ecode_t ecode = mbeditor_tsetview_internal_createemptyts(
+			ps_tsetview,
+			&s_crps,
+			&ps_tsetview->mas_tsets[ps_tsetview->m_nts]
+		);
+		if (ecode != MARBLE_EC_OK)
+			return ecode;
 
+		++ps_tsetview->m_nts;
 	}
 
 	return MARBLE_EC_OK;

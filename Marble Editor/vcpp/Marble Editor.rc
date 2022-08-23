@@ -54,7 +54,7 @@ IDR_MENU1 MENU
 BEGIN
     POPUP "File"
     BEGIN
-        POPUP "Create"
+        POPUP "New"
         BEGIN
             MENUITEM "Tileset",                     ID_CREATE_TILESET
         END
@@ -68,7 +68,7 @@ END
 //
 
 MBE_DLG_EmptyTS DIALOGEX 0, 0, 313, 175
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CLIPSIBLINGS | WS_CAPTION | WS_SYSMENU
 CAPTION "Create empty tileset"
 FONT 8, "Segoe UI", 400, 0, 0x0
 BEGIN
@@ -76,19 +76,18 @@ BEGIN
     PUSHBUTTON      "Cancel",EmptyTSDlg_BTN_Cancel,252,155,50,14
     GROUPBOX        "Options",IDC_STATIC,6,60,294,90
     LTEXT           "Name",IDC_STATIC,12,9,19,8
-    EDITTEXT        EmptyTSDlg_EDIT_Name,54,6,132,14
+    EDITTEXT        EmptyTSDlg_EDIT_Name,54,6,132,14,ES_AUTOHSCROLL
     LTEXT           "Comment",IDC_STATIC,12,24,36,8
     EDITTEXT        EmptyTSDlg_EDIT_Comment,54,24,246,30,ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL
     LTEXT           "Width",IDC_STATIC,18,81,24,8
-    EDITTEXT        EmptyTSDlg_EDIT_Width,54,78,30,14,ES_NUMBER
-    CONTROL         "",EmptyTSDlg_SPIN_Width,"msctls_updown32",UDS_ARROWKEYS,84,78,10,14
+    EDITTEXT        EmptyTSDlg_EDIT_Width,54,78,30,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",EmptyTSDlg_SPIN_Width,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,78,10,14
     LTEXT           "Height",IDC_STATIC,18,99,24,8
-    EDITTEXT        EmptyTSDlg_EDIT_Height,54,96,30,14,ES_NUMBER
-    PUSHBUTTON      "",EmptyTSDlg_BTN_LockAspect,98,86,18,14
+    EDITTEXT        EmptyTSDlg_EDIT_Height,54,96,30,14,ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "Tile Size",IDC_STATIC,18,117,36,8
-    EDITTEXT        EmptyTSDlg_EDIT_TSize,54,114,30,14,ES_NUMBER
-    CONTROL         "",EmptyTSDlg_SPIN_Height,"msctls_updown32",UDS_ARROWKEYS,84,96,11,14
-    CONTROL         "",EmptyTSDlg_SPIN_TSize,"msctls_updown32",UDS_ARROWKEYS,84,114,10,14
+    EDITTEXT        EmptyTSDlg_EDIT_TSize,54,114,30,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",EmptyTSDlg_SPIN_Height,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,96,11,14
+    CONTROL         "",EmptyTSDlg_SPIN_TSize,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,114,10,14
     EDITTEXT        EmptyTSDlg_EDIT_Red,174,78,24,14,ES_AUTOHSCROLL | ES_NUMBER
     EDITTEXT        EmptyTSDlg_EDIT_Green,174,96,24,14,ES_AUTOHSCROLL | ES_NUMBER
     EDITTEXT        EmptyTSDlg_EDIT_Blue,174,114,24,14,ES_AUTOHSCROLL | ES_NUMBER
@@ -98,10 +97,11 @@ BEGIN
     PUSHBUTTON      "Choose >>",EmptyTSDlg_BTN_ChooseCol,233,123,50,14
     GROUPBOX        "Background Color",IDC_STATIC,138,66,156,78
     CONTROL         "Transparent",EmptyTSDlg_CB_Transparent,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,234,108,55,10
-    CONTROL         "",EmptyTSDlg_SPIN_Red,"msctls_updown32",UDS_ARROWKEYS,198,78,11,14
-    CONTROL         "",EmptyTSDlg_SPIN_Green,"msctls_updown32",UDS_ARROWKEYS,198,96,11,14
-    CONTROL         "",EmptyTSDlg_SPIN_Blue,"msctls_updown32",UDS_ARROWKEYS,198,114,11,14
+    CONTROL         "",EmptyTSDlg_SPIN_Red,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,198,78,11,14
+    CONTROL         "",EmptyTSDlg_SPIN_Green,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,198,96,11,14
+    CONTROL         "",EmptyTSDlg_SPIN_Blue,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,198,114,11,14
     DEFPUSHBUTTON   "Reset",EmptyTSDlg_BTN_Reset,5,155,50,14
+    CONTROL         "Lock",EmptyTSDlg_CB_LockAspect,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,100,89,31,10
 END
 
 

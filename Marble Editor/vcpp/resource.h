@@ -10,7 +10,6 @@
 #define EmptyTSDlg_SPIN_Width           1004
 #define EmptyTSDlg_EDIT_Height          1005
 #define EmptyTSDlg_SPIN_Height          1006
-#define EmptyTSDlg_BTN_LockAspect       1007
 #define EmptyTSDlg_SPIN_TSize           1008
 #define EmptyTSDlg_SPIN_Red             1010
 #define EmptyTSDlg_EDIT_TSize           1011
@@ -22,9 +21,10 @@
 #define EmptyTSDlg_BTN_ChooseCol        1019
 #define EmptyTSDlg_CB_Transparent       1021
 #define EmptyTSDlg_BTN_Ok               1022
-#define EmptyTSDlg_BTN_Rset             1023
 #define EmptyTSDlg_BTN_Reset            1023
 #define EmptyTSDlg_BTN_Cancel           1024
+#define IDC_CHECK1                      1025
+#define EmptyTSDlg_CB_LockAspect        1026
 #define ID_FILE_CREATE                  40001
 #define ID_CREATE_TILESET               40002
 
@@ -32,9 +32,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        105
+#define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40003
-#define _APS_NEXT_CONTROL_VALUE         1025
+#define _APS_NEXT_CONTROL_VALUE         1027
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

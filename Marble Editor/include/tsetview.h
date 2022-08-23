@@ -33,8 +33,9 @@ struct mbeditor_tsetview {
 	/* tab-view window */
 	HWND mp_hwnd;
 
-	int m_nts;                          /* number of tilesets */
-	int m_curtsi;                       /* current tileset index */
+	BOOL m_isinit;                      /* init state */
+	int  m_nts;                         /* number of tilesets */
+	int  m_curtsi;                      /* current tileset index */
 	struct mbeditor_tset mas_tsets[32]; /* tilesets */
 };
 
