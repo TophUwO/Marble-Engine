@@ -1,22 +1,40 @@
 #pragma once
 
 #include <editor.h>
-#include <tsetview.h>
+
+
+/*
+ * Structure representing data fields shared
+ * by multiple dialogs concerning the tileset view.
+ * Every "*_cp" struct has to put an instance of
+ * this struct as its very first data field.
+ */
+struct mbe_tsviewdlg_cp {
+	int  m_width;   /* width, in tiles */
+	int  m_height;  /* height, in tiles */
+	int  m_tsize;   /* tile size, in pixels */
+};
+
+/*
+ * Shorten query for spinbox value.
+ * Used when dialog field data is written back
+ * to the "*_cp" buffer.
+ */
+#define MBE_GETSPVAL() (int)(SendMessage(p_hwnd, UDM_GETPOS32, 0, 0))
 
 
 #pragma region CREATENEWTS-DLG
 /*
- * Structure used for "Create new tileset ..." dialog.
+ * Structure used for "Create new tileset" dialog.
  * Logical tileset will be created based on these
  * parameters.
  */
 struct mbe_dlgnewts_cp {
+	struct mbe_tsviewdlg_cp _base; /* common create parameters */
+
 	TCHAR maz_name[MBE_MAXTSNAME]; /* tileset name */
 	TCHAR maz_cmt[MBE_MAXCMT];     /* comment/description */
 
-	int  m_width;   /* width, in tiles */
-	int  m_height;  /* height, in tiles */
-	int  m_tsize;   /* tile size, in pixels */
 	BOOL m_istrans; /* transparent background? */
 	/* information concerning aspect ratio lock state */
 	struct {
@@ -43,13 +61,13 @@ struct mbe_dlgnewts_cp {
  * to simplify applying effects to various controls
  * at once.
  */
-struct { int m_id, m_buddy; SHORT m_pos, m_min, m_max; size_t m_size, m_off; } const glas_udopts[] = {
-	{ EmptyTSDlg_SPIN_Width,  EmptyTSDlg_EDIT_Width,  1, 1, 1024, sizeof(int),  offsetof(struct mbe_dlgnewts_cp, m_width)  },
-	{ EmptyTSDlg_SPIN_Height, EmptyTSDlg_EDIT_Height, 1, 1, 1024, sizeof(int),  offsetof(struct mbe_dlgnewts_cp, m_height) },
-	{ EmptyTSDlg_SPIN_TSize,  EmptyTSDlg_EDIT_TSize,  8, 1, 128,  sizeof(int),  offsetof(struct mbe_dlgnewts_cp, m_tsize)  },
-	{ EmptyTSDlg_SPIN_Red,    EmptyTSDlg_EDIT_Red,    0, 0, 255,  sizeof(BYTE), offsetof(struct mbe_dlgnewts_cp, m_r)      },
-	{ EmptyTSDlg_SPIN_Green,  EmptyTSDlg_EDIT_Green,  0, 0, 255,  sizeof(BYTE), offsetof(struct mbe_dlgnewts_cp, m_g)      },
-	{ EmptyTSDlg_SPIN_Blue,   EmptyTSDlg_EDIT_Blue,   0, 0, 255,  sizeof(BYTE), offsetof(struct mbe_dlgnewts_cp, m_b)      }
+struct { int m_id, m_buddy; SHORT m_min, m_max; } const glas_udopts[] = {
+	{ EmptyTSDlg_SPIN_Width,  EmptyTSDlg_EDIT_Width,  1, 1024 },
+	{ EmptyTSDlg_SPIN_Height, EmptyTSDlg_EDIT_Height, 1, 1024 },
+	{ EmptyTSDlg_SPIN_TSize,  EmptyTSDlg_EDIT_TSize,  1, 128  },
+	{ EmptyTSDlg_SPIN_Red,    EmptyTSDlg_EDIT_Red,    0, 255  },
+	{ EmptyTSDlg_SPIN_Green,  EmptyTSDlg_EDIT_Green,  0, 255  },
+	{ EmptyTSDlg_SPIN_Blue,   EmptyTSDlg_EDIT_Blue,   0, 255  }
 };
 size_t const gl_nudopts = ARRAYSIZE(glas_udopts);
 
@@ -74,7 +92,7 @@ size_t const gl_neclimits = ARRAYSIZE(glas_eclimits);
 
 /*
  * Sets-up controls to only accept a maximum amount
- * of imput, that is, max. number of characters, range,
+ * of input, that is, max. number of characters, range,
  * etc.
  * 
  * Returns nothing.
@@ -98,7 +116,6 @@ static void mbe_dlgnewts_setupcontrols(HWND p_hwnd /* dialog window */) {
 	for (size_t i = 0; i < gl_nudopts; i++) {
 		HWND const p_hdlgitem = MBE_DLGWND(glas_udopts[i].m_id);
 
-		SendMessage(p_hdlgitem, UDM_SETPOS, 0, (LPARAM)glas_udopts[i].m_pos);
 		SendMessage(p_hdlgitem, UDM_SETRANGE, 0, MAKELONG(glas_udopts[i].m_max, glas_udopts[i].m_min));
 		SendMessage(p_hdlgitem, UDM_SETBUDDY, (WPARAM)GetDlgItem(p_hwnd, glas_udopts[i].m_buddy), 0);
 	}
@@ -167,9 +184,9 @@ static void mbe_dlgnewts_update(
 	 * all have a "buddy" registered which will be automatically notified of the
 	 * position change and, if needed, will subsequently update its caption.
 	 */
-	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_Width), UDM_SETPOS, 0, (LPARAM)ps_crps->m_width);
-	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_Height), UDM_SETPOS, 0, (LPARAM)ps_crps->m_height);
-	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_TSize), UDM_SETPOS, 0, (LPARAM)ps_crps->m_tsize);
+	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_Width), UDM_SETPOS, 0, (LPARAM)ps_crps->_base.m_width);
+	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_Height), UDM_SETPOS, 0, (LPARAM)ps_crps->_base.m_height);
+	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_TSize), UDM_SETPOS, 0, (LPARAM)ps_crps->_base.m_tsize);
 	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_Red), UDM_SETPOS, 0, (LPARAM)ps_crps->m_r);
 	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_Green), UDM_SETPOS, 0, (LPARAM)ps_crps->m_g);
 	SendMessage(MBE_DLGWND(EmptyTSDlg_SPIN_Blue), UDM_SETPOS, 0, (LPARAM)ps_crps->m_b);
@@ -190,6 +207,7 @@ static void mbe_dlgnewts_update(
  * .
  */
 static BOOL mbe_dlgnewts_handlecolordlg(
+	HWND p_hwnd,                    /* dialog window handle */
 	struct mbe_dlgnewts_cp *ps_crps /* create parameters */
 ) {
 	/* Custom colors are not needed. */
@@ -201,9 +219,9 @@ static BOOL mbe_dlgnewts_handlecolordlg(
 	 */
 	CHOOSECOLOR s_ccol = {
 		.lStructSize  = sizeof s_ccol,
-		.hwndOwner    = NULL,
+		.hwndOwner    = p_hwnd,
 		.lpCustColors = (LPDWORD)a_custcol,
-		.rgbResult    = RGB(255, 255, 255),
+		.rgbResult    = RGB(0, 0, 0),
 		.Flags        = CC_FULLOPEN | CC_RGBINIT
 	};
 	
@@ -221,28 +239,60 @@ static BOOL mbe_dlgnewts_handlecolordlg(
 }
 
 /*
- * Updates the internal create parameters just before the dialog closes.
+ * Executed for every child window of the
+ * "Create empty tileset" dialog.
+ * 
+ * Returns TRUE.
+ */
+static BOOL mbe_tsetview_emptytsdlg_writeback_impl(
+	HWND p_hwnd, /* window handle */
+	LPARAM param /* create parameters */
+) {
+	struct mbe_dlgnewts_cp *ps_crps = (struct mbe_dlgnewts_cp *)param;
+
+	LONG_PTR idctrl;
+	switch (idctrl = GetWindowLongPtr(p_hwnd, GWLP_ID)) {
+		case EmptyTSDlg_SPIN_Width:  ps_crps->_base.m_width  = MBE_GETSPVAL(); break;
+		case EmptyTSDlg_SPIN_Height: ps_crps->_base.m_height = MBE_GETSPVAL(); break;
+		case EmptyTSDlg_SPIN_TSize:  ps_crps->_base.m_tsize  = MBE_GETSPVAL(); break;
+		case EmptyTSDlg_SPIN_Red:    ps_crps->m_r = (BYTE)MBE_GETSPVAL();      break;
+		case EmptyTSDlg_SPIN_Green:  ps_crps->m_g = (BYTE)MBE_GETSPVAL();      break;
+		case EmptyTSDlg_SPIN_Blue:   ps_crps->m_b = (BYTE)MBE_GETSPVAL();      break;
+		case EmptyTSDlg_EDIT_Name:
+		case EmptyTSDlg_EDIT_Comment:
+			GetWindowText(
+				p_hwnd,
+				idctrl == EmptyTSDlg_EDIT_Name
+					? ps_crps->maz_name
+					: ps_crps->maz_cmt,
+				(int)SendMessage(p_hwnd, EM_GETLIMITTEXT, 0, 0)
+			);
+
+			break;
+		case EmptyTSDlg_CB_Transparent:
+			ps_crps->m_istrans = (BOOL)SendMessage(p_hwnd, BM_GETCHECK, 0, 0);
+			
+			break;
+	}
+
+	return TRUE;
+}
+
+/*
+ * Write back dialog field data into the create-params
+ * buffer.
  * 
  * Returns nothing.
  */
-static void mbe_dlgnewts_writeback(
-	HWND p_hwnd,                    /* dialog window */
-	struct mbe_dlgnewts_cp *ps_crps /* destination */
+static void mbe_tsetview_emptytsdlg_writeback(
+	HWND p_hwnd,                    /* dialog window handle */
+	struct mbe_dlgnewts_cp *ps_crps /* create parameters */
 ) {
-	GetWindowText(MBE_DLGWND(EmptyTSDlg_EDIT_Name), ps_crps->maz_name, MBE_MAXTSNAME);
-	GetWindowText(MBE_DLGWND(EmptyTSDlg_EDIT_Comment), ps_crps->maz_cmt, MBE_MAXCMT);
-
-	/*
-	 * Only issue an update if the values are needed
-	 * to create the tileset later.
-	 */
-	ps_crps->m_istrans = Button_GetCheck(GetDlgItem(p_hwnd, EmptyTSDlg_CB_Transparent));
-	if (ps_crps->m_istrans == FALSE)
-		for (size_t i = 0; i < gl_nudopts; i++) {
-			UINT res = SendMessage(MBE_DLGWND(glas_udopts[i].m_id), UDM_GETPOS, 0, 0) & 0xFFFF;
-
-			CopyMemory((void *)((char *)ps_crps + glas_udopts[i].m_off), &res, glas_udopts[i].m_size);
-		}
+	EnumChildWindows(
+		p_hwnd,
+		(WNDENUMPROC)&mbe_tsetview_emptytsdlg_writeback_impl,
+		(LPARAM)ps_crps
+	);
 }
 
 /*
@@ -258,6 +308,11 @@ static BOOL CALLBACK mbe_tsetview_emptytsdlg_dlgproc(
 
 	/* Default settings for this dialog. */
 	static struct mbe_dlgnewts_cp const s_defcps = {
+		._base     = {
+			.m_width   = 24,
+			.m_height  = 24,
+			.m_tsize   = 32
+		},
 		.maz_name  = TEXT("unnamed"),
 		.maz_cmt   = TEXT(""),
 		
@@ -266,10 +321,7 @@ static BOOL CALLBACK mbe_tsetview_emptytsdlg_dlgproc(
 		.ms_aspect = {
 			.m_islock = FALSE,
 			.m_aspect = 1.0f
-		},
-		.m_width   = 32,
-		.m_height  = 32,
-		.m_tsize   = 16
+		}
 	};
 
 	switch (msg) {
@@ -298,14 +350,14 @@ static BOOL CALLBACK mbe_tsetview_emptytsdlg_dlgproc(
 					break;
 				case EmptyTSDlg_CB_LockAspect:
 					if ((ps_param->ms_aspect.m_islock = !ps_param->ms_aspect.m_islock) == TRUE)
-						ps_param->ms_aspect.m_aspect = (float)ps_param->m_width / (float)ps_param->m_height;
+						ps_param->ms_aspect.m_aspect = (float)ps_param->_base.m_width / (float)ps_param->_base.m_height;
 					else
 						ps_param->ms_aspect.m_aspect = 1.0f;
 
 					break;
 				case EmptyTSDlg_BTN_ChooseCol:
 					/* Open CHOOSECOLOR dialog. */
-					if (mbe_dlgnewts_handlecolordlg(ps_param) == TRUE) {
+					if (mbe_dlgnewts_handlecolordlg(p_hwnd, ps_param) == TRUE) {
 						/*
 						 * Update positions of spin controls. Note that this will automatically
 						 * change the captions of the corresponding edit controls accordingly.
@@ -325,11 +377,17 @@ static BOOL CALLBACK mbe_tsetview_emptytsdlg_dlgproc(
 				case EmptyTSDlg_BTN_Ok:
 				case EmptyTSDlg_BTN_Cancel:
 					/*
-					 * If the user presses the "OK" button, issue a final
-					 * update to the internal create-params structure.
+					 * If the user presses the "OK" button, update
+					 * spin-less text properties. They never get
+					 * written back to the "*_cp" structure
+					 * throughout the lifetime of the dialog.
 					 */
-					if (wparam == EmptyTSDlg_BTN_Ok)
-						mbe_dlgnewts_writeback(p_hwnd, ps_param);
+					if (wparam == EmptyTSDlg_BTN_Ok) {
+						GetWindowText(MBE_DLGWND(EmptyTSDlg_EDIT_Name), ps_param->maz_name, MBE_MAXTSNAME);
+						GetWindowText(MBE_DLGWND(EmptyTSDlg_EDIT_Comment), ps_param->maz_cmt, MBE_MAXCMT);
+						
+						mbe_tsetview_emptytsdlg_writeback(p_hwnd, ps_param);
+					}
 
 					/* End the dialog. */
 					EndDialog(
@@ -350,6 +408,328 @@ static BOOL CALLBACK mbe_tsetview_emptytsdlg_dlgproc(
 				p_hwnd,
 				WM_COMMAND,
 				EmptyTSDlg_BTN_Cancel,
+				0
+			);
+
+			break;
+	}
+
+	return FALSE;
+}
+#pragma endregion
+
+
+#pragma region BMPTS-DLG
+/*
+ * Structure used for "Import tileset as bitmap" dialog.
+ * Logical tileset will be created based on these
+ * parameters.
+ */
+struct mbe_dlgbmpts_cp {
+	struct mbe_tsviewdlg_cp _base; /* common create parameters */
+
+	TCHAR maz_path[MBE_MAXPATH];   /* file path */
+	BOOL m_iswhole;                /* Load whole bitmap? */
+};
+
+
+/*
+ * Table representing the settings for the
+ * spin controls.
+ */
+struct { int m_id, m_buddy; SHORT m_min, m_max; } const glas_bmptsdlg_udopts[] = {
+	{ BmpTSDlg_SPIN_Width,  BmpTSDlg_EDIT_Width,  1, 1024 },
+	{ BmpTSDlg_SPIN_Height, BmpTSDlg_EDIT_Height, 1, 1024 },
+	{ BmpTSDlg_SPIN_TSize,  BmpTSDlg_EDIT_TSize,  1, 128, }
+};
+size_t const gl_bmptsdlg_nudopts = ARRAYSIZE(glas_bmptsdlg_udopts);
+
+/*
+ * Table representing maximum character counts
+ * for all text fields of the dialog. When the dialog gets created,
+ * all edit control's character limit will set to the value set
+ * in this table.
+ */
+static struct { int m_id; size_t m_len; } const glas_bmptsdlg_eclimits[] = {
+	{ BmpTSDlg_EDIT_Path,   MBE_MAXPATH - 1 },
+	{ BmpTSDlg_EDIT_Width,  4               },
+	{ BmpTSDlg_EDIT_Height, 4               },
+	{ BmpTSDlg_EDIT_TSize,  4               }
+};
+size_t const gl_bmptsdlg_neclimits = ARRAYSIZE(glas_bmptsdlg_eclimits);
+
+
+/*
+ * Sets-up controls to only accept a maximum amount
+ * of imput, that is, max. number of characters, range,
+ * etc.
+ * 
+ * Returns nothing.
+ */
+static void mbe_dlgbmpts_setupcontrols(HWND p_hwnd /* dialog window */) {
+	for (size_t i = 0; i < gl_bmptsdlg_neclimits; i++)
+		SendMessage(
+			MBE_DLGWND(glas_bmptsdlg_eclimits[i].m_id),
+			EM_SETLIMITTEXT,
+			(WPARAM)glas_bmptsdlg_eclimits[i].m_len,
+			0
+		);
+
+	for (size_t i = 0; i < gl_bmptsdlg_nudopts; i++) {
+		HWND const p_hdlgitem = MBE_DLGWND(glas_bmptsdlg_udopts[i].m_id);
+
+		SendMessage(p_hdlgitem, UDM_SETRANGE, 0, MAKELONG(glas_bmptsdlg_udopts[i].m_max, glas_bmptsdlg_udopts[i].m_min));
+		SendMessage(p_hdlgitem, UDM_SETBUDDY, (WPARAM)MBE_DLGWND(glas_bmptsdlg_udopts[i].m_buddy), 0);
+	}
+}
+
+/*
+ * Handle the event of the user clicking the "Load entire bitmap"
+ * checkbox, disabling all edit boxes except for "File Path".
+ * Consequently, unchecking the box has to enable the controls
+ * again.
+ * 
+ * Returns nothing.
+ */
+static void mbe_dlgbmpts_handlecball(
+	HWND p_hwnd,
+	struct mbe_dlgbmpts_cp *ps_crps,
+	BOOL newstate
+) {
+	/* Update internal state. */
+	ps_crps->m_iswhole = newstate;
+
+	/* Enable/Disable necessary controls. */
+	for (size_t i = 0; i < gl_bmptsdlg_nudopts; i++) {
+		if (glas_bmptsdlg_udopts[i].m_id == BmpTSDlg_SPIN_TSize)
+			continue;
+
+		EnableWindow(MBE_DLGWND(glas_bmptsdlg_udopts[i].m_id), !ps_crps->m_iswhole);
+		EnableWindow(MBE_DLGWND(glas_bmptsdlg_udopts[i].m_buddy), !ps_crps->m_iswhole);
+	}
+
+	/* Update checkbox state. */
+	CheckDlgButton(p_hwnd, BmpTSDlg_CB_LoadAll, (UINT)ps_crps->m_iswhole);
+}
+
+/*
+ * Sets dialog fields to specific values.
+ * 
+ * Returns nothing.
+ */
+static void mbe_dlgbmpts_update(
+	HWND p_hwnd,                    /* dialog window */
+	struct mbe_dlgbmpts_cp *ps_crps /* create parameters */
+) {
+	/* Update path edit control. */
+	SetWindowText(
+		MBE_DLGWND(BmpTSDlg_EDIT_Path),
+		ps_crps->maz_path
+	);
+
+	/*
+	 * Solely setting the up-down control position is enough, as the up-down controls
+	 * all have a "buddy" registered which will be automatically notified of the
+	 * position change and, if needed, will subsequently update its caption.
+	 */
+	SendMessage(MBE_DLGWND(BmpTSDlg_SPIN_Width), UDM_SETPOS, 0, (LPARAM)ps_crps->_base.m_width);
+	SendMessage(MBE_DLGWND(BmpTSDlg_SPIN_Height), UDM_SETPOS, 0, (LPARAM)ps_crps->_base.m_height);
+	SendMessage(MBE_DLGWND(BmpTSDlg_SPIN_TSize), UDM_SETPOS, 0, (LPARAM)ps_crps->_base.m_tsize);
+
+	/* Set checkbox states. */
+	mbe_dlgbmpts_handlecball(p_hwnd, ps_crps, ps_crps->m_iswhole);
+	CheckDlgButton(p_hwnd, BmpTSDlg_CB_LoadAll, (UINT)ps_crps->m_iswhole);
+}
+
+/*
+ * Handle the event of the user clicking on the "..." button,
+ * opening a dialog that allows the user to choose a file.
+ * 
+ * Returns TRUE if a file was chosen, FALSE if not.
+ */
+static BOOL mbe_dlgbmpts_handlebrowsebtn(
+	HWND p_hwnd,                    /* dialog window */
+	struct mbe_dlgbmpts_cp *ps_crps /* create parameters */
+) {
+	ZeroMemory(ps_crps->maz_path, MBE_MAXPATH);
+
+	OPENFILENAME s_dlgdata = {
+		.lStructSize = sizeof s_dlgdata,
+		.hwndOwner   = p_hwnd,
+		.lpstrTitle  = TEXT("Import tileset as bitmap"),
+		.Flags       = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER,
+		.lpstrFile   = ps_crps->maz_path,
+		.nMaxFile    = MBE_MAXPATH
+
+	};
+
+	return GetOpenFileName(&s_dlgdata) != FALSE;
+}
+
+/*
+ * Executed for every child window of the
+ * "Import tileset from bitmap" dialog.
+ * 
+ * Returns TRUE.
+ */
+static BOOL mbe_bmptsdlg_writeback_impl(
+	HWND p_hwnd, /* window handle */
+	LPARAM param /* create parameters */
+) {
+	struct mbe_dlgbmpts_cp *ps_crps = (struct mbe_dlgbmpts_cp *)param;
+
+	LONG_PTR idctrl;
+	switch (idctrl = GetWindowLongPtr(p_hwnd, GWLP_ID)) {
+		case BmpTSDlg_SPIN_Width:  ps_crps->_base.m_width  = MBE_GETSPVAL(); break;
+		case BmpTSDlg_SPIN_Height: ps_crps->_base.m_height = MBE_GETSPVAL(); break;
+		case BmpTSDlg_SPIN_TSize:  ps_crps->_base.m_tsize  = MBE_GETSPVAL(); break;
+		case BmpTSDlg_EDIT_Path:
+			GetWindowText(
+				p_hwnd,
+				ps_crps->maz_path,
+				(int)SendMessage(p_hwnd, EM_GETLIMITTEXT, 0, 0)
+			);
+
+			break;
+		case BmpTSDlg_CB_LoadAll:
+			ps_crps->m_iswhole = (BOOL)SendMessage(p_hwnd, BM_GETCHECK, 0, 0);
+
+			break;
+	}
+
+	return TRUE;
+}
+
+/*
+ * Write back dialog field data into the create-params
+ * buffer.
+ * 
+ * Returns nothing.
+ */
+static void mbe_bmptsdlg_writeback(
+	HWND p_hwnd,                    /* dialog window handle */
+	struct mbe_dlgbmpts_cp *ps_crps /* create parameters */
+) {
+	EnumChildWindows(
+		p_hwnd,
+		(WNDENUMPROC)&mbe_bmptsdlg_writeback_impl,
+		(LPARAM)ps_crps
+	);
+}
+
+/*
+ * Window procedure for "Import tileset from bitmap" dialog. 
+ */
+static BOOL CALLBACK mbe_tsetview_bmptsdlg_dlgproc(
+	HWND p_hwnd,
+	UINT msg,
+	WPARAM wparam,
+	LPARAM lparam
+) {
+	MBE_WNDUSERDATA(ps_param, struct mbe_dlgbmpts_cp *);
+
+	/* Default create parameters. */
+	static struct mbe_dlgbmpts_cp const s_defcps = {
+		._base     = {
+			.m_width  = 1,
+			.m_height = 1,
+			.m_tsize  = 32
+		},
+		.maz_path  = TEXT(""),
+		.m_iswhole = TRUE
+	};
+
+	switch (msg) {
+		case WM_INITDIALOG:
+			/* Copy default values into the userdata pointer. */
+			CopyMemory((void *)lparam, &s_defcps, sizeof s_defcps);
+			/* Set userdata. */
+			SetWindowLongPtr(p_hwnd, GWLP_USERDATA, (LONG_PTR)lparam);
+
+			mbe_dlgbmpts_setupcontrols(p_hwnd);
+			mbe_dlgbmpts_update(
+				p_hwnd,
+				(struct mbe_dlgbmpts_cp *)lparam
+			);
+			return FALSE;
+		case WM_COMMAND:
+			switch (wparam) {
+				case BmpTSDlg_BTN_Browse: {
+					if (mbe_dlgbmpts_handlebrowsebtn(p_hwnd, ps_param) == TRUE)
+						SetWindowText(
+							MBE_DLGWND(BmpTSDlg_EDIT_Path),
+							ps_param->maz_path
+						);
+
+					break;
+				}
+				case BmpTSDlg_CB_LoadAll:
+					mbe_dlgbmpts_handlecball(
+						p_hwnd,
+						ps_param,
+						!ps_param->m_iswhole
+					);
+
+					break;
+				case BmpTSDlg_BTN_Reset:
+					/* Copy default values into the userdata pointer. */
+					CopyMemory(ps_param, &s_defcps, sizeof s_defcps);
+
+					mbe_dlgbmpts_update(p_hwnd, ps_param);
+					break;
+
+					break;
+				case BmpTSDlg_BTN_Ok:
+				case BmpTSDlg_BTN_Cancel:
+					/*
+					 * As we do never query "Path's" value,
+					 * we simply ask for it before we end the dialog.
+					 */
+					if (wparam == BmpTSDlg_BTN_Ok) {
+						mbe_bmptsdlg_writeback(p_hwnd, ps_param);
+
+						GetWindowText(
+							MBE_DLGWND(BmpTSDlg_EDIT_Path),
+							ps_param->maz_path,
+							MBE_MAXPATH
+						);
+
+						/*
+						 * Check whether the file path is empty. If that happens,
+						 * display a warning message, do not let the dialog to end,
+						 * and give the user the chance to correct their input.
+						 */
+						if (*ps_param->maz_path == TEXT('\0')) {
+							MessageBox(
+								p_hwnd,
+								TEXT("You have to choose a file to open."),
+								TEXT("Warning"),
+								MB_ICONWARNING | MB_OK
+							);
+
+							break;
+						}
+					}
+
+					/* End the dialog. */
+					EndDialog(
+						p_hwnd,
+						wparam == BmpTSDlg_BTN_Ok
+					);
+
+					break;
+			}
+
+			break;
+		case WM_CLOSE:
+			/*
+			* Closing the dialog via its system menu acts as
+			* if the user pressed the "Cancel" button.
+			*/
+			PostMessage(
+				p_hwnd,
+				WM_COMMAND,
+				BmpTSDlg_BTN_Cancel,
 				0
 			);
 
@@ -438,8 +818,8 @@ static void mbe_tset_internal_drawgrid(struct mbe_tset *ps_tset /* tileset */) {
  * Returns 0 on success, non-zero on failure.
  */
 static marble_ecode_t mbe_tset_internal_setupdc(
-	struct mbe_tset *ps_tset,       /* tileset */
-	struct mbe_dlgnewts_cp *ps_crps /* create parameters */
+	struct mbe_tset *ps_tset,        /* tileset */
+	struct mbe_tsviewdlg_cp *ps_crps /* create parameters */
 ) {
 	if (ps_tset == NULL || ps_crps == NULL)
 		return MARBLE_EC_PARAM;
@@ -601,6 +981,8 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 				SRCCOPY
 			);
 
+			_tprintf(TEXT("Repaint: %s\n"), ps_udata->maz_name);
+
 			EndPaint(p_hwnd, &s_ps);
 			return FALSE;
 	}
@@ -609,7 +991,50 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 }
 
 /*
- * Creates a logical tileset.
+ * Creates a blank window and adds a tab to the tileset view container.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static marble_ecode_t mbe_tsetview_internal_prepareview(
+	struct mbe_tsetview *ps_parent, /* tileset view container */
+	struct mbe_tset *ps_tset,       /* tileset */
+	TCHAR const *pz_title,          /* tab caption */
+	RECT *s_parentsize              /* size of tileset view window */
+) {
+	/* Insert tab item. */
+	TCITEM const s_item = {
+		.mask    = TCIF_TEXT,
+		.pszText = (LPWSTR)pz_title
+	};
+	if (TabCtrl_InsertItem(ps_parent->mp_hwnd, ps_parent->m_nts++, &s_item) == -1)
+		return MARBLE_EC_UNKNOWN;
+
+	/* Get current size of tab view. */
+	mbe_tsetview_internal_getrect(ps_parent, s_parentsize);
+
+	/* Create window of tileset view. */
+	ps_tset->p_hwnd = CreateWindowEx(
+		WS_EX_WINDOWEDGE | WS_EX_COMPOSITED,
+		glpz_tsviewwndclname,
+		NULL,
+		WS_CHILD | WS_CLIPSIBLINGS | WS_HSCROLL | WS_VSCROLL,
+		s_parentsize->left,
+		s_parentsize->top,
+		s_parentsize->right - s_parentsize->left,
+		s_parentsize->bottom - s_parentsize->top,
+		ps_parent->mp_hwnd,
+		NULL,
+		gls_editorapp.mp_hinst,
+		(LPVOID)ps_tset
+	);
+	if (ps_tset->p_hwnd == NULL)
+		return MARBLE_EC_CREATEWND;
+
+	return MARBLE_EC_OK;
+}
+
+/*
+ * Creates an empty logical tileset.
  * 
  * Returns 0 on success, non-zero on failure.
  */
@@ -623,44 +1048,18 @@ static marble_ecode_t mbe_tsetview_internal_createemptyts(
 
 	marble_ecode_t ecode = MARBLE_EC_OK;
 
-	/* Insert tab item. */
-	TCITEM s_item = {
-		.mask = TCIF_TEXT,
-		.pszText = ps_crps->maz_name
-	};
-	if (TabCtrl_InsertItem(ps_parent->mp_hwnd, ps_parent->m_nts++, &s_item) == -1) {
-		ecode = MARBLE_EC_UNKNOWN;
-
-		goto lbl_END;
-	}
-
-	/* Get current size of tab view. */
 	RECT s_parentsize;
-	mbe_tsetview_internal_getrect(ps_parent, &s_parentsize);
-
-	/* Create window of tileset view. */
-	ps_tset->p_hwnd = CreateWindowEx(
-		WS_EX_WINDOWEDGE | WS_EX_COMPOSITED,
-		glpz_tsviewwndclname,
-		NULL,
-		WS_CHILD | WS_CLIPSIBLINGS | WS_HSCROLL | WS_VSCROLL,
-		s_parentsize.left,
-		s_parentsize.top,
-		s_parentsize.right - s_parentsize.left,
-		s_parentsize.bottom - s_parentsize.top,
-		ps_parent->mp_hwnd,
-		NULL,
-		gls_editorapp.mp_hinst,
-		(LPVOID)ps_tset
+	ecode = mbe_tsetview_internal_prepareview(
+		ps_parent,
+		ps_tset,
+		ps_crps->maz_name,
+		&s_parentsize
 	);
-	if (ps_tset->p_hwnd == NULL) {
-		ecode = MARBLE_EC_CREATEWND;
-
+	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
-	}
 
 	/* Create empty bitmap. */
-	ecode = mbe_tset_internal_setupdc(ps_tset, ps_crps);
+	ecode = mbe_tset_internal_setupdc(ps_tset, &ps_crps->_base);
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
 
@@ -688,7 +1087,185 @@ lbl_END:
 
 	return ecode;
 }
+
+/*
+ *  
+ */
+static marble_ecode_t mbe_tsetview_internal_createtsbmpfromsrc(
+	struct mbe_tsetview *ps_parent, /* parent window */
+	struct mbe_tset *ps_tset,       /* destination */
+	struct mbe_dlgbmpts_cp *ps_crps /* tileset parameters */
+) {
+	HBITMAP p_hbmp = NULL, p_hbmpold;
+	HDC p_bmpdc = NULL, p_deskdc;
+
+	marble_ecode_t ecode = MARBLE_EC_OK;
+
+	p_hbmp = LoadImage(
+		NULL,
+		ps_crps->maz_path,
+		IMAGE_BITMAP,
+		0,
+		0,
+		LR_LOADFROMFILE
+	);
+	if (p_hbmp == NULL) {
+		MessageBox(
+			ps_parent->mp_hwnd, 
+			TEXT("Could not load the selected file.")
+			TEXT(" The file is of an unknown format."),
+			TEXT("Error"),
+			MB_ICONERROR | MB_OK
+		);
+
+		return MARBLE_EC_LOADRESOURCE;
+	}
+
+	/*
+	 * If we specified the whole bitmap, we have to get the
+	 * pixel dimensions of our loaded bitmap and substitute
+	 * them for the values we got from the final update of
+	 * the dialog.
+	 */
+	if (ps_crps->m_iswhole == TRUE) {
+		BITMAPINFO s_info;
+		GetObject(p_hbmp, sizeof s_info, &s_info);
+
+		ps_crps->_base.m_width  = s_info.bmiHeader.biWidth  / ps_crps->_base.m_tsize;
+		ps_crps->_base.m_height = s_info.bmiHeader.biHeight / ps_crps->_base.m_tsize;
+	}
+
+	ecode = mbe_tset_internal_setupdc(ps_tset, &ps_crps->_base);
+	if (ecode != MARBLE_EC_OK) {
+		DeleteObject(p_hbmp);
+
+		return ecode;
+	}
+
+	/* Draw tiles onto grid. */
+	p_deskdc = GetDC(GetDesktopWindow());
+	p_bmpdc  = CreateCompatibleDC(p_deskdc);
+	if (p_bmpdc == NULL) {
+		ecode = MARBLE_EC_CREATEMEMDC;
+
+		goto lbl_END;
+	}
+	p_hbmpold = SelectObject(p_bmpdc, p_hbmp);
+
+	for (int x = 0; x < ps_tset->ms_sz.m_twidth; x++)
+		for (int y = 0; y < ps_tset->ms_sz.m_pheight; y++)
+			StretchBlt(
+				ps_tset->ms_res.p_hbmpdc,
+				x * 32 + (x + 1),
+				y * 32 + (y + 1),
+				32,
+				32,
+				p_bmpdc,
+				x * ps_tset->ms_sz.tsize,
+				y * ps_tset->ms_sz.tsize,
+				ps_tset->ms_sz.tsize,
+				ps_tset->ms_sz.tsize,
+				SRCCOPY
+			);
+
+	SelectObject(p_bmpdc, p_hbmpold);
+	DeleteDC(p_bmpdc);
+
+lbl_END:
+	DeleteObject(p_hbmp);
+
+	ReleaseDC(GetDesktopWindow(), p_deskdc);
+	return MARBLE_EC_OK;
+}
+
+/*
+ * Creates a logical tileset from an already existing bitmap
+ * file.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
+	struct mbe_tsetview *ps_parent,  /* parent window */
+	struct mbe_dlgbmpts_cp *ps_crps, /* tileset parameters */
+	struct mbe_tset *ps_tset         /* destination */
+) {
+	marble_ecode_t ecode = MARBLE_EC_OK;
+
+	/*
+	 * Extract filename and use it as
+	 * caption for the tab.
+	 */
+	_tsplitpath_s(
+		ps_crps->maz_path,
+		NULL,
+		0,
+		NULL,
+		0,
+		ps_tset->maz_name,
+		MBE_MAXTSNAME,
+		NULL,
+		0
+	);
+
+	RECT s_parentsize;
+	ecode = mbe_tsetview_internal_prepareview(
+		ps_parent,
+		ps_tset,
+		ps_tset->maz_name,
+		&s_parentsize
+	);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+
+	/* Create tileset bitmap from source bitmap. */
+	ecode = mbe_tsetview_internal_createtsbmpfromsrc(
+		ps_parent,
+		ps_tset,
+		ps_crps
+	);
+
+	/* Initialize scrollbars. */
+	mbe_tset_internal_updatescrollbarinfo(
+		ps_tset,
+		s_parentsize.right - s_parentsize.left,
+		s_parentsize.bottom - s_parentsize.top
+	);
+
+	/* Update init state. */
+	ps_tset->m_isinit = TRUE;
+
+	UpdateWindow(ps_tset->p_hwnd);
+	return ecode;
+}
 #pragma endregion
+
+
+/*
+ * Checks whether the maximum number of tilesets per view
+ * has been reached.
+ * The function will display an error message and return
+ * TRUE if the tileset view is full.
+ * 
+ * Returns TRUE if tileset view is full, FALSE if not.
+ */
+static BOOL mbe_tsetview_internal_isfull(struct mbe_tsetview *ps_tsetview /* tileset view */) {
+	if (ps_tsetview == NULL || ps_tsetview->m_isinit == FALSE)
+		return TRUE;
+
+	if (ps_tsetview->m_nts == MBE_MAXTSC) {
+		MessageBox(
+			NULL,
+				TEXT("Could not create tileset.")
+				TEXT("\nThe maximum number of tilesets per view has been reached."),
+			TEXT("Error"),
+			MB_ICONERROR | MB_OK
+		);
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
 
 
 marble_ecode_t mbe_tsetview_init(
@@ -799,16 +1376,16 @@ void mbe_tsetview_resize(
 	RECT s_parentsize;
 	mbe_tsetview_internal_getrect(ps_tsetview, &s_parentsize);
 
-	for (size_t i = 0; i < ps_tsetview->m_nts; i++)
-		SetWindowPos(
-			ps_tsetview->mas_ts[i].p_hwnd,
-			NULL,
-			s_parentsize.left,
-			s_parentsize.top,
-			s_parentsize.right - s_parentsize.left,
-			s_parentsize.bottom - s_parentsize.top,
-			SWP_NOACTIVATE
-		);
+	struct mbe_tset *ps_curts = &ps_tsetview->mas_ts[ps_tsetview->m_curtsi];
+	SetWindowPos(
+		ps_curts->p_hwnd,
+		NULL,
+		s_parentsize.left,
+		s_parentsize.top,
+		s_parentsize.right - s_parentsize.left,
+		s_parentsize.bottom - s_parentsize.top,
+		SWP_NOACTIVATE
+	);
 }
 
 marble_ecode_t mbe_tsetview_newtsdlg(struct mbe_tsetview *ps_tsetview) {
@@ -820,21 +1397,9 @@ marble_ecode_t mbe_tsetview_newtsdlg(struct mbe_tsetview *ps_tsetview) {
 	if (ps_tsetview == NULL)
 		return MARBLE_EC_PARAM;
 
-	/*
-	 * Check whether the maximum number of tilesets per view
-	 * has been reached. If yes, output error message and return.
-	 * If not, open the dialog.
-	 */
-	if (ps_tsetview->m_nts == MBE_MAXTSC) {
-		MessageBox(
-			NULL,
-			TEXT("Could not create tileset.\nThe maximum number of tilesets per view has been reached."),
-			TEXT("Error"),
-			MB_ICONERROR | MB_OK
-		);
-
+	/* Check if the tileset view still has free slots. */
+	if (mbe_tsetview_internal_isfull(ps_tsetview) == TRUE)
 		return MARBLE_EC_COMPSTATE;
-	}
 
 	struct mbe_dlgnewts_cp s_crps;
 	if (DialogBoxParam(
@@ -845,6 +1410,40 @@ marble_ecode_t mbe_tsetview_newtsdlg(struct mbe_tsetview *ps_tsetview) {
 		(LPARAM)&s_crps
 	) != FALSE) {
 		marble_ecode_t ecode = mbe_tsetview_internal_createemptyts(
+			ps_tsetview,
+			&s_crps,
+			&ps_tsetview->mas_ts[ps_tsetview->m_nts]
+		);
+		if (ecode != MARBLE_EC_OK)
+			return ecode;
+
+		ShowWindow(ps_tsetview->mp_hwnd, SW_SHOW);
+		mbe_tsetview_setpage(ps_tsetview, ps_tsetview->m_curtsi);
+	}
+
+	return MARBLE_EC_OK;
+}
+
+marble_ecode_t mbe_tsetview_bmptsdlg(struct mbe_tsetview *ps_tsetview) {
+	if (ps_tsetview == NULL)
+		return MARBLE_EC_PARAM;
+
+	/* Check if the tileset view still has free slots. */
+	if (mbe_tsetview_internal_isfull(ps_tsetview) == TRUE)
+		return MARBLE_EC_COMPSTATE;
+
+	struct mbe_dlgbmpts_cp s_crps;
+	INT_PTR ret = DialogBoxParam(
+		gls_editorapp.mp_hinst,
+		MAKEINTRESOURCE(MBE_DLG_BmpTS),
+		gls_editorapp.mp_hwnd,
+		(DLGPROC)&mbe_tsetview_bmptsdlg_dlgproc,
+		(LPARAM)&s_crps
+	);
+	
+	/* Create new tileset from bitmap. */
+	if (ret == TRUE) {
+		marble_ecode_t ecode = mbe_tsetview_internal_createtsfrombmp(
 			ps_tsetview,
 			&s_crps,
 			&ps_tsetview->mas_ts[ps_tsetview->m_nts]
@@ -875,6 +1474,19 @@ void mbe_tsetview_setpage(
 
 	/* Update selection and show the new page. */
 	ps_tsetview->m_curtsi = index;
+
+	RECT s_parentsize;
+	mbe_tsetview_internal_getrect(ps_tsetview, &s_parentsize);
+
+	SetWindowPos(
+		ps_tsetview->mas_ts[index].p_hwnd,
+		NULL,
+		s_parentsize.left,
+		s_parentsize.top,
+		s_parentsize.right - s_parentsize.left,
+		s_parentsize.bottom - s_parentsize.top,
+		SWP_NOACTIVATE
+	);
 	UpdateWindow(ps_tsetview->mas_ts[index].p_hwnd);
 	ShowWindow(ps_tsetview->mas_ts[index].p_hwnd, SW_SHOW);
 }

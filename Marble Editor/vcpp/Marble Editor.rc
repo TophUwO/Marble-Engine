@@ -58,6 +58,12 @@ BEGIN
         BEGIN
             MENUITEM "Tileset",                     MBE_FileNew_Tileset
         END
+        POPUP "Import"
+        BEGIN
+            MENUITEM "Tileset from Bitmap",         MBE_Menubar_File_Import_BmpTS
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Close",                       MBE_MainMenu_File_Close
     END
 END
 
@@ -104,6 +110,30 @@ BEGIN
     CONTROL         "",EmptyTSDlg_SPIN_Blue,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,198,114,11,14
 END
 
+MBE_DLG_BmpTS DIALOGEX 0, 0, 239, 122
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION " "
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        BmpTSDlg_EDIT_Path,48,12,150,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",BmpTSDlg_BTN_Browse,204,12,24,14
+    EDITTEXT        BmpTSDlg_EDIT_Width,66,42,40,14,ES_AUTOHSCROLL
+    EDITTEXT        BmpTSDlg_EDIT_Height,66,59,40,14,ES_AUTOHSCROLL
+    EDITTEXT        BmpTSDlg_EDIT_TSize,66,76,40,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",BmpTSDlg_BTN_Ok,126,101,50,14
+    PUSHBUTTON      "Cancel",BmpTSDlg_BTN_Cancel,180,101,50,14
+    PUSHBUTTON      "Reset",BmpTSDlg_BTN_Reset,11,101,50,14
+    CONTROL         "Load entire bitmap",BmpTSDlg_CB_LoadAll,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,151,81,75,10
+    LTEXT           "File Path",IDC_STATIC,12,15,28,8
+    GROUPBOX        "Bitmap Properties",IDC_STATIC,12,30,216,66
+    CONTROL         "",BmpTSDlg_SPIN_Width,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,106,42,10,14
+    CONTROL         "",BmpTSDlg_SPIN_Height,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,106,59,10,14
+    CONTROL         "",BmpTSDlg_SPIN_TSize,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,106,76,11,14
+    LTEXT           "Width",IDC_STATIC,33,45,20,8
+    LTEXT           "Height",IDC_STATIC,33,62,22,8
+    LTEXT           "Tile Size",IDC_STATIC,33,79,26,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -120,6 +150,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 168
     END
+
+    MBE_DLG_BmpTS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 232
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 115
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -130,6 +168,11 @@ END
 //
 
 MBE_DLG_EmptyTS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+MBE_DLG_BmpTS AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

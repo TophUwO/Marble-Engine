@@ -106,6 +106,16 @@ extern marble_ecode_t mbe_tsetview_newtsdlg(
 );
 
 /*
+ * Opens a dialog that allows the user to import a
+ * bitmap as a tileset.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+extern marble_ecode_t mbe_tsetview_bmptsdlg(
+	struct mbe_tsetview *ps_tsetview
+);
+
+/*
  * Sets the currently visible page of the tileset view container.
  * 
  * Returns nothing.

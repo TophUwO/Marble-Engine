@@ -95,7 +95,17 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 		case WM_COMMAND:
 			switch (wparam) {
 				case MBE_FileNew_Tileset:
-					return mbe_tsetview_newtsdlg(&gls_editorapp.ms_tsview);
+					mbe_tsetview_newtsdlg(&gls_editorapp.ms_tsview);
+
+					break;
+				case MBE_Menubar_File_Import_BmpTS:
+					mbe_tsetview_bmptsdlg(&gls_editorapp.ms_tsview);
+
+					break;
+				case MBE_MainMenu_File_Close:
+					PostMessage(p_hwnd, WM_CLOSE, 0, 0);
+
+					break;
 			}
 
 			return FALSE;
