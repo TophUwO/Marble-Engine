@@ -688,12 +688,6 @@ static BOOL CALLBACK mbe_tsetview_bmptsdlg_dlgproc(
 					if (wparam == BmpTSDlg_BTN_Ok) {
 						mbe_bmptsdlg_writeback(p_hwnd, ps_param);
 
-						GetWindowText(
-							MBE_DLGWND(BmpTSDlg_EDIT_Path),
-							ps_param->maz_path,
-							MBE_MAXPATH
-						);
-
 						/*
 						 * Check whether the file path is empty. If that happens,
 						 * display a warning message, do not let the dialog to end,
