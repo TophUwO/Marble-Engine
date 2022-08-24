@@ -1,17 +1,31 @@
 #include <editor.h>
 
 
-struct mbeditor_application gls_editorapp = { NULL };
+struct mbe_application gls_editorapp = { NULL };
 
 
-static void mbeditor_internal_opendebugcon(void) {
+/*
+ * Opens a debug console that can be written to using
+ * regular "printf()" calls.
+ * Will not be used in distribution builds.
+ * 
+ * Returns nothing.
+ */
+static void mbe_editor_internal_opendebugcon(void) {
 	if (AllocConsole() == TRUE) {
 		FILE *p_file;
+
 		freopen_s(&p_file, "CONOUT$", "wb", stdout);
 	}
 }
 
-static marble_ecode_t mbeditor_internal_loadresources(void) {
+/*
+ * Loads system resources. These resources may be used by other
+ * windows of the editor application.
+ * 
+ * Returns nothing.
+ */
+static marble_ecode_t mbe_editor_internal_loadresources(void) {
 	gls_editorapp.ms_res.mp_hguifont = CreateFont(
 		16,
 		0,
@@ -29,84 +43,104 @@ static marble_ecode_t mbeditor_internal_loadresources(void) {
 		TEXT("Segoe UI")
 	);
 
+	gls_editorapp.ms_res.mp_hbrwhite = CreateSolidBrush(RGB(255, 255, 255));
+	gls_editorapp.ms_res.mp_hbrblack = CreateSolidBrush(RGB(0, 0, 0));
+
 	return MARBLE_EC_OK;
 }
 
-static void mbeditor_internal_loadmenu(HWND p_hwnd) {
-	HMENU p_hmenubar = LoadMenu(gls_editorapp.mp_hinst, MAKEINTRESOURCE(IDR_MENU1));
+/*
+ * Loads menu bar of main editor window.
+ * 
+ * Returns nothing.
+ */
+static void mbe_editor_internal_loadmenu(HWND p_hwnd) {
+	/* Load menu. */
+	HMENU p_hmenubar = LoadMenu(gls_editorapp.mp_hinst, MAKEINTRESOURCE(MBE_MainWnd_Menubar));
+	if (p_hmenubar == NULL)
+		return;
 
+	/* Associate menu with main window. */
 	SetMenu(p_hwnd, p_hmenubar);
 }
 
-static LRESULT CALLBACK mbeditor_internal_wndproc(
-	_In_ HWND p_hwnd,
-	_In_ UINT msg,
-	     WPARAM wparam,
-	     LPARAM lparam
+/*
+ * Window procedure for main editor window.
+ */
+static LRESULT CALLBACK mbe_editor_internal_wndproc(
+	HWND p_hwnd,
+	UINT msg,
+	WPARAM wparam,
+	LPARAM lparam
 ) {
-	marble_ecode_t ecode;
+	NMHDR *ps_nmhdr;
+	int cursel;
+	struct mbe_tsetview *ps_tsview;
 
 	switch (msg) {
 		case WM_CREATE:
-			mbeditor_internal_loadmenu(p_hwnd);
-			mbeditor_internal_loadresources();
+			mbe_editor_internal_loadmenu(p_hwnd);
+			mbe_editor_internal_loadresources();
 
-			ecode = mbeditor_tsetview_init(p_hwnd, &gls_editorapp.ms_tsview);
-			if (ecode != MARBLE_EC_OK)
-				return ecode;
-
-			return 0;
+			return FALSE;
 		case WM_SIZE:
-			mbeditor_tsetview_resize(
+			/* Resize tileset view. */
+			mbe_tsetview_resize(
 				&gls_editorapp.ms_tsview,
 				GET_X_LPARAM(lparam),
 				GET_Y_LPARAM(lparam)
 			);
 
-			return 0;
+			return FALSE;
 		case WM_COMMAND:
 			switch (wparam) {
-				case ID_CREATE_TILESET:
-					return mbeditor_tsetview_newtsdlg(&gls_editorapp.ms_tsview);
+				case MBE_FileNew_Tileset:
+					return mbe_tsetview_newtsdlg(&gls_editorapp.ms_tsview);
 			}
 
-			return 0;
-		case WM_CLOSE:
-			DestroyWindow(p_hwnd);
+			return FALSE;
+		case WM_NOTIFY:
+			ps_nmhdr = (NMHDR *)lparam;
 
-			return 0;
-		case WM_DESTROY:
-			PostQuitMessage(0);
+			switch (ps_nmhdr->code) {
+				case TCN_SELCHANGE:
+					cursel    = TabCtrl_GetCurSel(ps_nmhdr->hwndFrom);
+					ps_tsview = (struct mbe_tsetview *)GetWindowLongPtr(ps_nmhdr->hwndFrom, GWLP_USERDATA);
 
-			return 0;
+					mbe_tsetview_setpage(ps_tsview, cursel);
+					break;
+			}
+
+			return FALSE;
+		case WM_CLOSE:   DestroyWindow(p_hwnd); return FALSE;
+		case WM_DESTROY: PostQuitMessage(0);    return FALSE;
 	}
 
 	return DefWindowProc(p_hwnd, msg, wparam, lparam);
 }
 
-static marble_ecode_t mbeditor_internal_createwnd(
-	HINSTANCE p_hinst
-) {
-	mbeditor_internal_opendebugcon();
+static marble_ecode_t mbe_editor_internal_createmainwnd(HINSTANCE p_hinst) {
+	static TCHAR const *const glpz_wndclassname = TEXT("mbe_mainwnd");
 
 	/* Register editor window class. */
 	WNDCLASSEX s_class = {
 		.cbSize        = sizeof s_class,
 		.hInstance     = p_hinst,
-		.lpszClassName = TEXT("marble_editor_wnd"),
+		.lpszClassName = glpz_wndclassname,
 		.hCursor       = LoadCursor(NULL, IDC_ARROW),
 		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1),
 		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
 		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
-		.lpfnWndProc   = (WNDPROC)&mbeditor_internal_wndproc
+		.lpfnWndProc   = (WNDPROC)&mbe_editor_internal_wndproc
 	};
 	if (RegisterClassEx(&s_class) == false)
 		return MARBLE_EC_REGWNDCLASS;
 
+	/* Create main window. */
 	gls_editorapp.mp_hinst = p_hinst;
-	gls_editorapp.mp_hwnd  = CreateWindowEx(
+	gls_editorapp.mp_hwnd = CreateWindowEx(
 		WS_EX_CLIENTEDGE,
-		TEXT("marble_editor_wnd"),
+		glpz_wndclassname,
 		TEXT("Marble Editor"),
 		WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
 		CW_USEDEFAULT,
@@ -124,11 +158,28 @@ static marble_ecode_t mbeditor_internal_createwnd(
 	return MARBLE_EC_OK;
 }
 
+/*
+ * Frees any resources that are kept by the application instance itself,
+ * such as system resources.
+ * 
+ * Returns nothing.
+ */
+static void mbe_editor_internal_freeresources(void) {
+	DeleteObject(gls_editorapp.ms_res.mp_hbrwhite);
+	DeleteObject(gls_editorapp.ms_res.mp_hbrblack);
 
-marble_ecode_t mbeditor_init(
-	_In_   HINSTANCE p_hinst,
-	_In_z_ LPSTR pz_cmdline
+	DeleteFont(gls_editorapp.ms_res.mp_hguifont);
+}
+
+
+marble_ecode_t mbe_editor_init(
+	HINSTANCE p_hinst,
+	LPSTR pz_cmdline
 ) {
+	/* Open debug console. */
+	mbe_editor_internal_opendebugcon();
+
+	/* Initialize common controls. */
 	INITCOMMONCONTROLSEX s_ctrls = {
 		.dwSize = sizeof s_ctrls,
 		.dwICC  = ICC_TAB_CLASSES | ICC_WIN95_CLASSES
@@ -136,24 +187,35 @@ marble_ecode_t mbeditor_init(
 	if (InitCommonControlsEx(&s_ctrls) == false)
 		return MARBLE_EC_REGWNDCLASS;
 
-	marble_ecode_t res = mbeditor_internal_createwnd(p_hinst);
+	/* Create main window. */
+	marble_ecode_t res = mbe_editor_internal_createmainwnd(p_hinst);
 	if (res != MARBLE_EC_OK)
 		return res;
 
+	/* Initialize tileset view container. */
+	res = mbe_tsetview_init(gls_editorapp.mp_hwnd, &gls_editorapp.ms_tsview);
+	if (res != MARBLE_EC_OK)
+		return res;
+
+	/* Show main window. */
 	UpdateWindow(gls_editorapp.mp_hwnd);
 	ShowWindow(gls_editorapp.mp_hwnd, SW_SHOWNORMAL);
 
 	return MARBLE_EC_OK;
 }
 
-marble_ecode_t mbeditor_run(void) {
+marble_ecode_t mbe_editor_run(void) {
 	MSG s_msg;
 	while (GetMessage(&s_msg, NULL, 0, 0) > 0) {
 		TranslateMessage(&s_msg);
+
 		DispatchMessage(&s_msg);
 	}
 
-	mbeditor_tsetview_uninit(&gls_editorapp.ms_tsview);
+	/* Free resources and exit. */
+	mbe_tsetview_uninit(&gls_editorapp.ms_tsview);
+
+	mbe_editor_internal_freeresources();
 	return MARBLE_EC_OK;
 }
 
