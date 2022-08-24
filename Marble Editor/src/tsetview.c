@@ -879,8 +879,8 @@ static void mbe_tset_internal_updatescrollbarinfo(
 		ps_tset->s_yscr = (SCROLLINFO){
 			.cbSize = sizeof ps_tset->s_yscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
-			.nMin   = ps_tset->s_yscr.nMin,
-			.nMax   = ps_tset->ms_sz.m_pheight,
+			.nMin   = 0,
+			.nMax   = ps_tset->ms_sz.m_pheight - 1,
 			.nPage  = nheight,
 			.nPos   = min(ps_tset->s_yscr.nPos, maxscr)
 		};
@@ -896,8 +896,8 @@ static void mbe_tset_internal_updatescrollbarinfo(
 		ps_tset->s_xscr = (SCROLLINFO){
 			.cbSize = sizeof ps_tset->s_xscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
-			.nMin   = ps_tset->s_xscr.nMin,
-			.nMax   = ps_tset->ms_sz.m_pwidth,
+			.nMin   = 0,
+			.nMax   = ps_tset->ms_sz.m_pwidth - 1,
 			.nPage  = nwidth,
 			.nPos   = min(ps_tset->s_xscr.nPos, maxscr)
 		};
@@ -907,8 +907,49 @@ static void mbe_tset_internal_updatescrollbarinfo(
 	}
 
 	/* Update visible states of scrollbars. */
-	ShowScrollBar(ps_tset->p_hwnd, SB_VERT, isyvisible);
 	ShowScrollBar(ps_tset->p_hwnd, SB_HORZ, isxvisible);
+	ShowScrollBar(ps_tset->p_hwnd, SB_VERT, isyvisible);
+}
+
+/*
+ * Handle WM_HSCROLL and WM_VSCROLL messages.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tsetview_internal_handlescrolling(
+	UINT msg,                /* message ID */
+	WPARAM wparam,           /* wndproc parameter */
+	struct mbe_tset *ps_tset /* tileset view */
+) {
+	int newpos;
+
+	/* Get correct scrollbar information structure. */
+	SCROLLINFO *ps_scrinfo = msg == WM_HSCROLL
+		? &ps_tset->s_xscr
+		: &ps_tset->s_yscr
+	;
+
+	switch (LOWORD(wparam)) {
+		case SB_THUMBPOSITION:
+		case SB_THUMBTRACK:    newpos = HIWORD(wparam); break;
+		default:
+			newpos = ps_scrinfo->nPos;
+	}
+	newpos = min(ps_scrinfo->nMax, max(0, newpos));
+
+	/* Update scrollbar info. */
+	ps_scrinfo->fMask = SIF_POS;
+	ps_scrinfo->nPos = newpos;
+	SetScrollInfo(
+		ps_tset->p_hwnd,
+		msg == WM_HSCROLL
+		? SB_HORZ
+		: SB_VERT
+		, ps_scrinfo,
+		TRUE
+	);
+
+	InvalidateRect(ps_tset->p_hwnd, NULL, TRUE);
 }
 
 /*
@@ -956,7 +997,16 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 					GET_Y_LPARAM(lparam)
 				);
 
-			return TRUE;
+			return FALSE;
+		case WM_HSCROLL:
+		case WM_VSCROLL:
+			mbe_tsetview_internal_handlescrolling(
+				msg,
+				wparam,
+				ps_udata
+			);
+
+			return FALSE;
 		case WM_PAINT:
 			p_hdc = BeginPaint(p_hwnd, &s_ps);
 
@@ -968,12 +1018,10 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 				s_rect.right,
 				s_rect.bottom,
 				ps_udata->ms_res.p_hbmpdc,
-				0,
-				0,
+				ps_udata->s_xscr.nPos,
+				ps_udata->s_yscr.nPos,
 				SRCCOPY
 			);
-
-			_tprintf(TEXT("Repaint: %s\n"), ps_udata->maz_name);
 
 			EndPaint(p_hwnd, &s_ps);
 			return FALSE;
@@ -1006,10 +1054,10 @@ static marble_ecode_t mbe_tsetview_internal_prepareview(
 
 	/* Create window of tileset view. */
 	ps_tset->p_hwnd = CreateWindowEx(
-		WS_EX_WINDOWEDGE | WS_EX_COMPOSITED,
+		WS_EX_COMPOSITED,
 		glpz_tsviewwndclname,
 		NULL,
-		WS_CHILD | WS_CLIPSIBLINGS | WS_HSCROLL | WS_VSCROLL,
+		WS_CHILD | WS_VSCROLL,
 		s_parentsize->left,
 		s_parentsize->top,
 		s_parentsize->right - s_parentsize->left,
@@ -1064,8 +1112,6 @@ static marble_ecode_t mbe_tsetview_internal_createemptyts(
 	
 	/* Update init state. */
 	ps_tset->m_isinit = TRUE;
-
-	UpdateWindow(ps_tset->p_hwnd);
 
 lbl_END:
 	if (ecode != MARBLE_EC_OK) {
@@ -1144,8 +1190,8 @@ static marble_ecode_t mbe_tsetview_internal_createtsbmpfromsrc(
 	}
 	p_hbmpold = SelectObject(p_bmpdc, p_hbmp);
 
-	for (int x = 0; x < ps_tset->ms_sz.m_twidth; x++)
-		for (int y = 0; y < ps_tset->ms_sz.m_pheight; y++)
+	for (int x = 0; x <= ps_tset->ms_sz.m_twidth; x++)
+		for (int y = 0; y <= ps_tset->ms_sz.m_pheight; y++)
 			StretchBlt(
 				ps_tset->ms_res.p_hbmpdc,
 				x * 32 + (x + 1),
@@ -1216,6 +1262,9 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 		ps_crps
 	);
 
+	/* Update init state. */
+	ps_tset->m_isinit = TRUE;
+
 	/* Initialize scrollbars. */
 	mbe_tset_internal_updatescrollbarinfo(
 		ps_tset,
@@ -1223,10 +1272,6 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 		s_parentsize.bottom - s_parentsize.top
 	);
 
-	/* Update init state. */
-	ps_tset->m_isinit = TRUE;
-
-	UpdateWindow(ps_tset->p_hwnd);
 	return ecode;
 }
 #pragma endregion
@@ -1352,7 +1397,7 @@ void mbe_tsetview_resize(
 	int nwidth,
 	int nheight
 ) {
-	if (ps_tsetview == NULL || ps_tsetview->mp_hwnd == NULL)
+	if (ps_tsetview == NULL || ps_tsetview->m_isinit == FALSE)
 		return;
 
 	SetWindowPos(
@@ -1362,7 +1407,7 @@ void mbe_tsetview_resize(
 		0,
 		200,
 		nheight,
-		SWP_NOACTIVATE | SWP_NOMOVE
+		SWP_NOACTIVATE
 	);
 
 	RECT s_parentsize;
