@@ -900,14 +900,39 @@ static void mbe_tsetview_internal_handlescrolling(
 	;
 
 	switch (LOWORD(param)) {
+		case SB_PAGEUP:
+		case SB_PAGEDOWN:
+			newpos = ps_scrinfo->nPos + (LOWORD(param) == SB_PAGEDOWN ? -(int)ps_scrinfo->nPage : ps_scrinfo->nPage);
+
+			goto lbl_CLAMP;
+		case SB_LINEDOWN:
+		case SB_LINEUP:
+			newpos = ps_scrinfo->nPos + (LOWORD(param) == SB_LINEUP ? -gl_viewtsize : gl_viewtsize);
+
+			/*
+			 * As clamping to 0 < newpos < ps_scrinfo->nMax would
+			 * allow the user to scroll outside of the bitmap, we
+			 * clamp to the origin of the last page so the last
+			 * position that can be scrolled to is essentially
+			 * the same position that the scrollbars scroll to.
+			 */
+		lbl_CLAMP:
+			newpos = min(ps_scrinfo->nMax - ps_scrinfo->nPage + 1, max(0, newpos));
+
+			/* Skip the regular clamp. */
+			goto lbl_UPDATE;
 		case SB_THUMBPOSITION:
-		case SB_THUMBTRACK:    newpos = HIWORD(param); break;
+		case SB_THUMBTRACK:
+			newpos = HIWORD(param);
+			
+			break;
 		default:
 			newpos = ps_scrinfo->nPos;
 	}
 	newpos = min(ps_scrinfo->nMax, max(0, newpos));
 
 	/* Update scrollbar info. */
+lbl_UPDATE:
 	ps_scrinfo->fMask = SIF_POS;
 	delta = ps_scrinfo->nPos - newpos;
 	ps_scrinfo->nPos = newpos;
