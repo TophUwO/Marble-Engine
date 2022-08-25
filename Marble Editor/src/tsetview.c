@@ -878,8 +878,8 @@ static void mbe_tset_internal_updatescrollbarinfo(
 	SetScrollInfo(ps_tset->p_hwnd, SB_HORZ, &ps_tset->s_xscr, TRUE);
 
 	/* Update visible states of scrollbars. */
-	ShowScrollBar(ps_tset->p_hwnd, SB_HORZ, isxvisible);
-	ShowScrollBar(ps_tset->p_hwnd, SB_VERT, isyvisible);
+	ShowScrollBar(ps_tset->p_hwnd, SB_HORZ, ps_tset->m_xscrv = isxvisible);
+	ShowScrollBar(ps_tset->p_hwnd, SB_VERT, ps_tset->m_yscrv = isyvisible);
 }
 
 /*
@@ -945,6 +945,14 @@ static void mbe_tsetview_internal_handlescrolling(
 		? &ps_tset->s_xscr
 		: &ps_tset->s_yscr
 	;
+
+	/*
+	 * If the current scroll bar is not visible, do not
+	 * allow scrolling of the window by other means such
+	 * as the mouse-wheel or even the keyboard.
+	 */
+	if (msg == WM_HSCROLL && ps_tset->m_xscrv == FALSE || msg == WM_VSCROLL && ps_tset->m_yscrv == FALSE)
+		return;
 
 	fac *= MBE_ISUPSCRMSG(LOWORD(param)) ? -1.0f : 1.0f;
 	switch (LOWORD(param)) {
@@ -1091,12 +1099,11 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 	switch (msg) {
 		case WM_CREATE: MBE_SETUDATA(); return FALSE;
 		case WM_SIZE:
-			if (ps_udata->m_isinit == TRUE)
-				mbe_tset_internal_updatescrollbarinfo(
-					ps_udata,
-					GET_X_LPARAM(lparam),
-					GET_Y_LPARAM(lparam)
-				);
+			mbe_tset_internal_updatescrollbarinfo(
+				ps_udata,
+				GET_X_LPARAM(lparam),
+				GET_Y_LPARAM(lparam)
+			);
 
 			return FALSE;
 		case WM_HSCROLL:
@@ -1272,9 +1279,6 @@ static marble_ecode_t mbe_tsetview_internal_createemptyts(
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
 
-	/* Update init state. */
-	ps_tset->m_isinit = TRUE;
-
 	/* Initialize scrollbars. */
 	mbe_tset_internal_updatescrollbarinfo(
 		ps_tset,
@@ -1283,6 +1287,9 @@ static marble_ecode_t mbe_tsetview_internal_createemptyts(
 	);
 	/* Initialize selection. */
 	mbe_tsetview_internal_initselection(ps_tset);
+
+	/* Update init state. */
+	ps_tset->m_isinit = TRUE;
 
 lbl_END:
 	if (ecode != MARBLE_EC_OK) {
@@ -1435,8 +1442,6 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 		ps_tset,
 		ps_crps
 	);
-	/* Update init state. */
-	ps_tset->m_isinit = TRUE;
 
 	/* Initialize scrollbars. */
 	mbe_tset_internal_updatescrollbarinfo(
@@ -1446,6 +1451,9 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 	);
 	/* Initialize selection. */
 	mbe_tsetview_internal_initselection(ps_tset);
+
+	/* Update init state. */
+	ps_tset->m_isinit = TRUE;
 
 	return ecode;
 }

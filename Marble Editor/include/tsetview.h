@@ -60,6 +60,8 @@ struct mbe_tset {
 	/* scrollbar information */
 	SCROLLINFO s_xscr;
 	SCROLLINFO s_yscr;
+	BOOL m_xscrv;
+	BOOL m_yscrv;
 };
 
 /*
