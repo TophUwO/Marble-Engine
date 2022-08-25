@@ -838,7 +838,23 @@ static void mbe_tset_internal_updatescrollbarinfo(
 
 		isyvisible = TRUE;
 		SetScrollInfo(ps_tset->p_hwnd, SB_VERT, &ps_tset->s_yscr, TRUE);
+	} else {
+		/*
+		 * If the scrollbar needs to be hidden, we set the position of the
+		 * scrollbar to 0. We can safely do that as the scrollbars will only
+		 * be hidden if the entire bitmap axis the scrollbar is dedicated to
+		 * can be displayed in the current tileset view window.
+		 * If we do not set the value to 0 in such a case, the view will be stuck
+		 * in the view that it was scrolled to previously, possibly leaving
+		 * a portion of the tileset bitmap still hidden even though we have enough
+		 * space inside the window to display it.
+		 */
+		ps_tset->s_yscr.fMask = SIF_POS;
+		ps_tset->s_yscr.nPos  = 0;
 	}
+	/* Submit new scrollbar info. */
+	SetScrollInfo(ps_tset->p_hwnd, SB_VERT, &ps_tset->s_yscr, TRUE);
+
 
 	/* Update horizontal scrollbar. */
 	if (ps_tset->ms_sz.m_pwidth > nwidth) {
@@ -854,8 +870,12 @@ static void mbe_tset_internal_updatescrollbarinfo(
 		};
 
 		isxvisible = TRUE;
-		SetScrollInfo(ps_tset->p_hwnd, SB_HORZ, &ps_tset->s_xscr, TRUE);
+	} else {
+		ps_tset->s_xscr.fMask = SIF_POS;
+		ps_tset->s_xscr.nPos  = 0;
 	}
+	/* Submit new scrollbar info. */
+	SetScrollInfo(ps_tset->p_hwnd, SB_HORZ, &ps_tset->s_xscr, TRUE);
 
 	/* Update visible states of scrollbars. */
 	ShowScrollBar(ps_tset->p_hwnd, SB_HORZ, isxvisible);

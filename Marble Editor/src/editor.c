@@ -193,8 +193,10 @@ marble_ecode_t mbe_editor_init(
 	HINSTANCE p_hinst,
 	LPSTR pz_cmdline
 ) {
+#if (defined _DEBUG || MBE_DEVBUILD)
 	/* Open debug console. */
 	mbe_editor_internal_opendebugcon();
+#endif
 
 	/* Initialize common controls. */
 	INITCOMMONCONTROLSEX s_ctrls = {
