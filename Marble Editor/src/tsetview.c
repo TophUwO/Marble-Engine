@@ -911,7 +911,34 @@ static void mbe_tsetview_internal_handlescrolling(
 	LONG param,              /* parameter */
 	struct mbe_tset *ps_tset /* tileset view */
 ) {
+#define MBE_ISUPSCRMSG(msg)   (msg == SB_PAGEUP || msg == SB_LINEUP)
+#define MBE_ISDOWNSCRMSG(msg) (msg == SB_PAGEDOWN || msg == SB_LINEDOWN)
+
 	int newpos, delta;
+
+	/*
+	 * Mouse wheel behavior:
+	 * 
+	 * Scrolling:         Vertical scroll
+	 * Scrolling + SHIFT: Horizontal scroll
+	 * 
+	 * Scrolling occurs in (**gl_viewtsize**) * (HIWORD(**wparam**) / WHEEL_DELTA)
+	 * steps.
+	 * The scrolling step may be smaller than WHEEL_DELTA (120) since
+	 * there are mice with a free mouse wheel for higher precision
+	 * scrolling.
+	 */
+	float fac = 1.0f;
+	if (msg == WM_MOUSEWHEEL) {
+		/*
+		 * Translate WM_MOUSEWHEEL into WM_HSCROLL/WM_VSCROLL
+		 * + SB_LINEDOWN/SB_LINEUP combination so that the 
+		 * function can deal with the message normally.
+		 */
+		fac   = -((SHORT)HIWORD(param) / (float)WHEEL_DELTA);
+		msg   = LOWORD(param) & MK_SHIFT ? WM_HSCROLL : WM_VSCROLL;
+		param = MAKELONG(HIWORD(param) < 0 ? SB_LINEUP : SB_LINEDOWN, 0);
+	}
 
 	/* Get correct scrollbar information structure. */
 	SCROLLINFO *ps_scrinfo = msg == WM_HSCROLL
@@ -919,15 +946,16 @@ static void mbe_tsetview_internal_handlescrolling(
 		: &ps_tset->s_yscr
 	;
 
+	fac *= MBE_ISUPSCRMSG(LOWORD(param)) ? -1.0f : 1.0f;
 	switch (LOWORD(param)) {
 		case SB_PAGEUP:
 		case SB_PAGEDOWN:
-			newpos = ps_scrinfo->nPos + (LOWORD(param) == SB_PAGEDOWN ? -(int)ps_scrinfo->nPage : ps_scrinfo->nPage);
+			newpos = ps_scrinfo->nPos + (int)((float)ps_scrinfo->nPage * fac);
 
 			goto lbl_CLAMP;
-		case SB_LINEDOWN:
 		case SB_LINEUP:
-			newpos = ps_scrinfo->nPos + (LOWORD(param) == SB_LINEUP ? -gl_viewtsize : gl_viewtsize);
+		case SB_LINEDOWN:
+			newpos = ps_scrinfo->nPos + (int)((float)gl_viewtsize * fac);
 
 			/*
 			 * As clamping to 0 < newpos < ps_scrinfo->nMax would
@@ -937,7 +965,7 @@ static void mbe_tsetview_internal_handlescrolling(
 			 * the same position that the scrollbars scroll to.
 			 */
 		lbl_CLAMP:
-			newpos = min(ps_scrinfo->nMax - ps_scrinfo->nPage + 1, max(0, newpos));
+			newpos = min(ps_scrinfo->nMax - ps_scrinfo->nPage + 1, (UINT)max(0, newpos));
 
 			/* Skip the regular clamp. */
 			goto lbl_UPDATE;
@@ -1073,6 +1101,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			return FALSE;
 		case WM_HSCROLL:
 		case WM_VSCROLL:
+		case WM_MOUSEWHEEL:
 			mbe_tsetview_internal_handlescrolling(
 				msg,
 				(LONG)wparam,
