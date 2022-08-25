@@ -46,6 +46,7 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) {
 	gls_editorapp.ms_res.mp_hbrwhite = CreateSolidBrush(RGB(255, 255, 255));
 	gls_editorapp.ms_res.mp_hbrblack = CreateSolidBrush(RGB(0, 0, 0));
 	gls_editorapp.ms_res.mp_hpsel    = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
+	gls_editorapp.ms_res.mp_hpgrid   = CreatePen(PS_DOT, 1, RGB(0, 0, 0));
 
 	return MARBLE_EC_OK;
 }
@@ -176,10 +177,15 @@ static marble_ecode_t mbe_editor_internal_createmainwnd(HINSTANCE p_hinst) {
  * Returns nothing.
  */
 static void mbe_editor_internal_freeresources(void) {
+	/*
+	 * Delete system resources such as predefined brushes, pens,
+	 * bitmaps, fonts etc.
+	 */
 	DeleteObject(gls_editorapp.ms_res.mp_hbrwhite);
 	DeleteObject(gls_editorapp.ms_res.mp_hbrblack);
-
-	DeleteFont(gls_editorapp.ms_res.mp_hguifont);
+	DeleteObject(gls_editorapp.ms_res.mp_hpsel);
+	DeleteObject(gls_editorapp.ms_res.mp_hpgrid);
+	DeleteObject(gls_editorapp.ms_res.mp_hguifont);
 }
 
 

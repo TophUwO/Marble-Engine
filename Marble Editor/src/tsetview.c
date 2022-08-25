@@ -754,47 +754,6 @@ static void mbe_tsetview_internal_getrect(
 }
 
 /*
- * Draws an empty grid (1 px. wide, black) on a white
- * background in the memory device context specified.
- * 
- * Returns nothing.
- */
-static void mbe_tset_internal_drawgrid(struct mbe_tset *ps_tset /* tileset */) {
-	HPEN p_hp, p_hpold;
-	int oldbkmode;
-
-	/* Create required resources. */
-	p_hp = CreatePen(PS_DOT, 1, RGB(0, 0, 0) /* solid black */);
-
-	/* Select resources into device context. */
-	p_hpold   = SelectObject(ps_tset->ms_res.p_hbmpdc, p_hp);
-	oldbkmode = SetBkMode(ps_tset->ms_res.p_hbmpdc, TRANSPARENT);
-
-	/* Draw vertical grid lines. */
-	for (int i = 0; i < ps_tset->ms_sz.m_pwidth; i += gl_viewtsize) {
-		MoveToEx(ps_tset->ms_res.p_hbmpdc, i, 0, NULL);
-
-		/* Draw line. */
-		LineTo(ps_tset->ms_res.p_hbmpdc, i, ps_tset->ms_sz.m_pheight);
-	}
-
-	/* Draw horizontal grid lines. */
-	for (int i = 0; i < ps_tset->ms_sz.m_pheight; i += gl_viewtsize) {
-		MoveToEx(ps_tset->ms_res.p_hbmpdc, 0, i, NULL);
-
-		/* Draw line. */
-		LineTo(ps_tset->ms_res.p_hbmpdc, ps_tset->ms_sz.m_pwidth, i);
-	}
-
-	/* Restore default pen. */
-	SetBkMode(ps_tset->ms_res.p_hbmpdc, oldbkmode);
-	SelectObject(ps_tset->ms_res.p_hbmpdc, p_hpold);
-
-	/* Delete resources. */
-	DeleteObject(p_hp);
-}
-
-/*
  * Sets up the internal memory DC of tileset view.
  * 
  * Returns 0 on success, non-zero on failure.
@@ -1054,6 +1013,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 	RECT s_rect;
 	HPEN p_hpold;
 	HBRUSH p_hbrold;
+	int orix, oriy, oldbgmode;
 
 	switch (msg) {
 		case WM_CREATE: MBE_SETUDATA(); return FALSE;
@@ -1102,8 +1062,36 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 				SRCCOPY
 			);
 
+			/* Draw dotted grid. */
+			p_hpold   = SelectObject(p_hdc, gls_editorapp.ms_res.mp_hpgrid);
+			oldbgmode = SetBkMode(p_hdc, TRANSPARENT);
+
+			/*
+			 * Calculate the position of the first tile border which is to the
+			 * left/top of the left/top side of the tileset view and use this
+			 * as the origin.
+			 */
+			orix = (ps_udata->s_xscr.nPos / gl_viewtsize) * gl_viewtsize - ps_udata->s_xscr.nPos;
+			oriy = (ps_udata->s_yscr.nPos / gl_viewtsize) * gl_viewtsize - ps_udata->s_yscr.nPos;
+
+			/* Draw vertical grid lines. */
+			for (int x = orix; x < s_rect.right; x += gl_viewtsize) {
+				MoveToEx(p_hdc, x, oriy, NULL);
+
+				/* Draw line. */
+				LineTo(p_hdc, x, s_rect.bottom);
+			}
+
+			/* Draw horizontal grid lines. */
+			for (int y = oriy; y < s_rect.bottom; y += gl_viewtsize) {
+				MoveToEx(p_hdc, orix, y, NULL);
+
+				/* Draw line. */
+				LineTo(p_hdc, s_rect.right, y);
+			}
+
 			/* Draw selection rectangle. */
-			p_hpold = SelectPen(p_hdc, gls_editorapp.ms_res.mp_hpsel);
+			SelectPen(p_hdc, gls_editorapp.ms_res.mp_hpsel);
 			p_hbrold = SelectBrush(p_hdc, GetStockObject(NULL_BRUSH));
 
 			Rectangle(
@@ -1116,6 +1104,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 
 			SelectPen(p_hdc, p_hpold);
 			SelectBrush(p_hdc, p_hbrold);
+			SetBkMode(p_hdc, oldbgmode);
 
 			EndPaint(p_hwnd, &s_ps);
 			return FALSE;
@@ -1253,7 +1242,7 @@ static marble_ecode_t mbe_tsetview_internal_createtsbmpfromsrc(
 ) {
 	HBITMAP p_hbmp = NULL, p_hbmpold;
 	HDC p_bmpdc = NULL, p_deskdc;
-	int oldmode;
+	int oldbltmode;
 	BITMAPINFO s_info;
 
 	marble_ecode_t ecode = MARBLE_EC_OK;
@@ -1298,7 +1287,7 @@ static marble_ecode_t mbe_tsetview_internal_createtsbmpfromsrc(
 	}
 
 	/* Draw stretched bitmap. */
-	oldmode = SetStretchBltMode(ps_tset->ms_res.p_hbmpdc, COLORONCOLOR); 
+	oldbltmode = SetStretchBltMode(ps_tset->ms_res.p_hbmpdc, COLORONCOLOR); 
 
 	p_deskdc = GetDC(GetDesktopWindow());
 	p_bmpdc  = CreateCompatibleDC(p_deskdc);
@@ -1323,14 +1312,12 @@ static marble_ecode_t mbe_tsetview_internal_createtsbmpfromsrc(
 		SRCCOPY
 	);
 
-	/* Draw dashed grid. */
-	mbe_tset_internal_drawgrid(ps_tset);
-
 	SelectObject(p_bmpdc, p_hbmpold);
 	DeleteDC(p_bmpdc);
 
 lbl_END:
 	DeleteObject(p_hbmp);
+	SetStretchBltMode(ps_tset->ms_res.p_hbmpdc, oldbltmode);
 
 	ReleaseDC(GetDesktopWindow(), p_deskdc);
 	return MARBLE_EC_OK;

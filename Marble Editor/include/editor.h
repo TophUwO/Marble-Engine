@@ -19,6 +19,7 @@ extern struct mbe_application {
 		HBRUSH mp_hbrwhite; /* white brush */
 		HBRUSH mp_hbrblack; /* black brush */
 		HPEN   mp_hpsel;    /* selection outline pen */
+		HPEN   mp_hpgrid;   /* grid pen */
 	} ms_res;
 
 	/* tileset view */
