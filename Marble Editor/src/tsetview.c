@@ -1165,14 +1165,7 @@ static void mbe_tsetview_internal_initselection(struct mbe_tset *ps_tset /* tile
 	if (ps_tset == NULL)
 		return;
 
-	ps_tset->ms_sel.m_xindex = 0;
-	ps_tset->ms_sel.m_yindex = 0;
-	ps_tset->ms_sel.s_rsel = (RECT){
-		0,
-		0,
-		0,
-		0
-	};
+	SendMessage(ps_tset->p_hwnd, WM_LBUTTONDOWN, 0, 0);
 }
 
 /*
