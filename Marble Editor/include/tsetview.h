@@ -27,6 +27,23 @@ struct mbe_tset {
 		int m_theight; /* height, in tiles */
 	} ms_sz;
 
+	/*
+	 * Information regarding the current position of
+	 * the cursor on the bitmap, and regarding the
+	 * last selection.
+	 */
+	struct {
+		/* Current cursor position; 1 tile */
+		int m_xindex;
+		int m_yindex;
+
+		/*
+		 * Current selection rectangle.
+		 * Used for drawing.
+		 */
+		RECT s_rsel;
+	} ms_sel;
+
 	/* GDI resources */
 	struct {
 		HDC p_hbmpdc;        /* bitmap device context */

@@ -45,6 +45,7 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) {
 
 	gls_editorapp.ms_res.mp_hbrwhite = CreateSolidBrush(RGB(255, 255, 255));
 	gls_editorapp.ms_res.mp_hbrblack = CreateSolidBrush(RGB(0, 0, 0));
+	gls_editorapp.ms_res.mp_hpsel    = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
 
 	return MARBLE_EC_OK;
 }
