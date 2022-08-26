@@ -929,15 +929,24 @@ static void mbe_tsetview_internal_handlescrolling(
 	 * scrolling.
 	 */
 	float fac = 1.0f;
-	if (msg == WM_MOUSEWHEEL) {
-		/*
-		 * Translate WM_MOUSEWHEEL into WM_HSCROLL/WM_VSCROLL
-		 * + SB_LINEDOWN/SB_LINEUP combination so that the 
-		 * function can deal with the message normally.
-		 */
-		fac   = -((SHORT)HIWORD(param) / (float)WHEEL_DELTA);
-		msg   = LOWORD(param) & MK_SHIFT ? WM_HSCROLL : WM_VSCROLL;
-		param = MAKELONG(HIWORD(param) < 0 ? SB_LINEUP : SB_LINEDOWN, 0);
+	switch (msg) {
+		case WM_MOUSEWHEEL:
+			/*
+			 * Translate WM_MOUSEWHEEL into WM_HSCROLL/WM_VSCROLL
+			 * + SB_LINEDOWN/SB_LINEUP combination so that the 
+			 * function can deal with the message normally.
+			 */
+			fac   = -((SHORT)HIWORD(param) / (float)WHEEL_DELTA);
+			msg   = LOWORD(param) & MK_SHIFT ? WM_HSCROLL : WM_VSCROLL;
+			param = MAKELONG(HIWORD(param) < 0 ? SB_LINEUP : SB_LINEDOWN, 0);
+
+			break;
+		case WM_KEYDOWN: {
+			param = MAKELONG(MBE_SB_CTRL, (WORD)param);
+			msg   = gls_editorapp.ms_ks.m_isshift != FALSE ? WM_HSCROLL : WM_VSCROLL;
+
+			break;
+		}
 	}
 
 	/* Get correct scrollbar information structure. */
@@ -954,8 +963,25 @@ static void mbe_tsetview_internal_handlescrolling(
 	if (msg == WM_HSCROLL && ps_tset->m_xscrv == FALSE || msg == WM_VSCROLL && ps_tset->m_yscrv == FALSE)
 		return;
 
-	fac *= MBE_ISUPSCRMSG(LOWORD(param)) ? -1.0f : 1.0f;
+	/*
+	 * Simply ignore (yet) unknown commands by
+	 * setting the new scroll position to the
+	 * current one.
+	 */
+	newpos = ps_scrinfo->nPos;
+	fac   *= MBE_ISUPSCRMSG(LOWORD(param)) ? -1.0f : 1.0f;
 	switch (LOWORD(param)) {
+		case MBE_SB_CTRL:
+			/* Handle some custom keystrokes. */
+			switch (HIWORD(param)) {
+				case VK_HOME: newpos = 0; break;
+				case VK_END:
+					newpos = ps_scrinfo->nMax - ps_scrinfo->nPage + 1;
+					
+					break;
+			}
+
+			break;
 		case SB_PAGEUP:
 		case SB_PAGEDOWN:
 			newpos = ps_scrinfo->nPos + (int)((float)ps_scrinfo->nPage * fac);
@@ -982,8 +1008,6 @@ static void mbe_tsetview_internal_handlescrolling(
 			newpos = HIWORD(param);
 			
 			break;
-		default:
-			newpos = ps_scrinfo->nPos;
 	}
 	newpos = min(ps_scrinfo->nMax, max(0, newpos));
 
@@ -1106,9 +1130,14 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			);
 
 			return FALSE;
+		case WM_MOUSEACTIVATE:
+			SetFocus(p_hwnd);
+
+			return MA_ACTIVATE;
 		case WM_HSCROLL:
 		case WM_VSCROLL:
 		case WM_MOUSEWHEEL:
+		case WM_KEYDOWN:
 			mbe_tsetview_internal_handlescrolling(
 				msg,
 				(LONG)wparam,
@@ -1116,7 +1145,6 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			);
 
 			return FALSE;
-		case WM_KEYDOWN:
 		case WM_LBUTTONDOWN:
 			mbe_tsetview_internal_handleselection(
 				msg,

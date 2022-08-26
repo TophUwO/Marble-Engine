@@ -228,6 +228,21 @@ marble_ecode_t mbe_editor_run(void) {
 	while (GetMessage(&s_msg, NULL, 0, 0) > 0) {
 		TranslateMessage(&s_msg);
 
+		/* Track state of modifier keys. */
+		switch (s_msg.message) {
+			case WM_KEYDOWN:
+				switch (s_msg.wParam) {
+					case VK_SHIFT: gls_editorapp.ms_ks.m_isshift = TRUE; break;
+				}
+
+				break;
+			case WM_KEYUP:
+				switch (s_msg.wParam) {
+					case VK_SHIFT: gls_editorapp.ms_ks.m_isshift = FALSE; break;
+				}
+
+				break;
+		}
 		DispatchMessage(&s_msg);
 	}
 

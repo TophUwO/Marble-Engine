@@ -28,7 +28,13 @@
  * Custom window messages defined by this application.
  * Offset by WM_USER.
  */
-#define MBE_WM_INITRES   (WM_USER + 1) /* sent when the window has to initialize its own resources */
+#define MBE_WM_INITRES (WM_USER + 1) /* sent when the window has to initialize its own resources */
+
+/*
+ * Extra command for the scrollbar update function to
+ * accept and process some keystrokes.
+ */
+#define MBE_SB_CTRL (1000)
 
 
 /*
