@@ -41,7 +41,7 @@ struct mbe_tset {
 		 * Current selection rectangle.
 		 * Used for drawing.
 		 */
-		RECT s_rsel;
+		RECT ms_rsel;
 	} ms_sel;
 
 	/* GDI resources */

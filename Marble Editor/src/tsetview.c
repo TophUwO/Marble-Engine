@@ -943,8 +943,11 @@ static void mbe_tsetview_internal_handlescrolling(
 			break;
 		case WM_KEYDOWN: {
 			param = MAKELONG(MBE_SB_CTRL, (WORD)param);
-			msg   = gls_editorapp.ms_ks.m_isshift != FALSE ? WM_HSCROLL : WM_VSCROLL;
 
+			msg = gls_editorapp.ms_ks.m_isshift != FALSE 
+				? WM_HSCROLL
+				: WM_VSCROLL
+			;
 			break;
 		}
 	}
@@ -956,7 +959,7 @@ static void mbe_tsetview_internal_handlescrolling(
 	;
 
 	/*
-	 * If the current scroll bar is not visible, do not
+	 * If the current scrollbar is not visible, do not
 	 * allow scrolling of the window by other means such
 	 * as the mouse-wheel or even the keyboard.
 	 */
@@ -1009,6 +1012,7 @@ static void mbe_tsetview_internal_handlescrolling(
 			
 			break;
 	}
+	/* Clamp value. */
 	newpos = min(ps_scrinfo->nMax, max(0, newpos));
 
 	/* Update scrollbar info. */
@@ -1030,21 +1034,118 @@ lbl_UPDATE:
 }
 
 /*
+ * Calculates the bounding rectangle of the tile at (x, y),
+ * in map coordinates, and writes the result into **ps_dest**.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tsetview_internal_calctrect(
+	int x,        /* x-coordinate of tile, in tile units */
+	int y,        /* y-coordinate of tile, in tile units */
+	RECT *ps_dest /* destination rectangle */
+) {
+	*ps_dest = (RECT){
+		x       * gl_viewtsize,
+		y       * gl_viewtsize,
+		(x + 1) * gl_viewtsize,
+		(y + 1) * gl_viewtsize
+	};
+}
+
+/*
+ * Calculates the smallest rectangle that completely encloses the diagonal
+ * corners of the tile rectangles of the current selection and the incoming 
+ * selection (destx, desty), i.e. the current selection rectangle.
+ * The result gets written to **ps_dest**.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tsetview_internal_calcboundrect(
+	struct mbe_tset *ps_tset, /* tileset view (with current selection coordinates) */
+	int newx,                 /* x-coordinate of incoming selection */
+	int newy,                 /* y-coordinate of incoming selection */
+	RECT *ps_dest             /* destination rectangle */
+) {
+	/*
+	 * Calculate the pixel coordinates of the bounding rectangles of the
+	 * currently selected tile and the incoming selected tile, relative
+	 * to (0,0) of the tileset bitmap.
+	 */
+	RECT s_srect, s_drect;
+	
+	/* Calculate destination rectangle. */
+	mbe_tsetview_internal_calctrect(newx, newy, &s_drect);
+
+	/*
+	 * If the SHIFT key is not held down (i.e. user does not want a
+	 * rectangle-select), set the new selection rectangle to the one
+	 * just calculated, and move on.
+	 */
+	if (gls_editorapp.ms_ks.m_isshift == FALSE) {
+		*ps_dest = s_drect;
+
+		return;
+	}
+
+	/*
+	 * If the user held down SHIFT, the user wants rectangle-select,
+	 * so we have to calculate our source rectangle as well.
+	 */
+	mbe_tsetview_internal_calctrect(
+		ps_tset->ms_sel.m_xindex,
+		ps_tset->ms_sel.m_yindex,
+		&s_srect
+	);
+
+	/*
+	 * Write the result to **ps_dest**.
+	 * 
+	 * The idea is that we only have to know two (diagonal) points to
+	 * be able to sort-of "interpolate" the other two.
+	 * 
+	 * Let
+	 *     D              C
+	 *      +------------+
+	 *      |            |
+	 *      |            |
+	 *      +------------+ 
+	 *     A              B
+	 * 
+	 * The individual points can then be determined with
+	 *     A = { X(D), Y(B) }
+	 *     B = { X(C), Y(A) }
+	 *     C = { X(B), Y(D) }
+	 *     D = { X(A), Y(C) }
+	 * 
+	 * The formula underneath will always calculate the upper-left and the bottom-right
+	 * corner of the bounding rectangle, relative to (0,0) of the tileset bitmap.
+	 */
+	*ps_dest = (RECT){
+		newx > ps_tset->ms_sel.m_xindex ? s_srect.left   : s_drect.left,
+		newy > ps_tset->ms_sel.m_yindex ? s_srect.top    : s_drect.top,
+		newx > ps_tset->ms_sel.m_xindex ? s_drect.right  : s_srect.right,
+		newy > ps_tset->ms_sel.m_yindex ? s_drect.bottom : s_srect.bottom
+	};
+}
+
+/*
  * Handles changing the current tile selection of
  * a tileset view.
  * 
- * returns nothing.
+ * Returns whether the message was handled
+ * by this function or not.
  */
-static void mbe_tsetview_internal_handleselection(
+static BOOL mbe_tsetview_internal_handleselection(
 	UINT msg,                /* message identifier */
 	WPARAM wparam,           /* wndproc wparam */
 	LPARAM lparam,           /* wndproc lparam */
 	struct mbe_tset *ps_tset /* tileset view */
 ) {
 	if (ps_tset == NULL || ps_tset->m_isinit == FALSE)
-		return;
+		return FALSE;
 
 	int reqx, reqy;
+	RECT s_rnew;
 
 	switch (msg) {
 		case WM_LBUTTONDOWN:
@@ -1057,29 +1158,36 @@ static void mbe_tsetview_internal_handleselection(
 			 * do not change the selection and return.
 			 */
 			if (mbe_tsetview_internal_isseloob(ps_tset, reqx, reqy) == TRUE)
-				return;
+				return FALSE;
 
-			ps_tset->ms_sel.m_xindex = reqx;
-			ps_tset->ms_sel.m_yindex = reqy;
+			/* Calculate new selection bounding rectangle. */
+			mbe_tsetview_internal_calcboundrect(ps_tset, reqx, reqy, &s_rnew);
 
-			/* Compute selection rectangle. */
-			ps_tset->ms_sel.s_rsel   = (RECT){
-				ps_tset->ms_sel.m_xindex * gl_viewtsize,
-				ps_tset->ms_sel.m_yindex * gl_viewtsize,
-				(ps_tset->ms_sel.m_xindex + 1) * gl_viewtsize,
-				(ps_tset->ms_sel.m_yindex + 1) * gl_viewtsize
-			};
+			/*
+			 * If the selection has not changed, i.e. the current and
+			 * the new bounding rectangle of the selections do not
+			 * differ, ignore the message and move on.
+			 */
+			if (memcmp(&s_rnew, &ps_tset->ms_sel.ms_rsel, sizeof s_rnew) == 0)
+				return FALSE;
 
-			break;
-		case WM_KEYDOWN:
-			switch (wparam) {
-				
+			/*
+			 * Only update the origin of the current selection
+			 * if the user did not make a rectangle-select via
+			 * SHIFT + LMB.
+			 */
+			if (gls_editorapp.ms_ks.m_isshift == FALSE) {
+				ps_tset->ms_sel.m_xindex = reqx;
+				ps_tset->ms_sel.m_yindex = reqy;
 			}
 
+			/* Update selection rectangle. */
+			ps_tset->ms_sel.ms_rsel = s_rnew;
 			break;
 	}
 
 	InvalidateRect(ps_tset->p_hwnd, NULL, TRUE);
+	return TRUE;
 }
 
 /*
@@ -1134,10 +1242,18 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			SetFocus(p_hwnd);
 
 			return MA_ACTIVATE;
+		case WM_KEYDOWN:
+			if (mbe_tsetview_internal_handleselection(
+				msg,
+				wparam,
+				lparam,
+				ps_udata
+			) == TRUE) return FALSE;
+
+			/* fallthru */
 		case WM_HSCROLL:
 		case WM_VSCROLL:
 		case WM_MOUSEWHEEL:
-		case WM_KEYDOWN:
 			mbe_tsetview_internal_handlescrolling(
 				msg,
 				(LONG)wparam,
@@ -1205,10 +1321,10 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 
 			Rectangle(
 				p_hdc,
-				ps_udata->ms_sel.s_rsel.left - ps_udata->s_xscr.nPos,
-				ps_udata->ms_sel.s_rsel.top - ps_udata->s_yscr.nPos,
-				ps_udata->ms_sel.s_rsel.right - ps_udata->s_xscr.nPos + 1,
-				ps_udata->ms_sel.s_rsel.bottom - ps_udata->s_yscr.nPos + 1
+				ps_udata->ms_sel.ms_rsel.left - ps_udata->s_xscr.nPos,
+				ps_udata->ms_sel.ms_rsel.top - ps_udata->s_yscr.nPos,
+				ps_udata->ms_sel.ms_rsel.right - ps_udata->s_xscr.nPos + 1,
+				ps_udata->ms_sel.ms_rsel.bottom - ps_udata->s_yscr.nPos + 1
 			);
 
 			SelectPen(p_hdc, p_hpold);

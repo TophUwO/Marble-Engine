@@ -243,6 +243,8 @@ marble_ecode_t mbe_editor_run(void) {
 
 				break;
 		}
+
+		/* Pass the message to the correct window procedure. */
 		DispatchMessage(&s_msg);
 	}
 
