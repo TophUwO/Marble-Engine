@@ -1137,7 +1137,6 @@ static void mbe_tsetview_internal_calcboundrect(
  */
 static BOOL mbe_tsetview_internal_handleselection(
 	UINT msg,                /* message identifier */
-	WPARAM wparam,           /* wndproc wparam */
 	LPARAM lparam,           /* wndproc lparam */
 	struct mbe_tset *ps_tset /* tileset view */
 ) {
@@ -1147,44 +1146,40 @@ static BOOL mbe_tsetview_internal_handleselection(
 	int reqx, reqy;
 	RECT s_rnew;
 
-	switch (msg) {
-		case WM_LBUTTONDOWN:
-			/* Compute selection indices. */
-			reqx = (ps_tset->s_xscr.nPos + GET_X_LPARAM(lparam)) / gl_viewtsize;
-			reqy = (ps_tset->s_yscr.nPos + GET_Y_LPARAM(lparam)) / gl_viewtsize;
+	/* Calculate the indices of the tile the user clicked on. */
+	reqx = (ps_tset->s_xscr.nPos + GET_X_LPARAM(lparam)) / gl_viewtsize;
+	reqy = (ps_tset->s_yscr.nPos + GET_Y_LPARAM(lparam)) / gl_viewtsize;
 
-			/*
-			 * If requested selection is out of bounds,
-			 * do not change the selection and return.
-			 */
-			if (mbe_tsetview_internal_isseloob(ps_tset, reqx, reqy) == TRUE)
-				return FALSE;
+	/*
+	 * If requested selection is out of bounds,
+	 * do not change the selection and return.
+	 */
+	if (mbe_tsetview_internal_isseloob(ps_tset, reqx, reqy) == TRUE)
+		return FALSE;
 
-			/* Calculate new selection bounding rectangle. */
-			mbe_tsetview_internal_calcboundrect(ps_tset, reqx, reqy, &s_rnew);
+	/* Calculate new selection bounding rectangle. */
+	mbe_tsetview_internal_calcboundrect(ps_tset, reqx, reqy, &s_rnew);
 
-			/*
-			 * If the selection has not changed, i.e. the current and
-			 * the new bounding rectangle of the selections do not
-			 * differ, ignore the message and move on.
-			 */
-			if (memcmp(&s_rnew, &ps_tset->ms_sel.ms_rsel, sizeof s_rnew) == 0)
-				return FALSE;
+	/*
+	 * If the selection has not changed, i.e. the current and
+	 * the new bounding rectangle of the selections do not
+	 * differ, ignore the message and move on.
+	 */
+	if (memcmp(&s_rnew, &ps_tset->ms_sel.ms_rsel, sizeof s_rnew) == 0)
+		return FALSE;
 
-			/*
-			 * Only update the origin of the current selection
-			 * if the user did not make a rectangle-select via
-			 * SHIFT + LMB.
-			 */
-			if (gls_editorapp.ms_ks.m_isshift == FALSE) {
-				ps_tset->ms_sel.m_xindex = reqx;
-				ps_tset->ms_sel.m_yindex = reqy;
-			}
-
-			/* Update selection rectangle. */
-			ps_tset->ms_sel.ms_rsel = s_rnew;
-			break;
+	/*
+	 * Only update the origin of the current selection
+	 * if the user did not make a rectangle-select via
+	 * SHIFT + LMB.
+	 */
+	if (gls_editorapp.ms_ks.m_isshift == FALSE) {
+		ps_tset->ms_sel.m_xindex = reqx;
+		ps_tset->ms_sel.m_yindex = reqy;
 	}
+
+	/* Update selection rectangle. */
+	ps_tset->ms_sel.ms_rsel = s_rnew;
 
 	InvalidateRect(ps_tset->p_hwnd, NULL, TRUE);
 	return TRUE;
@@ -1243,14 +1238,6 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 
 			return MA_ACTIVATE;
 		case WM_KEYDOWN:
-			if (mbe_tsetview_internal_handleselection(
-				msg,
-				wparam,
-				lparam,
-				ps_udata
-			) == TRUE) return FALSE;
-
-			/* fallthru */
 		case WM_HSCROLL:
 		case WM_VSCROLL:
 		case WM_MOUSEWHEEL:
@@ -1264,7 +1251,6 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 		case WM_LBUTTONDOWN:
 			mbe_tsetview_internal_handleselection(
 				msg,
-				wparam,
 				lparam,
 				ps_udata
 			);
