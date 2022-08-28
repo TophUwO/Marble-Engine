@@ -734,6 +734,13 @@ static BOOL CALLBACK mbe_tsetview_bmptsdlg_dlgproc(
 
 
 #pragma region TILESET-CTRL
+/*
+ * Calculates the ratio between screen tilesize (**gl_viewtsize**), and physical
+ * tilesize (**tssize**).
+ */
+#define MBE_TSSCALE(tssize) ((float)((gl_viewtsize / (float)(tssize))))
+
+
 static int const gl_viewtsize = 32;
 static TCHAR const *const glpz_tsviewwndclname = TEXT("mbe_tsview");
 
@@ -759,14 +766,18 @@ static void mbe_tsetview_internal_getrect(
  * Returns 0 on success, non-zero on failure.
  */
 static marble_ecode_t mbe_tset_internal_setupdc(
-	struct mbe_tset *ps_tset,        /* tileset */
-	struct mbe_tsviewdlg_cp *ps_crps /* create parameters */
+	struct mbe_tset *ps_tset,         /* tileset */
+	struct mbe_tsviewdlg_cp *ps_crps, /* create parameters */
+	int nwidth,                       /* bitmap width */
+	int nheight,                      /* bitmap height */
+	HBITMAP p_hsrcbmp                 /* source bitmap */
 ) {
 	if (ps_tset == NULL || ps_crps == NULL)
 		return MARBLE_EC_PARAM;
 
 	/* Get DC of Desktop window. */
 	HDC p_hdc = GetDC(GetDesktopWindow());
+
 	/* Create DC compatible with the desktop window. */
 	ps_tset->ms_res.p_hbmpdc = CreateCompatibleDC(p_hdc);
 	if (ps_tset->ms_res.p_hbmpdc == NULL)
@@ -774,10 +785,21 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 
 	/* Calculate bitmap sizes. */
 	ps_tset->ms_sz.tsize     = ps_crps->m_tsize;
-	ps_tset->ms_sz.m_twidth  = ps_crps->m_width;
-	ps_tset->ms_sz.m_theight = ps_crps->m_height;
-	ps_tset->ms_sz.m_pwidth  = ps_crps->m_width  * gl_viewtsize;
-	ps_tset->ms_sz.m_pheight = ps_crps->m_height * gl_viewtsize;
+	ps_tset->ms_sz.m_twidth  = nwidth / ps_crps->m_tsize;
+	ps_tset->ms_sz.m_theight = nheight / ps_crps->m_tsize;
+	ps_tset->ms_sz.m_pwidth  = nwidth / ps_crps->m_tsize * ps_crps->m_tsize;
+	ps_tset->ms_sz.m_pheight = nheight / ps_crps->m_tsize * ps_crps->m_tsize;
+
+	/*
+	 * If the sizes we calculated equal to the physical
+	 * bitmap size, the bitmap contains only full tiles.
+	 * In this casse we do not have to copy it.
+	 */
+	if (nwidth == ps_tset->ms_sz.m_pwidth && nheight == ps_tset->ms_sz.m_pheight) {
+		ps_tset->ms_res.p_hbmpdcold = SelectObject(ps_tset->ms_res.p_hbmpdc, p_hsrcbmp);
+
+		return MARBLE_EC_OK;
+	}
 
 	/* Create memory bitmap. */
 	ps_tset->ms_res.p_hbmpdcbmp = CreateCompatibleBitmap(
@@ -803,6 +825,38 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 	 */
 	ps_tset->ms_res.p_hbmpdcold = SelectObject(ps_tset->ms_res.p_hbmpdc, ps_tset->ms_res.p_hbmpdcbmp);
 
+	if (p_hsrcbmp != NULL) {
+		HBITMAP p_hbmpold;
+		HDC p_hdctmp;
+		
+		p_hdctmp = CreateCompatibleDC(p_hdc);
+		if (p_hdctmp == NULL) {
+			SelectObject(ps_tset->ms_res.p_hbmpdc, ps_tset->ms_res.p_hbmpdcold);
+			
+			DeleteObject(ps_tset->ms_res.p_hbmpdcbmp);
+			DeleteDC(ps_tset->ms_res.p_hbmpdc);
+
+			return MARBLE_EC_CREATEMEMDC;
+		}
+		p_hbmpold = SelectObject(p_hdctmp, p_hsrcbmp);
+
+		BitBlt(
+			ps_tset->ms_res.p_hbmpdc,
+			0,
+			0,
+			ps_tset->ms_sz.m_pwidth,
+			ps_tset->ms_sz.m_pheight,
+			p_hdctmp,
+			0,
+			0,
+			SRCCOPY
+		);
+
+		SelectObject(p_hdctmp, p_hbmpold);
+		DeleteObject(p_hsrcbmp);
+		DeleteDC(p_hdctmp);
+	}
+
 	/* Release device context of desktop window. */
 	ReleaseDC(GetDesktopWindow(), p_hdc);
 	return MARBLE_EC_OK;
@@ -824,15 +878,15 @@ static void mbe_tset_internal_updatescrollbarinfo(
 	BOOL isxvisible = FALSE, isyvisible = FALSE;
 
 	/* Update vertical scrollbar. */
-	if (ps_tset->ms_sz.m_pheight > nheight) {
-		int const maxscr = max(ps_tset->ms_sz.m_pheight - nheight, 0); 
+	if (ps_tset->ms_sz.m_pheight * MBE_TSSCALE(ps_tset->ms_sz.tsize) > nheight) {
+		int const maxscr = max(ps_tset->ms_sz.m_pheight - (int)(nheight / MBE_TSSCALE(ps_tset->ms_sz.tsize)), 0); 
 
 		ps_tset->s_yscr = (SCROLLINFO){
 			.cbSize = sizeof ps_tset->s_yscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
 			.nMin   = 0,
-			.nMax   = ps_tset->ms_sz.m_pheight,
-			.nPage  = nheight,
+			.nMax   = ps_tset->ms_sz.m_pheight - 1,
+			.nPage  = (int)(nheight / MBE_TSSCALE(ps_tset->ms_sz.tsize)),
 			.nPos   = min(ps_tset->s_yscr.nPos, maxscr)
 		};
 
@@ -855,17 +909,16 @@ static void mbe_tset_internal_updatescrollbarinfo(
 	/* Submit new scrollbar info. */
 	SetScrollInfo(ps_tset->p_hwnd, SB_VERT, &ps_tset->s_yscr, TRUE);
 
-
 	/* Update horizontal scrollbar. */
-	if (ps_tset->ms_sz.m_pwidth > nwidth) {
-		int const maxscr = max(ps_tset->ms_sz.m_pwidth - nwidth, 0);
+	if (ps_tset->ms_sz.m_pwidth * MBE_TSSCALE(ps_tset->ms_sz.tsize) > nwidth) {
+		int const maxscr = max(ps_tset->ms_sz.m_pwidth - (int)(nwidth / MBE_TSSCALE(ps_tset->ms_sz.tsize)), 0);
 
 		ps_tset->s_xscr = (SCROLLINFO){
 			.cbSize = sizeof ps_tset->s_xscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
 			.nMin   = 0,
-			.nMax   = ps_tset->ms_sz.m_pwidth,
-			.nPage  = nwidth,
+			.nMax   = ps_tset->ms_sz.m_pwidth - 1,
+			.nPage  = (int)(nwidth / MBE_TSSCALE(ps_tset->ms_sz.tsize)),
 			.nPos   = min(ps_tset->s_xscr.nPos, maxscr)
 		};
 
@@ -914,7 +967,7 @@ static void mbe_tsetview_internal_handlescrolling(
 #define MBE_ISUPSCRMSG(msg)   (msg == SB_PAGEUP || msg == SB_LINEUP)
 #define MBE_ISDOWNSCRMSG(msg) (msg == SB_PAGEDOWN || msg == SB_LINEDOWN)
 
-	int newpos, delta;
+	int newpos;
 
 	/*
 	 * Mouse wheel behavior:
@@ -992,7 +1045,7 @@ static void mbe_tsetview_internal_handlescrolling(
 			goto lbl_CLAMP;
 		case SB_LINEUP:
 		case SB_LINEDOWN:
-			newpos = ps_scrinfo->nPos + (int)((float)gl_viewtsize * fac);
+			newpos = ps_scrinfo->nPos + (int)((float)gl_viewtsize / MBE_TSSCALE(ps_tset->ms_sz.tsize) * fac);
 
 			/*
 			 * As clamping to 0 < newpos < ps_scrinfo->nMax would
@@ -1002,7 +1055,7 @@ static void mbe_tsetview_internal_handlescrolling(
 			 * the same position that the scrollbars scroll to.
 			 */
 		lbl_CLAMP:
-			newpos = min(ps_scrinfo->nMax - ps_scrinfo->nPage + 1, (UINT)max(0, newpos));
+			newpos = min(ps_scrinfo->nMax - ps_scrinfo->nPage +	1, (UINT)max(0, newpos));
 
 			/* Skip the regular clamp. */
 			goto lbl_UPDATE;
@@ -1015,11 +1068,10 @@ static void mbe_tsetview_internal_handlescrolling(
 	/* Clamp value. */
 	newpos = min(ps_scrinfo->nMax, max(0, newpos));
 
-	/* Update scrollbar info. */
 lbl_UPDATE:
+	/* Update scrollbar info. */
 	ps_scrinfo->fMask = SIF_POS;
-	delta = ps_scrinfo->nPos - newpos;
-	ps_scrinfo->nPos = newpos;
+	ps_scrinfo->nPos  = newpos;
 
 	SetScrollInfo(
 		ps_tset->p_hwnd,
@@ -1140,15 +1192,15 @@ static BOOL mbe_tsetview_internal_handleselection(
 	LPARAM lparam,           /* wndproc lparam */
 	struct mbe_tset *ps_tset /* tileset view */
 ) {
-	if (ps_tset == NULL || ps_tset->m_isinit == FALSE)
+	if (ps_tset == NULL)
 		return FALSE;
 
 	int reqx, reqy;
 	RECT s_rnew;
 
 	/* Calculate the indices of the tile the user clicked on. */
-	reqx = (ps_tset->s_xscr.nPos + GET_X_LPARAM(lparam)) / gl_viewtsize;
-	reqy = (ps_tset->s_yscr.nPos + GET_Y_LPARAM(lparam)) / gl_viewtsize;
+	reqx = (int)(ps_tset->s_xscr.nPos * MBE_TSSCALE(ps_tset->ms_sz.tsize) + GET_X_LPARAM(lparam)) / gl_viewtsize;
+	reqy = (int)(ps_tset->s_yscr.nPos * MBE_TSSCALE(ps_tset->ms_sz.tsize) + GET_Y_LPARAM(lparam)) / gl_viewtsize;
 
 	/*
 	 * If requested selection is out of bounds,
@@ -1221,7 +1273,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 	RECT s_rect;
 	HPEN p_hpold;
 	HBRUSH p_hbrold;
-	int orix, oriy, oldbgmode;
+	int orix, oriy, oldmode;
 
 	switch (msg) {
 		case WM_CREATE: MBE_SETUDATA(); return FALSE;
@@ -1259,37 +1311,83 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 		case WM_PAINT:
 			p_hdc = BeginPaint(p_hwnd, &s_ps);
 
-			/* Draw tileset bitmap. */
+			/* Get current dimensions of tileset view. */
 			GetClientRect(p_hwnd, &s_rect);
-			BitBlt(
-				p_hdc,
-				s_rect.left,
-				s_rect.top,
-				s_rect.right,
-				s_rect.bottom,
-				ps_udata->ms_res.p_hbmpdc,
-				ps_udata->s_xscr.nPos,
-				ps_udata->s_yscr.nPos,
-				SRCCOPY
-			);
 
-			/* Draw dotted grid. */
-			p_hpold   = SelectObject(p_hdc, gls_editorapp.ms_res.mp_hpgrid);
-			oldbgmode = SetBkMode(p_hdc, TRANSPARENT);
+			/* Draw tileset bitmap. */
+			if (ps_udata->ms_sz.tsize == gl_viewtsize) {
+				/*
+				 * If the screen tilesize is the same as the physical
+				 * tilesize, simply run a bitblit (faster).
+				 */
+				BitBlt(
+					p_hdc,
+					s_rect.left,
+					s_rect.top,
+					s_rect.right - s_rect.left,
+					s_rect.bottom - s_rect.top,
+					ps_udata->ms_res.p_hbmpdc,
+					ps_udata->s_xscr.nPos,
+					ps_udata->s_yscr.nPos,
+					SRCCOPY
+				);
+			} else {
+				/*
+				 * If the DC obtained by "BeginPaint()" gets modified by the user,
+				 * the user has to restore it to its original state before calling
+				 * "EndPaint()".
+				 * We have to track all changes we make to **p_hdc** and manually
+				 * revert them later.
+				 */
+				oldmode = SetStretchBltMode(p_hdc, COLORONCOLOR);
+
+				/*
+				 * Draw the currently visible portion of the tileset tile by
+				 * tile. This avoids interpolation inaccuracies that a single
+				 * "StretchBlt()" would have if the magnification is very high.
+				 */
+				for (int x = 0, xmpos = ps_udata->s_xscr.nPos; x < s_rect.right; x += gl_viewtsize, xmpos += ps_udata->ms_sz.tsize) {
+					for (int y = 0, ympos = ps_udata->s_yscr.nPos; y < s_rect.bottom; y += gl_viewtsize, ympos += ps_udata->ms_sz.tsize) {
+						StretchBlt(
+							p_hdc,
+							x, 
+							y,
+							gl_viewtsize,
+							gl_viewtsize,
+							ps_udata->ms_res.p_hbmpdc,
+							xmpos,
+							ympos,
+							ps_udata->ms_sz.tsize,
+							ps_udata->ms_sz.tsize,
+							SRCCOPY
+						);
+					}
+				}
+
+				/* Restore old blit-mode. */
+				SetStretchBltMode(p_hdc, oldmode);
+			}
+
+			p_hpold = SelectObject(p_hdc, gls_editorapp.ms_res.mp_hpgrid);
+			/*
+			 * Set the BkMode to transparent, otherwise the blank spaces between
+			 * the dots of the grid lines will be rendered white. 
+			 */
+			oldmode = SetBkMode(p_hdc, TRANSPARENT);
 
 			/*
-			 * Calculate the position of the first tile border which is to the
-			 * left/top of the left/top side of the tileset view and use this
-			 * as the origin.
+			 * Calculate the offset of the topmost visible tile's
+			 * top-left border from the top-left border of the
+			 * tileset view. This is used as an offset factor for
+			 * drawing the grid.
 			 */
-			orix = (ps_udata->s_xscr.nPos / gl_viewtsize) * gl_viewtsize - ps_udata->s_xscr.nPos;
-			oriy = (ps_udata->s_yscr.nPos / gl_viewtsize) * gl_viewtsize - ps_udata->s_yscr.nPos;
+			orix = -(int)(ps_udata->s_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) % gl_viewtsize;
+			oriy = -(int)(ps_udata->s_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) % gl_viewtsize;
 
 			/* Draw vertical grid lines. */
 			for (int x = orix; x < s_rect.right; x += gl_viewtsize) {
 				MoveToEx(p_hdc, x, oriy, NULL);
 
-				/* Draw line. */
 				LineTo(p_hdc, x, s_rect.bottom);
 			}
 
@@ -1297,25 +1395,33 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			for (int y = oriy; y < s_rect.bottom; y += gl_viewtsize) {
 				MoveToEx(p_hdc, orix, y, NULL);
 
-				/* Draw line. */
 				LineTo(p_hdc, s_rect.right, y);
 			}
 
+			SetBkMode(p_hdc, oldmode);
+
 			/* Draw selection rectangle. */
 			SelectPen(p_hdc, gls_editorapp.ms_res.mp_hpsel);
+			/*
+			 * By default, the rectangle drawn by "Rectangle()" gets
+			 * outlined with the current pen, and filled with the
+			 * current brush. Because we cannot create a transparent 
+			 * brush directly, we have to get a predefined object (NULL_BRUSH)
+			 * that basically acts as an invisible brush, allowing us to
+			 * draw rectangles with no fill color using "Rectangle()". 
+			 */
 			p_hbrold = SelectBrush(p_hdc, GetStockObject(NULL_BRUSH));
 
 			Rectangle(
 				p_hdc,
-				ps_udata->ms_sel.ms_rsel.left - ps_udata->s_xscr.nPos,
-				ps_udata->ms_sel.ms_rsel.top - ps_udata->s_yscr.nPos,
-				ps_udata->ms_sel.ms_rsel.right - ps_udata->s_xscr.nPos + 1,
-				ps_udata->ms_sel.ms_rsel.bottom - ps_udata->s_yscr.nPos + 1
+				ps_udata->ms_sel.ms_rsel.left   - (int)(ps_udata->s_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1,
+				ps_udata->ms_sel.ms_rsel.top    - (int)(ps_udata->s_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1,
+				ps_udata->ms_sel.ms_rsel.right  - (int)(ps_udata->s_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1,
+				ps_udata->ms_sel.ms_rsel.bottom - (int)(ps_udata->s_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1
 			);
 
 			SelectPen(p_hdc, p_hpold);
 			SelectBrush(p_hdc, p_hbrold);
-			SetBkMode(p_hdc, oldbgmode);
 
 			EndPaint(p_hwnd, &s_ps);
 			return FALSE;
@@ -1405,9 +1511,9 @@ static marble_ecode_t mbe_tsetview_internal_createemptyts(
 		goto lbl_END;
 
 	/* Create empty bitmap. */
-	ecode = mbe_tset_internal_setupdc(ps_tset, &ps_crps->_base);
+	/*ecode = mbe_tset_internal_setupdc(ps_tset, &ps_crps->_base);
 	if (ecode != MARBLE_EC_OK)
-		goto lbl_END;
+		goto lbl_END;*/
 
 	/* Initialize scrollbars. */
 	mbe_tset_internal_updatescrollbarinfo(
@@ -1444,9 +1550,7 @@ static marble_ecode_t mbe_tsetview_internal_createtsbmpfromsrc(
 	struct mbe_tset *ps_tset,       /* destination */
 	struct mbe_dlgbmpts_cp *ps_crps /* tileset parameters */
 ) {
-	HBITMAP p_hbmp = NULL, p_hbmpold;
-	HDC p_bmpdc = NULL, p_deskdc;
-	int oldbltmode;
+	HBITMAP p_hbmp;
 	BITMAPINFO s_info;
 
 	marble_ecode_t ecode = MARBLE_EC_OK;
@@ -1471,59 +1575,23 @@ static marble_ecode_t mbe_tsetview_internal_createtsbmpfromsrc(
 		return MARBLE_EC_LOADRESOURCE;
 	}
 
-	/*
-	 * If we specified the whole bitmap, we have to use the
-	 * pixel dimensions of our loaded bitmap and substitute
-	 * them for the values we got from the final update of
-	 * the dialog.
-	 */
+	/* Get info about the loaded bitmap. */
 	GetObject(p_hbmp, sizeof s_info, &s_info);
-	if (ps_crps->m_iswhole == TRUE) {
-		ps_crps->_base.m_width  = s_info.bmiHeader.biWidth  / ps_crps->_base.m_tsize;
-		ps_crps->_base.m_height = s_info.bmiHeader.biHeight / ps_crps->_base.m_tsize;
-	}
 
-	ecode = mbe_tset_internal_setupdc(ps_tset, &ps_crps->_base);
+	/* Calculate bitmap size and set-up a memory DC. */
+	ecode = mbe_tset_internal_setupdc(
+		ps_tset,
+		&ps_crps->_base,
+		s_info.bmiHeader.biWidth,
+		s_info.bmiHeader.biHeight,
+		p_hbmp
+	);
 	if (ecode != MARBLE_EC_OK) {
 		DeleteObject(p_hbmp);
 
 		return ecode;
 	}
 
-	/* Draw stretched bitmap. */
-	oldbltmode = SetStretchBltMode(ps_tset->ms_res.p_hbmpdc, COLORONCOLOR); 
-
-	p_deskdc = GetDC(GetDesktopWindow());
-	p_bmpdc  = CreateCompatibleDC(p_deskdc);
-	if (p_bmpdc == NULL) {
-		ecode = MARBLE_EC_CREATEMEMDC;
-
-		goto lbl_END;
-	}
-	p_hbmpold = SelectObject(p_bmpdc, p_hbmp);
-
-	StretchBlt(
-		ps_tset->ms_res.p_hbmpdc,
-		0,
-		0,
-		ps_tset->ms_sz.m_pwidth,
-		ps_tset->ms_sz.m_pheight,
-		p_bmpdc,
-		0,
-		0,
-		s_info.bmiHeader.biWidth,
-		s_info.bmiHeader.biHeight,
-		SRCCOPY
-	);
-
-	SelectObject(p_bmpdc, p_hbmpold);
-	DeleteDC(p_bmpdc);
-
-lbl_END:
-	DeleteObject(p_hbmp);
-	SetStretchBltMode(ps_tset->ms_res.p_hbmpdc, oldbltmode);
-
-	ReleaseDC(GetDesktopWindow(), p_deskdc);
 	return MARBLE_EC_OK;
 }
 
