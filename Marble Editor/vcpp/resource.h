@@ -6,6 +6,7 @@
 #define MBE_DLG_EmptyTS                 102
 #define MBE_DLG_BmpTS                   110
 #define MBE_TSetView_ContextMenu        112
+#define MBE_DLG_RenameTS                113
 #define EmptyTSDlg_EDIT_Name            1001
 #define EmptyTSDlg_EDIT_Comment         1002
 #define EmptyTSDlg_EDIT_Width           1003
@@ -38,6 +39,11 @@
 #define BmpTSDlg_SPIN_Height            1042
 #define BmpTSDlg_SPIN_TSize             1043
 #define BmpTSDlg_CB_LoadAll             1044
+#define RenameTSDLG_EDIT_NewName        1047
+#define RenameTSDLG_CB_RenameFile       1048
+#define RenameTSDLG_BTN_Apply           1049
+#define RenameTSDLG_BTN_Cancel          1050
+#define IDC_TREE1                       1054
 #define MBE_FileNew_Tileset             40005
 #define ID_TILESET_FROMDIALOG           40006
 #define ID_TILESET_FROMBITMAP           40007
@@ -63,9 +69,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_RESOURCE_VALUE        115
 #define _APS_NEXT_COMMAND_VALUE         40025
-#define _APS_NEXT_CONTROL_VALUE         1047
+#define _APS_NEXT_CONTROL_VALUE         1055
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

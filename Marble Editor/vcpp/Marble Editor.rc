@@ -145,6 +145,18 @@ BEGIN
     LTEXT           "Tile Size",IDC_STATIC,33,79,26,8
 END
 
+MBE_DLG_RenameTS DIALOGEX 0, 0, 285, 56
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Rename tileset view"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        RenameTSDLG_EDIT_NewName,54,12,222,14,ES_AUTOHSCROLL
+    CONTROL         "Rename file on disk",RenameTSDLG_CB_RenameFile,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,38,77,10
+    DEFPUSHBUTTON   "Apply",RenameTSDLG_BTN_Apply,173,35,50,14
+    PUSHBUTTON      "Cancel",RenameTSDLG_BTN_Cancel,227,35,50,14
+    LTEXT           "New Name",IDC_STATIC,10,15,35,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -169,6 +181,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 115
     END
+
+    MBE_DLG_RenameTS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 278
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 49
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -184,6 +204,11 @@ BEGIN
 END
 
 MBE_DLG_BmpTS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+MBE_DLG_RenameTS AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

@@ -733,6 +733,161 @@ static BOOL CALLBACK mbe_tsetview_bmptsdlg_dlgproc(
 #pragma endregion
 
 
+#pragma region RENAMETS-DLG
+/*
+ * Structure representing userdata for "Rename tileset view"
+ * dialog.
+ */
+struct mbe_renametsdlg_cp {
+	BOOL  m_renamefile;            /* rename file on disk? */
+	TCHAR maz_name[MBE_MAXTSNAME]; /* new name */
+};
+
+
+/*
+ * Checks whether a string that's about to be used as a filename
+ * contains any invalid characters.
+ * Invalid characters in all filenames are:
+ *    - control characters
+ *    - / \ : * ? " < > |
+ * 
+ * The input string must be NUL-terminated.
+ * Note that Unicode control characters may also be invalid,
+ * but are not caught by this function.
+ * 
+ * Returns TRUE if the filename is valid, 0 if not.
+ */
+static BOOL mbe_tsetview_renametsdlg_internal_valfname(
+	TCHAR const *pz_fname /* string to validate */
+) {
+	if (pz_fname == NULL || *pz_fname == TEXT('\0'))
+		return FALSE;
+
+	TCHAR *p_res;
+	p_res = _tcspbrk(
+		pz_fname, 
+		TEXT("/\\:*?\"<>|")
+		TEXT("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B")
+		TEXT("\x0C\x0D\x0E\x0F\x10\x11\x12\x13\x14\x15\x16")
+		TEXT("\x17\x18\x19\x1A\x1B\x1C\x1D\x1D\x1E\x1F\x7F")
+	);
+
+	return p_res == NULL;
+}
+
+/*
+ * Window procedure for "Rename tileset view"
+ * dialog.
+ */
+static BOOL CALLBACK mbe_tsetview_renametsdlg_dlgproc(
+	HWND p_hwnd,
+	UINT msg,
+	WPARAM wparam,
+	LPARAM lparam
+) {
+	MBE_WNDUSERDATA(ps_cps, struct mbe_renametsdlg_cp *);
+
+	LRESULT res;
+	BOOL dlgres = FALSE;
+
+	switch (msg) {
+		case WM_INITDIALOG:
+			SetWindowLongPtr(p_hwnd, GWLP_USERDATA, (LONG_PTR)lparam);
+
+			/*
+			 * Set keyboard focus to the edit control
+			 * containing the new name.
+			 */
+			SendMessage(
+				p_hwnd,
+				WM_NEXTDLGCTL,
+				(WPARAM)MBE_DLGWND(RenameTSDLG_EDIT_NewName),
+				TRUE
+			);
+
+			ZeroMemory((void *)lparam, sizeof(struct mbe_renametsdlg_cp));
+			break;
+		case WM_COMMAND:
+			switch (LOWORD(wparam)) {
+				case RenameTSDLG_EDIT_NewName:
+					switch (HIWORD(wparam)) {
+						/*
+						 * An edit control sends an "EN_CHANGE" notification
+						 * via a WM_COMMAND message after its contents have changed.
+						 * When that happens, we update the text inside our create-params
+						 * structure.
+						 */
+						case EN_CHANGE:
+							GetWindowText(
+								MBE_DLGWND(RenameTSDLG_EDIT_NewName),
+								ps_cps->maz_name,
+								MBE_MAXTSNAME
+							);
+
+							break;
+					}
+
+					break;
+				case RenameTSDLG_CB_RenameFile:
+					res = SendDlgItemMessage(p_hwnd, RenameTSDLG_CB_RenameFile, BM_GETCHECK, 0, 0);
+
+					ps_cps->m_renamefile = res != BST_UNCHECKED;
+					break;
+				case RenameTSDLG_BTN_Cancel:
+				case RenameTSDLG_BTN_Apply:
+					if (LOWORD(wparam) == RenameTSDLG_BTN_Apply) {
+						/*
+						 * Clicking "Apply" with an empty "File Name" field
+						 * acts as if the user clicked the "Cancel" or close
+						 * button of the dialog window.
+						 */
+						if (*ps_cps->maz_name == TEXT('\0')) {
+							dlgres = FALSE;
+
+							goto lbl_END;
+						}
+
+						BOOL isvalid = mbe_tsetview_renametsdlg_internal_valfname(ps_cps->maz_name);
+						if (isvalid == FALSE) {
+							MessageBox(
+								p_hwnd,
+								TEXT("File name contains invalid characters."),
+								TEXT("Error"),
+								MB_ICONWARNING | MB_OK
+							);
+
+							break;
+						}
+
+						dlgres = TRUE;
+					}
+
+				lbl_END:
+					EndDialog(p_hwnd, dlgres);
+					break;
+			}
+
+			break;
+		case WM_CLOSE:
+			/*
+			 * Clicking the sysmenu close-button will act
+			 * like a click on the "Cancel" button.
+			 */
+			SendMessage(
+				p_hwnd,
+				WM_COMMAND,
+				MAKELONG(RenameTSDLG_BTN_Cancel, 0),
+				0
+			);
+
+			break;
+	}
+
+	return FALSE;
+}
+#pragma endregion
+
+
 #pragma region TILESET-CTRL
 /*
  * Calculates the ratio between screen tilesize (**gl_viewtsize**), and physical
@@ -803,6 +958,26 @@ static void __cdecl mbe_tset_internal_destroy(struct mbe_tset **pps_tset /* tile
 
 	free(*pps_tset);
 	*pps_tset = NULL;
+}
+
+/*
+ * Get index of a tileset view in its current view
+ * container.
+ * 
+ * Returns indes, or -1 if an error occurred.
+ */
+static size_t mbe_tset_internal_getindex(
+	struct mbe_tset *ps_tset /* tileset to get index of */
+) {
+	if (ps_tset == NULL || ps_tset->m_isinit == FALSE)
+		return -1;
+
+	return marble_util_vec_find(
+		ps_tset->ps_parent->ps_tsets,
+		ps_tset,
+		0,
+		0
+	);
 }
 
 /*
@@ -1485,7 +1660,11 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 	RECT s_rect;
 	HPEN p_hpold;
 	HBRUSH p_hbrold;
+	INT_PTR ret;
 	int orix, oriy, oldmode;
+	TCITEM s_item;
+	struct mbe_renametsdlg_cp s_crps;
+	size_t index;
 
 	switch (msg) {
 		case WM_CREATE: MBE_SETUDATA(); return FALSE;
@@ -1655,7 +1834,42 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 		case WM_COMMAND:
 			switch (wparam) {
 				case MBE_TSetMenu_Reload:
+					break;
 				case MBE_TSetMenu_Rename:
+					ret = DialogBoxParam(
+						gls_editorapp.mp_hinst,
+						MAKEINTRESOURCE(MBE_DLG_RenameTS),
+						p_hwnd,
+						(DLGPROC)&mbe_tsetview_renametsdlg_dlgproc,
+						(LPARAM)&s_crps
+					);
+					if (ret == FALSE)
+						break;
+
+					/* Rename tab of tileset view. */
+					s_item = (TCITEM){
+						.mask    = TCIF_TEXT,
+						.pszText = s_crps.maz_name
+					};
+					index = mbe_tset_internal_getindex(ps_udata);
+					if (index == -1)
+						break;
+
+					/* Issue rename command. */
+					TabCtrl_SetItem(
+						ps_udata->ps_parent->mp_hwnd,
+						index,
+						&s_item
+					);
+
+					/*
+					 * Rename the file on disk if the user
+					 * wishes to do so.
+					 */
+					if (s_crps.m_renamefile == TRUE) {
+					
+					}
+					
 					break;
 				case MBE_TSetMenu_Close:
 					DestroyWindow(p_hwnd);
