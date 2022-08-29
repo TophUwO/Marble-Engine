@@ -5,6 +5,7 @@
 #define MBE_MainWnd_Menubar             101
 #define MBE_DLG_EmptyTS                 102
 #define MBE_DLG_BmpTS                   110
+#define MBE_TSetView_ContextMenu        112
 #define EmptyTSDlg_EDIT_Name            1001
 #define EmptyTSDlg_EDIT_Comment         1002
 #define EmptyTSDlg_EDIT_Width           1003
@@ -37,8 +38,6 @@
 #define BmpTSDlg_SPIN_Height            1042
 #define BmpTSDlg_SPIN_TSize             1043
 #define BmpTSDlg_CB_LoadAll             1044
-#define IDC_SPLIT1                      1045
-#define IDC_IPADDRESS1                  1046
 #define MBE_FileNew_Tileset             40005
 #define ID_TILESET_FROMDIALOG           40006
 #define ID_TILESET_FROMBITMAP           40007
@@ -53,13 +52,19 @@
 #define MBE_Menubar_File_Import_BmpTS   40016
 #define ID_TILESET_ASBITMAP             40017
 #define MBE_MainMenu_File_Import_TSBmp  40018
+#define ID_CTXT_CLOSE                   40019
+#define ID_CTXT_RELOAD                  40020
+#define ID_CTXT_RENAME                  40021
+#define MBE_TSetMenu_Reload             40022
+#define MBE_TSetMenu_Rename             40023
+#define MBE_TSetMenu_Close              40024
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        112
-#define _APS_NEXT_COMMAND_VALUE         40019
+#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_COMMAND_VALUE         40025
 #define _APS_NEXT_CONTROL_VALUE         1047
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

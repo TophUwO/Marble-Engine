@@ -28,7 +28,7 @@
  * Define error code variable only for
  * the engine itself.
  */
-#if (defined MB_DYNAMIC_LIBRARY)
+#if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
 	#define MB_ERRNO marble_ecode_t ecode = MARBLE_EC_OK;
 #endif
 

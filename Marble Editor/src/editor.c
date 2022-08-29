@@ -252,6 +252,9 @@ marble_ecode_t mbe_editor_run(void) {
 	mbe_tsetview_uninit(&gls_editorapp.ms_tsview);
 
 	mbe_editor_internal_freeresources();
+#if (defined _DEBUG)
+	_CrtDumpMemoryLeaks();
+#endif
 	return MARBLE_EC_OK;
 }
 

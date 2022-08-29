@@ -3,16 +3,18 @@
 #include <error.h>
 #include <base.h>
 
+#include <util.h>
+
 
 /*
  * Structure representing a logical tileset. 
  */
 struct mbe_tset {
-	int m_id;                      /* tileset ID */
-	TCHAR maz_name[MBE_MAXTSNAME]; /* tileset name */
-	TCHAR maz_cmt[MBE_MAXCMT];     /* comment/descriptio*/
-	HWND p_hwnd;                   /* tileset view window */
-	BOOL m_isinit;                 /* init state */
+	TCHAR maz_name[MBE_MAXTSNAME];  /* tileset name */
+	TCHAR maz_cmt[MBE_MAXCMT];      /* comment/descriptio*/
+	HWND p_hwnd;                    /* tileset view window */
+	BOOL m_isinit;                  /* init state */
+	struct mbe_tsetview *ps_parent; /* parent control */
 
 	/*
 	 * Information regarding the dimensions of the in-memory
@@ -72,10 +74,10 @@ struct mbe_tsetview {
 	/* tab-view window */
 	HWND mp_hwnd;
 
-	BOOL m_isinit;              /* init state */
-	int  m_nts;                 /* number of tilesets */
-	int  m_curtsi;              /* current tileset index */
-	struct mbe_tset mas_ts[32]; /* tilesets */
+	BOOL m_isinit;                    /* init state */
+	int  m_nts;                       /* number of tilesets */
+	int  m_curtsi;                    /* current tileset index */
+	struct marble_util_vec *ps_tsets; /* currently loaded tilesets */
 };
 
 

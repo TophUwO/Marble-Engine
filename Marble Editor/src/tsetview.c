@@ -744,6 +744,67 @@ static BOOL CALLBACK mbe_tsetview_bmptsdlg_dlgproc(
 static int const gl_viewtsize = 32;
 static TCHAR const *const glpz_tsviewwndclname = TEXT("mbe_tsview");
 
+static void mbe_tsetview_internal_closetileset(
+	struct mbe_tsetview *ps_tsetview,
+	struct mbe_tset *ps_tset
+);
+
+/*
+ * Creates a new, empty tileset.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static marble_ecode_t mbe_tset_internal_new(
+	/*
+	 * pointer to a tileset pointer which will
+	 * receive the pointer to the newly-created
+	 * tileset.
+	 */
+	struct mbe_tset **pps_tset
+) {
+	if (pps_tset == NULL)
+		return MARBLE_EC_INTERNALPARAM;
+
+	marble_ecode_t ecode = marble_system_alloc(
+		MB_CALLER_INFO,
+		sizeof **pps_tset,
+		TRUE,
+		FALSE,
+		pps_tset
+	);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+
+	return MARBLE_EC_OK;
+}
+
+/*
+ * Destroys a tileset.
+ * The function will also deallocate all resources used by the tileset.
+ * If the tileset is currently registered in a tileset view,
+ * the view's tab will also be removed.
+ * 
+ * Returns nothing.
+ */
+static void __cdecl mbe_tset_internal_destroy(struct mbe_tset **pps_tset /* tileset to destroy */) {
+	if (pps_tset == NULL)
+		return;
+
+	if ((*pps_tset)->m_isinit == TRUE) {
+		/* Remove the tab from the tileset view container. */
+		mbe_tsetview_internal_closetileset((*pps_tset)->ps_parent, *pps_tset);
+
+		/* Delete GDI resources. */
+		SelectObject((*pps_tset)->ms_res.p_hbmpdc, (*pps_tset)->ms_res.p_hbmpdcold);
+
+		DeleteObject((*pps_tset)->ms_res.p_hbmpdcbmp);
+		DeleteDC((*pps_tset)->ms_res.p_hbmpdc);
+	}
+
+	free(*pps_tset);
+	*pps_tset = NULL;
+}
+
 /*
  * Calculates current client area rectangle of tab control.
  * 
@@ -761,6 +822,29 @@ static void mbe_tsetview_internal_getrect(
 }
 
 /*
+ * Gets the nearest valid index to **index**. **index** is the index of
+ * a tileset view which is about to get removed.
+ * 
+ * Returns index.
+ */
+static int mbe_tsetview_internal_getnearestpage(
+	struct mbe_tsetview *ps_tsetview,
+	int index
+) {
+	/*
+	 * If the index that's about to get deleted is 0,
+	 * check if there are pages loaded after it. If
+	 * yes, return the next page, i.e. index 1.
+	 * If not, return -1, signifying that the view
+	 * container is now empty.
+	 */
+	if (index == 0)
+		return ps_tsetview->m_nts < 2 ? -1 : 1;
+
+	return index - 1;
+}
+
+/*
  * Sets up the internal memory DC of tileset view.
  * 
  * Returns 0 on success, non-zero on failure.
@@ -775,13 +859,20 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 	if (ps_tset == NULL || ps_crps == NULL)
 		return MARBLE_EC_PARAM;
 
+	marble_ecode_t ecode = MARBLE_EC_OK;
+
 	/* Get DC of Desktop window. */
 	HDC p_hdc = GetDC(GetDesktopWindow());
+	if (p_hdc == NULL)
+		return MARBLE_EC_GETDC;
 
 	/* Create DC compatible with the desktop window. */
 	ps_tset->ms_res.p_hbmpdc = CreateCompatibleDC(p_hdc);
-	if (ps_tset->ms_res.p_hbmpdc == NULL)
-		return MARBLE_EC_CREATEMEMDC;
+	if (ps_tset->ms_res.p_hbmpdc == NULL) {
+		ecode = MARBLE_EC_CREATEMEMDC;
+
+		goto lbl_END;
+	}
 
 	/* Calculate bitmap sizes. */
 	ps_tset->ms_sz.tsize     = ps_crps->m_tsize;
@@ -795,10 +886,10 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 	 * bitmap size, the bitmap contains only full tiles.
 	 * In this casse we do not have to copy it.
 	 */
-	if (nwidth == ps_tset->ms_sz.m_pwidth && nheight == ps_tset->ms_sz.m_pheight) {
+	if (nwidth == ps_tset->ms_sz.m_pwidth && nheight == ps_tset->ms_sz.m_pheight && p_hsrcbmp != NULL) {
 		ps_tset->ms_res.p_hbmpdcold = SelectObject(ps_tset->ms_res.p_hbmpdc, p_hsrcbmp);
 
-		return MARBLE_EC_OK;
+		goto lbl_END;
 	}
 
 	/* Create memory bitmap. */
@@ -815,8 +906,12 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 		ps_tset->ms_sz.m_pwidth,
 		ps_tset->ms_sz.m_pheight
 	);
-	if (ps_tset->ms_res.p_hbmpdcbmp == NULL)
-		return MARBLE_EC_CREATEMEMBITMAP;
+	if (ps_tset->ms_res.p_hbmpdcbmp == NULL) {
+		ecode = MARBLE_EC_CREATEMEMBITMAP;
+
+		DeleteDC(ps_tset->ms_res.p_hbmpdc);
+		goto lbl_END;
+	}
 
 	/*
 	 * Select newly-created bitmap into memory DC.
@@ -836,10 +931,15 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 			DeleteObject(ps_tset->ms_res.p_hbmpdcbmp);
 			DeleteDC(ps_tset->ms_res.p_hbmpdc);
 
-			return MARBLE_EC_CREATEMEMDC;
+			ecode = MARBLE_EC_CREATEMEMDC;
+			goto lbl_END;
 		}
 		p_hbmpold = SelectObject(p_hdctmp, p_hsrcbmp);
 
+		/*
+		 * Copy-over the valid portion of the
+		 * source bitmap.
+		 */
 		BitBlt(
 			ps_tset->ms_res.p_hbmpdc,
 			0,
@@ -857,9 +957,10 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 		DeleteDC(p_hdctmp);
 	}
 
+lbl_END:
 	/* Release device context of desktop window. */
 	ReleaseDC(GetDesktopWindow(), p_hdc);
-	return MARBLE_EC_OK;
+	return ecode;
 }
 
 /*
@@ -1238,6 +1339,117 @@ static BOOL mbe_tsetview_internal_handleselection(
 }
 
 /*
+ * Handles the WM_CONTEXTMENU.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tsetview_internal_handlecontextmenu(
+	struct mbe_tset *ps_tset, /* tileset */
+	WPARAM wparam,            /* WM_CONTEXTMENU wparam */
+	LPARAM lparam             /* WM_CONTEXTMENU lparam */
+) {
+	if (ps_tset == NULL || ps_tset->m_isinit == FALSE || (HWND)wparam != ps_tset->p_hwnd)
+		return;
+
+	HMENU p_hmenu, p_hdispmenu;
+
+	/* Load menu from a resource. */
+	p_hmenu = LoadMenu(gls_editorapp.mp_hinst, MAKEINTRESOURCE(MBE_TSetView_ContextMenu));
+	if (p_hmenu == NULL)
+		return;
+
+	/*
+	 * Get the sub-menu of the first menu item,
+	 * which is going to be the context menu we
+	 * will present to the user.
+	 */
+	p_hdispmenu = GetSubMenu(p_hmenu, 0);
+	if (p_hdispmenu == NULL)
+		goto lbl_END;
+
+	/*
+	 * Show context menu.
+	 * 
+	 * "TrackPopupMenu()" returns as soon as the user selected a
+	 * menu item or the menu has been closed.
+	 */
+	TrackPopupMenu(
+		p_hdispmenu,
+		TPM_LEFTALIGN | TPM_LEFTBUTTON,
+		GET_X_LPARAM(lparam),
+		GET_Y_LPARAM(lparam),
+		0,
+		ps_tset->p_hwnd,
+		NULL
+	);
+
+lbl_END:
+	DestroyMenu(p_hmenu);
+}
+
+/*
+ * Closes a specific tileset view,
+ * i.e. removes the tab.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tsetview_internal_closetileset(
+	struct mbe_tsetview *ps_tsetview, /* tileset view container */
+	struct mbe_tset *ps_tset          /* tileset view to close */
+) {
+	if (ps_tsetview == NULL || ps_tsetview->m_isinit == FALSE || ps_tset == NULL || ps_tsetview->m_isinit == FALSE)
+		return;
+
+	size_t index = marble_util_vec_find(
+		ps_tsetview->ps_tsets,
+		ps_tset,
+		0,
+		0
+	);
+	if (index == (size_t)(-1))
+		return;
+
+	int newindex = mbe_tsetview_internal_getnearestpage(
+		ps_tsetview,
+		(int)index
+	);
+	if (newindex != -1) {
+		TabCtrl_SetCurSel(ps_tsetview->mp_hwnd, newindex);
+
+		/*
+		 * As "TCM_SETCURSEL" does not send a WM_NOTIFY + TCN_SELCHANGE notification
+		 * to the tileset view container's parent, we have to manually send it (which
+		 * triggers hide-old show-new mechanism).
+		 */
+		NMHDR s_hdr = {
+			.hwndFrom = ps_tsetview->mp_hwnd,
+			.code     = TCN_SELCHANGE
+		};
+		SendMessage(
+			GetParent(ps_tsetview->mp_hwnd),
+			WM_NOTIFY,
+			0,
+			(LPARAM)&s_hdr
+		);
+	}
+
+	/* Remove the tab. */
+	TabCtrl_DeleteItem(ps_tsetview->mp_hwnd, index);
+	--ps_tsetview->m_nts;
+	marble_util_vec_erase(ps_tsetview->ps_tsets, index, FALSE);
+
+	/*
+	 * If the tileset view container is now empty,
+	 * hide it.
+	 */
+	if (ps_tsetview->m_nts == 0) {
+		UpdateWindow(ps_tsetview->mp_hwnd);
+
+		ShowWindow(ps_tsetview->mp_hwnd, SW_HIDE);
+	}
+}
+
+/*
  * Frees all resources used by a logical tileset and its view.
  * 
  * Returns nothing.
@@ -1285,10 +1497,22 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			);
 
 			return FALSE;
-		case WM_MOUSEACTIVATE:
-			SetFocus(p_hwnd);
+		case WM_ACTIVATE:
+			if (wparam != WA_INACTIVE) {
+				SetFocus(p_hwnd);
 
-			return MA_ACTIVATE;
+				return FALSE;
+			}
+
+			return FALSE;
+		case WM_CONTEXTMENU:
+			mbe_tsetview_internal_handlecontextmenu(
+				ps_udata,
+				wparam,
+				lparam
+			);
+
+			return FALSE;
 		case WM_KEYDOWN:
 		case WM_HSCROLL:
 		case WM_VSCROLL:
@@ -1310,6 +1534,9 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			return FALSE;
 		case WM_PAINT:
 			p_hdc = BeginPaint(p_hwnd, &s_ps);
+
+			if (ps_udata->m_isinit == FALSE)
+				goto lbl_ENDPAINT;
 
 			/* Get current dimensions of tileset view. */
 			GetClientRect(p_hwnd, &s_rect);
@@ -1346,8 +1573,8 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 				 * tile. This avoids interpolation inaccuracies that a single
 				 * "StretchBlt()" would have if the magnification is very high.
 				 */
-				for (int x = 0, xmpos = ps_udata->s_xscr.nPos; x < s_rect.right; x += gl_viewtsize, xmpos += ps_udata->ms_sz.tsize) {
-					for (int y = 0, ympos = ps_udata->s_yscr.nPos; y < s_rect.bottom; y += gl_viewtsize, ympos += ps_udata->ms_sz.tsize) {
+				for (int x = 0, xmpos = ps_udata->s_xscr.nPos; x < s_rect.right; x += gl_viewtsize, xmpos += ps_udata->ms_sz.tsize)
+					for (int y = 0, ympos = ps_udata->s_yscr.nPos; y < s_rect.bottom; y += gl_viewtsize, ympos += ps_udata->ms_sz.tsize)
 						StretchBlt(
 							p_hdc,
 							x, 
@@ -1361,8 +1588,6 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 							ps_udata->ms_sz.tsize,
 							SRCCOPY
 						);
-					}
-				}
 
 				/* Restore old blit-mode. */
 				SetStretchBltMode(p_hdc, oldmode);
@@ -1398,6 +1623,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 				LineTo(p_hdc, s_rect.right, y);
 			}
 
+			/* Restore previous mode. */
 			SetBkMode(p_hdc, oldmode);
 
 			/* Draw selection rectangle. */
@@ -1423,7 +1649,24 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			SelectPen(p_hdc, p_hpold);
 			SelectBrush(p_hdc, p_hbrold);
 
+		lbl_ENDPAINT:
 			EndPaint(p_hwnd, &s_ps);
+			return FALSE;
+		case WM_COMMAND:
+			switch (wparam) {
+				case MBE_TSetMenu_Reload:
+				case MBE_TSetMenu_Rename:
+					break;
+				case MBE_TSetMenu_Close:
+					DestroyWindow(p_hwnd);
+
+					break;
+			}
+
+			return FALSE;
+		case WM_DESTROY:
+			mbe_tset_internal_destroy(&ps_udata);
+
 			return FALSE;
 	}
 
@@ -1446,7 +1689,7 @@ static marble_ecode_t mbe_tsetview_internal_prepareview(
 		.mask    = TCIF_TEXT,
 		.pszText = (LPWSTR)pz_title
 	};
-	if (TabCtrl_InsertItem(ps_parent->mp_hwnd, ps_parent->m_nts++, &s_item) == -1)
+	if (TabCtrl_InsertItem(ps_parent->mp_hwnd, ps_parent->m_nts, &s_item) == -1)
 		return MARBLE_EC_UNKNOWN;
 
 	/* Get current size of tab view. */
@@ -1467,8 +1710,14 @@ static marble_ecode_t mbe_tsetview_internal_prepareview(
 		gls_editorapp.mp_hinst,
 		(LPVOID)ps_tset
 	);
-	if (ps_tset->p_hwnd == NULL)
+	if (ps_tset->p_hwnd == NULL) {
+		TabCtrl_DeleteItem(
+			ps_parent->mp_hwnd,
+			ps_parent->m_nts
+		);
+
 		return MARBLE_EC_CREATEWND;
+	}
 
 	return MARBLE_EC_OK;
 }
@@ -1529,8 +1778,6 @@ static marble_ecode_t mbe_tsetview_internal_createemptyts(
 
 lbl_END:
 	if (ecode != MARBLE_EC_OK) {
-		--ps_parent->m_nts;
-
 		if (ps_tset->p_hwnd != NULL)
 			DestroyWindow(ps_tset->p_hwnd);
 
@@ -1632,7 +1879,7 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 		&s_parentsize
 	);
 	if (ecode != MARBLE_EC_OK)
-		return ecode;
+		goto lbl_END;
 
 	/* Create tileset bitmap from source bitmap. */
 	ecode = mbe_tsetview_internal_createtsbmpfromsrc(
@@ -1640,6 +1887,8 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 		ps_tset,
 		ps_crps
 	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
 
 	/* Initialize scrollbars. */
 	mbe_tset_internal_updatescrollbarinfo(
@@ -1647,12 +1896,15 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 		s_parentsize.right - s_parentsize.left,
 		s_parentsize.bottom - s_parentsize.top
 	);
+
 	/* Initialize selection. */
 	mbe_tsetview_internal_initselection(ps_tset);
 
 	/* Update init state. */
-	ps_tset->m_isinit = TRUE;
+	ps_tset->m_isinit  = TRUE;
+	ps_tset->ps_parent = ps_parent;
 
+lbl_END:
 	return ecode;
 }
 #pragma endregion
@@ -1700,6 +1952,12 @@ marble_ecode_t mbe_tsetview_init(
 	 * fill the entire structure with zeroes.
 	 */
 	ZeroMemory(ps_tsetview, sizeof ps_tsetview);
+
+	ecode = marble_util_vec_create(
+		0,
+		NULL,
+		&ps_tsetview->ps_tsets
+	);
 
 	/* Register tileset view window class. */
 	WNDCLASSEX s_wndclass = {
@@ -1766,8 +2024,7 @@ void mbe_tsetview_uninit(struct mbe_tsetview *ps_tsetview) {
 		return;
 
 	/* Free all resources used by all tilesets. */
-	for (int i = 0; i < ps_tsetview->m_nts; i++)
-		mbe_tset_destroy(&ps_tsetview->mas_ts[i]);
+	marble_util_vec_destroy(&ps_tsetview->ps_tsets);
 
 	/* Reset state. */
 	ps_tsetview->m_isinit = FALSE;
@@ -1794,7 +2051,10 @@ void mbe_tsetview_resize(
 	RECT s_parentsize;
 	mbe_tsetview_internal_getrect(ps_tsetview, &s_parentsize);
 
-	struct mbe_tset *ps_curts = &ps_tsetview->mas_ts[ps_tsetview->m_curtsi];
+	struct mbe_tset *ps_curts = marble_util_vec_get(ps_tsetview->ps_tsets, ps_tsetview->m_curtsi);
+	if (ps_curts == NULL)
+		return;
+
 	SetWindowPos(
 		ps_curts->p_hwnd,
 		NULL,
@@ -1807,13 +2067,10 @@ void mbe_tsetview_resize(
 }
 
 marble_ecode_t mbe_tsetview_newtsdlg(struct mbe_tsetview *ps_tsetview) {
-	/*
-	 * The init-state of the tileset view container is not that
-	 * important, as it will be created when the first tileset
-	 * view is being created.
-	 */
-	if (ps_tsetview == NULL)
+	if (ps_tsetview == NULL || ps_tsetview->m_isinit == FALSE)
 		return MARBLE_EC_PARAM;
+
+	marble_ecode_t ecode = MARBLE_EC_OK;
 
 	/* Check if the tileset view still has free slots. */
 	if (mbe_tsetview_internal_isfull(ps_tsetview) == TRUE)
@@ -1827,13 +2084,21 @@ marble_ecode_t mbe_tsetview_newtsdlg(struct mbe_tsetview *ps_tsetview) {
 		(DLGPROC)&mbe_tsetview_emptytsdlg_dlgproc,
 		(LPARAM)&s_crps
 	) != FALSE) {
-		marble_ecode_t ecode = mbe_tsetview_internal_createemptyts(
-			ps_tsetview,
-			&s_crps,
-			&ps_tsetview->mas_ts[ps_tsetview->m_nts]
-		);
+		struct mbe_tset *ps_tset;
+		ecode = mbe_tset_internal_new(&ps_tset);
 		if (ecode != MARBLE_EC_OK)
 			return ecode;
+
+		ecode = mbe_tsetview_internal_createemptyts(
+			ps_tsetview,
+			&s_crps,
+			ps_tset
+		);
+		if (ecode != MARBLE_EC_OK) {
+			mbe_tset_internal_destroy(&ps_tset);
+
+			return ecode;
+		}
 
 		ShowWindow(ps_tsetview->mp_hwnd, SW_SHOW);
 		mbe_tsetview_setpage(ps_tsetview, ps_tsetview->m_curtsi);
@@ -1845,6 +2110,8 @@ marble_ecode_t mbe_tsetview_newtsdlg(struct mbe_tsetview *ps_tsetview) {
 marble_ecode_t mbe_tsetview_bmptsdlg(struct mbe_tsetview *ps_tsetview) {
 	if (ps_tsetview == NULL)
 		return MARBLE_EC_PARAM;
+
+	marble_ecode_t ecode = MARBLE_EC_OK;
 
 	/* Check if the tileset view still has free slots. */
 	if (mbe_tsetview_internal_isfull(ps_tsetview) == TRUE)
@@ -1861,16 +2128,48 @@ marble_ecode_t mbe_tsetview_bmptsdlg(struct mbe_tsetview *ps_tsetview) {
 	
 	/* Create new tileset from bitmap. */
 	if (ret == TRUE) {
-		marble_ecode_t ecode = mbe_tsetview_internal_createtsfrombmp(
-			ps_tsetview,
-			&s_crps,
-			&ps_tsetview->mas_ts[ps_tsetview->m_nts]
-		);
+		struct mbe_tset *ps_tset;
+		ecode = mbe_tset_internal_new(&ps_tset);
 		if (ecode != MARBLE_EC_OK)
 			return ecode;
 
+		ecode = mbe_tsetview_internal_createtsfrombmp(
+			ps_tsetview,
+			&s_crps,
+			ps_tset
+		);
+		if (ecode != MARBLE_EC_OK)
+			goto lbl_END;
+
+		ecode = marble_util_vec_pushback(ps_tsetview->ps_tsets, ps_tset);
+		if (ecode != MARBLE_EC_OK)
+			goto lbl_END;
+
+		/* Update tileset count of container. */
+		++ps_tsetview->m_nts;
+
+		/*
+		 * Show the tileset view container if it isn't
+		 * already visible. 
+		 */
 		ShowWindow(ps_tsetview->mp_hwnd, SW_SHOW);
+		/*
+		 * By default, when a page gets added to a tab view,
+		 * the page will be changed to the newly-created one.
+		 * We do not want that as it may throw off the user.
+		 * 
+		 * To evade this problem, after creating the tab, we
+		 * just change the page back to the tab that was selected
+		 * just before the new tileset was created.
+		 */
 		mbe_tsetview_setpage(ps_tsetview, ps_tsetview->m_curtsi);
+
+	lbl_END:
+		if (ecode != MARBLE_EC_OK) {
+			DestroyWindow(ps_tset->p_hwnd);
+
+			return ecode;
+		}
 	}
 
 	return MARBLE_EC_OK;
@@ -1883,8 +2182,15 @@ void mbe_tsetview_setpage(
 	if (ps_tsetview == NULL || ps_tsetview->m_isinit == FALSE)
 		return;
 
-	/* Get currently visible page. */
-	struct mbe_tset *ps_oldts = &ps_tsetview->mas_ts[ps_tsetview->m_curtsi];
+	/*
+	 * Get currently visible page and
+	 * the page that's about to become
+	 * visible.
+	 */
+	struct mbe_tset *ps_oldts = marble_util_vec_get(ps_tsetview->ps_tsets, ps_tsetview->m_curtsi);
+	struct mbe_tset *ps_newts = marble_util_vec_get(ps_tsetview->ps_tsets, index);
+	if (ps_oldts == NULL || ps_newts == NULL)
+		return;
 
 	/* Hide it. */
 	UpdateWindow(ps_oldts->p_hwnd);
@@ -1893,11 +2199,19 @@ void mbe_tsetview_setpage(
 	/* Update selection and show the new page. */
 	ps_tsetview->m_curtsi = index;
 
+	/*
+	 * When the tileset view container gets resized,
+	 * only the currently visible page will resize with
+	 * the control.
+	 * When the page gets changed, the now visible page
+	 * may have wrong dimensions, so we query the size
+	 * of the view container and resize our page accordingly. 
+	 */
 	RECT s_parentsize;
 	mbe_tsetview_internal_getrect(ps_tsetview, &s_parentsize);
 
 	SetWindowPos(
-		ps_tsetview->mas_ts[index].p_hwnd,
+		ps_newts->p_hwnd,
 		NULL,
 		s_parentsize.left,
 		s_parentsize.top,
@@ -1905,8 +2219,8 @@ void mbe_tsetview_setpage(
 		s_parentsize.bottom - s_parentsize.top,
 		SWP_NOACTIVATE
 	);
-	UpdateWindow(ps_tsetview->mas_ts[index].p_hwnd);
-	ShowWindow(ps_tsetview->mas_ts[index].p_hwnd, SW_SHOW);
+	UpdateWindow(ps_newts->p_hwnd);
+	ShowWindow(ps_newts->p_hwnd, SW_SHOW);
 }
 
 

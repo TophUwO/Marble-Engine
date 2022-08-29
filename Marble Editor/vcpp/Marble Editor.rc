@@ -67,6 +67,17 @@ BEGIN
     END
 END
 
+MBE_TSetView_ContextMenu MENU
+BEGIN
+    POPUP "CTXT_MENU"
+    BEGIN
+        MENUITEM "Reload",                      MBE_TSetMenu_Reload
+        MENUITEM "Rename",                      MBE_TSetMenu_Rename
+        MENUITEM SEPARATOR
+        MENUITEM "Close",                       MBE_TSetMenu_Close
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

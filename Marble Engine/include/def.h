@@ -13,7 +13,7 @@
  * readability. Also used for combining annotations in a more
  * readable and shorter form.
  */
-#if (defined MB_DYNAMIC_LIBRARY)
+#if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
 	/*
 	 * Used for functions that allocate and initialize
 	 * an "object"; these functions are usually named
@@ -105,7 +105,7 @@
 #endif
 
 
-#if (defined MB_DYNAMIC_LIBRARY)
+#if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
 	/*
 	 * Checks whether a specific numeric value is 
 	 * in the given range (bounds not exclusive).

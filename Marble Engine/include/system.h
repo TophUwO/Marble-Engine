@@ -58,18 +58,22 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
 		);
 
 	if (*pp_mpt == NULL) {
+#if (defined MB_DYNAMIC_LIBRARY)
 		if (iscritical == true)
 			marble_application_raisefatalerror(MARBLE_EC_MEMALLOC);
+#endif
 
 		return MARBLE_EC_MEMALLOC;
 	}
 
+#if (defined MB_DYNAMIC_LIBRARY)
 	MB_LOG_DEBUG(
 		"Allocator: sz=%zu [ori: %s (l: %zu)]",
 		(int)size,
 		pz_fn,
 		line
 	);
+#endif
 
 	return MARBLE_EC_OK;
 }

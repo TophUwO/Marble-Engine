@@ -51,7 +51,8 @@ static char const *const glapz_ecodestrs[] = {
 	"MARBLE_EC_QUERYWINDOWRECT",
 	"MARBLE_EC_LOADRESOURCE",
 	"MARBLE_EC_CREATEMEMDC",
-	"MARBLE_EC_CREATEMEMBITMAP"
+	"MARBLE_EC_CREATEMEMBITMAP",
+	"MARBLE_EC_GETDC"
 };
 
 /* Error code descriptions */
@@ -104,7 +105,8 @@ static char const *const glapz_ecodedescs[] = {
 	"Could not query window or client rectangle.",
 	"Resource could not be loaded.",
 	"Could not create GDI memory device context.",
-	"Could not create GDI memory bitmap"
+	"Could not create GDI memory bitmap",
+	"Could not obtain GDI device context."
 };
 
 

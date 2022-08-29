@@ -311,14 +311,14 @@ size_t inline marble_util_vec_find(
 	     size_t end                         /* last index of searching range */
 ) {
 	if (ps_vector == NULL || p_obj == NULL || start > end || start >= ps_vector->m_size || end >= ps_vector->m_size)
-		return MARBLE_EC_PARAM;
+		return (size_t)(-1);
 
 	/*
 	 * If **start** and **end** are equal, and they are 0,
 	 * set **end** to the last index of the last element
 	 * in the vector.
 	 */
-	end = start == end && start == 0 ? ps_vector->m_size - 1 : end;
+	end = start == end && start == 0 ? ps_vector->m_size : end;
 
 	/*
 	 * Search for **p_obj** within the given searching range,

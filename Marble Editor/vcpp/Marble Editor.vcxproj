@@ -79,7 +79,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
     <OutDir>..\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
@@ -93,7 +93,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
     <OutDir>..\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
@@ -102,7 +102,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_ECOSYSTEM;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <CompileAs>CompileAsC</CompileAs>
@@ -119,7 +119,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>MBE_DEVBUILD;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_ECOSYSTEM;MBE_DEVBUILD;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <CompileAs>CompileAsC</CompileAs>
@@ -136,7 +136,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_ECOSYSTEM;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <CompileAs>CompileAsC</CompileAs>
@@ -153,7 +153,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>MBE_DEVBUILD;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>MB_ECOSYSTEM;MBE_DEVBUILD;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <CompileAs>CompileAsC</CompileAs>
