@@ -12,16 +12,16 @@
 struct mbe_tset {
 	TCHAR maz_name[MBE_MAXTSNAME];  /* tileset name */
 	TCHAR maz_cmt[MBE_MAXCMT];      /* comment/descriptio*/
-	HWND p_hwnd;                    /* tileset view window */
+	HWND mp_hwnd;                    /* tileset view window */
 	BOOL m_isinit;                  /* init state */
-	struct mbe_tsetview *ps_parent; /* parent control */
+	struct mbe_tsetview *mps_parent; /* parent control */
 
 	/*
 	 * Information regarding the dimensions of the in-memory
 	 * object representing the tileset.
 	 */
 	struct {
-		int tsize;     /* tile size, in pixels */
+		int m_tsize;   /* tile size, in pixels */
 
 		int m_pwidth;  /* width, in pixels */
 		int m_pheight; /* height, in pixels */
@@ -48,9 +48,9 @@ struct mbe_tset {
 
 	/* GDI resources */
 	struct {
-		HDC p_hbmpdc;        /* bitmap device context */
-		HBITMAP p_hbmpdcold; /* default DC bitmap */
-		HBITMAP p_hbmpdcbmp; /* DC bitmap */
+		HDC mp_hbmpdc;        /* bitmap device context */
+		HBITMAP mp_hbmpdcold; /* default DC bitmap */
+		HBITMAP mp_hbmpdcbmp; /* DC bitmap */
 
 		/*
 		 * Background color; only used when the tileset
@@ -59,11 +59,7 @@ struct mbe_tset {
 		COLORREF m_bkgnd;
 	} ms_res;
 
-	/* scrollbar information */
-	SCROLLINFO s_xscr;
-	SCROLLINFO s_yscr;
-	BOOL m_xscrv;
-	BOOL m_yscrv;
+	struct mbe_scrollinfo ms_scr; /* scrollbar information */
 };
 
 /*
@@ -74,10 +70,10 @@ struct mbe_tsetview {
 	/* tab-view window */
 	HWND mp_hwnd;
 
-	BOOL m_isinit;                    /* init state */
-	int  m_nts;                       /* number of tilesets */
-	int  m_curtsi;                    /* current tileset index */
-	struct marble_util_vec *ps_tsets; /* currently loaded tilesets */
+	BOOL m_isinit;                     /* init state */
+	int  m_nts;                        /* number of tilesets */
+	int  m_curtsi;                     /* current tileset index */
+	struct marble_util_vec *mps_tsets; /* currently loaded tilesets */
 };
 
 

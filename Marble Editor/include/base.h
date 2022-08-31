@@ -42,10 +42,10 @@
  * a specific window.
  */
 struct mbe_scrollinfo {
-	BOOL m_isshow; /* visible state */
-	int m_min;     /* min. scroll value */
-	int m_cur;     /* current scroll value */
-	int m_max;     /* max. scroll value */
+	SCROLLINFO ms_xscr; /* horizontal scrollbar info */
+	SCROLLINFO ms_yscr; /* vertical scrollbar info */
+	BOOL m_xscrv;       /* horizontal scrollbar visible state */
+	BOOL m_yscrv;       /* vertical scrollbar visible state */
 };
 
 

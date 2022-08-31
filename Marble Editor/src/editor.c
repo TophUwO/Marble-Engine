@@ -124,8 +124,12 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 			}
 
 			return FALSE;
-		case WM_CLOSE:   DestroyWindow(p_hwnd); return FALSE;
-		case WM_DESTROY: PostQuitMessage(0);    return FALSE;
+		case WM_CLOSE:
+			gls_editorapp.ms_flags.mf_isdest = TRUE;
+
+			DestroyWindow(p_hwnd);
+			return FALSE;
+		case WM_DESTROY: PostQuitMessage(0); return FALSE;
 	}
 
 	return DefWindowProc(p_hwnd, msg, wparam, lparam);
@@ -232,13 +236,19 @@ marble_ecode_t mbe_editor_run(void) {
 		switch (s_msg.message) {
 			case WM_KEYDOWN:
 				switch (s_msg.wParam) {
-					case VK_SHIFT: gls_editorapp.ms_ks.m_isshift = TRUE; break;
+					case VK_SHIFT:
+						gls_editorapp.ms_flags.mf_isshift = TRUE;
+						
+						break;
 				}
 
 				break;
 			case WM_KEYUP:
 				switch (s_msg.wParam) {
-					case VK_SHIFT: gls_editorapp.ms_ks.m_isshift = FALSE; break;
+					case VK_SHIFT:
+						gls_editorapp.ms_flags.mf_isshift = FALSE;
+						
+						break;
 				}
 
 				break;

@@ -947,13 +947,13 @@ static void __cdecl mbe_tset_internal_destroy(struct mbe_tset **pps_tset /* tile
 
 	if ((*pps_tset)->m_isinit == TRUE) {
 		/* Remove the tab from the tileset view container. */
-		mbe_tsetview_internal_closetileset((*pps_tset)->ps_parent, *pps_tset);
+		mbe_tsetview_internal_closetileset((*pps_tset)->mps_parent, *pps_tset);
 
 		/* Delete GDI resources. */
-		SelectObject((*pps_tset)->ms_res.p_hbmpdc, (*pps_tset)->ms_res.p_hbmpdcold);
+		SelectObject((*pps_tset)->ms_res.mp_hbmpdc, (*pps_tset)->ms_res.mp_hbmpdcold);
 
-		DeleteObject((*pps_tset)->ms_res.p_hbmpdcbmp);
-		DeleteDC((*pps_tset)->ms_res.p_hbmpdc);
+		DeleteObject((*pps_tset)->ms_res.mp_hbmpdcbmp);
+		DeleteDC((*pps_tset)->ms_res.mp_hbmpdc);
 	}
 
 	free(*pps_tset);
@@ -973,7 +973,7 @@ static size_t mbe_tset_internal_getindex(
 		return -1;
 
 	return marble_util_vec_find(
-		ps_tset->ps_parent->ps_tsets,
+		ps_tset->mps_parent->mps_tsets,
 		ps_tset,
 		0,
 		0
@@ -1042,15 +1042,15 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 		return MARBLE_EC_GETDC;
 
 	/* Create DC compatible with the desktop window. */
-	ps_tset->ms_res.p_hbmpdc = CreateCompatibleDC(p_hdc);
-	if (ps_tset->ms_res.p_hbmpdc == NULL) {
+	ps_tset->ms_res.mp_hbmpdc = CreateCompatibleDC(p_hdc);
+	if (ps_tset->ms_res.mp_hbmpdc == NULL) {
 		ecode = MARBLE_EC_CREATEMEMDC;
 
 		goto lbl_END;
 	}
 
 	/* Calculate bitmap sizes. */
-	ps_tset->ms_sz.tsize     = ps_crps->m_tsize;
+	ps_tset->ms_sz.m_tsize   = ps_crps->m_tsize;
 	ps_tset->ms_sz.m_twidth  = nwidth / ps_crps->m_tsize;
 	ps_tset->ms_sz.m_theight = nheight / ps_crps->m_tsize;
 	ps_tset->ms_sz.m_pwidth  = nwidth / ps_crps->m_tsize * ps_crps->m_tsize;
@@ -1062,13 +1062,13 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 	 * In this casse we do not have to copy it.
 	 */
 	if (nwidth == ps_tset->ms_sz.m_pwidth && nheight == ps_tset->ms_sz.m_pheight && p_hsrcbmp != NULL) {
-		ps_tset->ms_res.p_hbmpdcold = SelectObject(ps_tset->ms_res.p_hbmpdc, p_hsrcbmp);
+		ps_tset->ms_res.mp_hbmpdcold = SelectObject(ps_tset->ms_res.mp_hbmpdc, p_hsrcbmp);
 
 		goto lbl_END;
 	}
 
 	/* Create memory bitmap. */
-	ps_tset->ms_res.p_hbmpdcbmp = CreateCompatibleBitmap(
+	ps_tset->ms_res.mp_hbmpdcbmp = CreateCompatibleBitmap(
 		/*
 		 * This has to be the DC of the desktop window (or the DC we used to create
 		 * the memory DC with), as the newly-created DC will hold a 1x1 monochrome
@@ -1081,10 +1081,10 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 		ps_tset->ms_sz.m_pwidth,
 		ps_tset->ms_sz.m_pheight
 	);
-	if (ps_tset->ms_res.p_hbmpdcbmp == NULL) {
+	if (ps_tset->ms_res.mp_hbmpdcbmp == NULL) {
 		ecode = MARBLE_EC_CREATEMEMBITMAP;
 
-		DeleteDC(ps_tset->ms_res.p_hbmpdc);
+		DeleteDC(ps_tset->ms_res.mp_hbmpdc);
 		goto lbl_END;
 	}
 
@@ -1093,7 +1093,7 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 	 * The default bitmap is saved as it will be restored later
 	 * when the memory device context is about to be deleted.
 	 */
-	ps_tset->ms_res.p_hbmpdcold = SelectObject(ps_tset->ms_res.p_hbmpdc, ps_tset->ms_res.p_hbmpdcbmp);
+	ps_tset->ms_res.mp_hbmpdcold = SelectObject(ps_tset->ms_res.mp_hbmpdc, ps_tset->ms_res.mp_hbmpdcbmp);
 
 	if (p_hsrcbmp != NULL) {
 		HBITMAP p_hbmpold;
@@ -1101,10 +1101,10 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 		
 		p_hdctmp = CreateCompatibleDC(p_hdc);
 		if (p_hdctmp == NULL) {
-			SelectObject(ps_tset->ms_res.p_hbmpdc, ps_tset->ms_res.p_hbmpdcold);
+			SelectObject(ps_tset->ms_res.mp_hbmpdc, ps_tset->ms_res.mp_hbmpdcold);
 			
-			DeleteObject(ps_tset->ms_res.p_hbmpdcbmp);
-			DeleteDC(ps_tset->ms_res.p_hbmpdc);
+			DeleteObject(ps_tset->ms_res.mp_hbmpdcbmp);
+			DeleteDC(ps_tset->ms_res.mp_hbmpdc);
 
 			ecode = MARBLE_EC_CREATEMEMDC;
 			goto lbl_END;
@@ -1116,7 +1116,7 @@ static marble_ecode_t mbe_tset_internal_setupdc(
 		 * source bitmap.
 		 */
 		BitBlt(
-			ps_tset->ms_res.p_hbmpdc,
+			ps_tset->ms_res.mp_hbmpdc,
 			0,
 			0,
 			ps_tset->ms_sz.m_pwidth,
@@ -1154,20 +1154,20 @@ static void mbe_tset_internal_updatescrollbarinfo(
 	BOOL isxvisible = FALSE, isyvisible = FALSE;
 
 	/* Update vertical scrollbar. */
-	if (ps_tset->ms_sz.m_pheight * MBE_TSSCALE(ps_tset->ms_sz.tsize) > nheight) {
-		int const maxscr = max(ps_tset->ms_sz.m_pheight - (int)(nheight / MBE_TSSCALE(ps_tset->ms_sz.tsize)), 0); 
+	if (ps_tset->ms_sz.m_pheight * MBE_TSSCALE(ps_tset->ms_sz.m_tsize) > nheight) {
+		int const maxscr = max(ps_tset->ms_sz.m_pheight - (int)(nheight / MBE_TSSCALE(ps_tset->ms_sz.m_tsize)), 0); 
 
-		ps_tset->s_yscr = (SCROLLINFO){
-			.cbSize = sizeof ps_tset->s_yscr,
+		ps_tset->ms_scr.ms_yscr = (SCROLLINFO){
+			.cbSize = sizeof ps_tset->ms_scr.ms_yscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
 			.nMin   = 0,
 			.nMax   = ps_tset->ms_sz.m_pheight - 1,
-			.nPage  = (int)(nheight / MBE_TSSCALE(ps_tset->ms_sz.tsize)),
-			.nPos   = min(ps_tset->s_yscr.nPos, maxscr)
+			.nPage  = (int)(nheight / MBE_TSSCALE(ps_tset->ms_sz.m_tsize)),
+			.nPos   = min(ps_tset->ms_scr.ms_yscr.nPos, maxscr)
 		};
 
 		isyvisible = TRUE;
-		SetScrollInfo(ps_tset->p_hwnd, SB_VERT, &ps_tset->s_yscr, TRUE);
+		SetScrollInfo(ps_tset->mp_hwnd, SB_VERT, &ps_tset->ms_scr.ms_yscr, TRUE);
 	} else {
 		/*
 		 * If the scrollbar needs to be hidden, we set the position of the
@@ -1179,36 +1179,36 @@ static void mbe_tset_internal_updatescrollbarinfo(
 		 * a portion of the tileset bitmap still hidden even though we have enough
 		 * space inside the window to display it.
 		 */
-		ps_tset->s_yscr.fMask = SIF_POS;
-		ps_tset->s_yscr.nPos  = 0;
+		ps_tset->ms_scr.ms_yscr.fMask = SIF_POS;
+		ps_tset->ms_scr.ms_yscr.nPos  = 0;
 	}
 	/* Submit new scrollbar info. */
-	SetScrollInfo(ps_tset->p_hwnd, SB_VERT, &ps_tset->s_yscr, TRUE);
+	SetScrollInfo(ps_tset->mp_hwnd, SB_VERT, &ps_tset->ms_scr.ms_yscr, TRUE);
 
 	/* Update horizontal scrollbar. */
-	if (ps_tset->ms_sz.m_pwidth * MBE_TSSCALE(ps_tset->ms_sz.tsize) > nwidth) {
-		int const maxscr = max(ps_tset->ms_sz.m_pwidth - (int)(nwidth / MBE_TSSCALE(ps_tset->ms_sz.tsize)), 0);
+	if (ps_tset->ms_sz.m_pwidth * MBE_TSSCALE(ps_tset->ms_sz.m_tsize) > nwidth) {
+		int const maxscr = max(ps_tset->ms_sz.m_pwidth - (int)(nwidth / MBE_TSSCALE(ps_tset->ms_sz.m_tsize)), 0);
 
-		ps_tset->s_xscr = (SCROLLINFO){
-			.cbSize = sizeof ps_tset->s_xscr,
+		ps_tset->ms_scr.ms_xscr = (SCROLLINFO){
+			.cbSize = sizeof ps_tset->ms_scr.ms_xscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
 			.nMin   = 0,
 			.nMax   = ps_tset->ms_sz.m_pwidth - 1,
-			.nPage  = (int)(nwidth / MBE_TSSCALE(ps_tset->ms_sz.tsize)),
-			.nPos   = min(ps_tset->s_xscr.nPos, maxscr)
+			.nPage  = (int)(nwidth / MBE_TSSCALE(ps_tset->ms_sz.m_tsize)),
+			.nPos   = min(ps_tset->ms_scr.ms_xscr.nPos, maxscr)
 		};
 
 		isxvisible = TRUE;
 	} else {
-		ps_tset->s_xscr.fMask = SIF_POS;
-		ps_tset->s_xscr.nPos  = 0;
+		ps_tset->ms_scr.ms_xscr.fMask = SIF_POS;
+		ps_tset->ms_scr.ms_xscr.nPos  = 0;
 	}
 	/* Submit new scrollbar info. */
-	SetScrollInfo(ps_tset->p_hwnd, SB_HORZ, &ps_tset->s_xscr, TRUE);
+	SetScrollInfo(ps_tset->mp_hwnd, SB_HORZ, &ps_tset->ms_scr.ms_xscr, TRUE);
 
 	/* Update visible states of scrollbars. */
-	ShowScrollBar(ps_tset->p_hwnd, SB_HORZ, ps_tset->m_xscrv = isxvisible);
-	ShowScrollBar(ps_tset->p_hwnd, SB_VERT, ps_tset->m_yscrv = isyvisible);
+	ShowScrollBar(ps_tset->mp_hwnd, SB_HORZ, ps_tset->ms_scr.m_xscrv = isxvisible);
+	ShowScrollBar(ps_tset->mp_hwnd, SB_VERT, ps_tset->ms_scr.m_yscrv = isyvisible);
 }
 
 /*
@@ -1273,7 +1273,7 @@ static void mbe_tsetview_internal_handlescrolling(
 		case WM_KEYDOWN: {
 			param = MAKELONG(MBE_SB_CTRL, (WORD)param);
 
-			msg = gls_editorapp.ms_ks.m_isshift != FALSE 
+			msg = gls_editorapp.ms_flags.mf_isshift != FALSE 
 				? WM_HSCROLL
 				: WM_VSCROLL
 			;
@@ -1283,8 +1283,8 @@ static void mbe_tsetview_internal_handlescrolling(
 
 	/* Get correct scrollbar information structure. */
 	SCROLLINFO *ps_scrinfo = msg == WM_HSCROLL
-		? &ps_tset->s_xscr
-		: &ps_tset->s_yscr
+		? &ps_tset->ms_scr.ms_xscr
+		: &ps_tset->ms_scr.ms_yscr
 	;
 
 	/*
@@ -1292,7 +1292,7 @@ static void mbe_tsetview_internal_handlescrolling(
 	 * allow scrolling of the window by other means such
 	 * as the mouse-wheel or even the keyboard.
 	 */
-	if (msg == WM_HSCROLL && ps_tset->m_xscrv == FALSE || msg == WM_VSCROLL && ps_tset->m_yscrv == FALSE)
+	if (msg == WM_HSCROLL && ps_tset->ms_scr.m_xscrv == FALSE || msg == WM_VSCROLL && ps_tset->ms_scr.m_yscrv == FALSE)
 		return;
 
 	/*
@@ -1321,7 +1321,7 @@ static void mbe_tsetview_internal_handlescrolling(
 			goto lbl_CLAMP;
 		case SB_LINEUP:
 		case SB_LINEDOWN:
-			newpos = ps_scrinfo->nPos + (int)((float)gl_viewtsize / MBE_TSSCALE(ps_tset->ms_sz.tsize) * fac);
+			newpos = ps_scrinfo->nPos + (int)((float)gl_viewtsize / MBE_TSSCALE(ps_tset->ms_sz.m_tsize) * fac);
 
 			/*
 			 * As clamping to 0 < newpos < ps_scrinfo->nMax would
@@ -1350,7 +1350,7 @@ lbl_UPDATE:
 	ps_scrinfo->nPos  = newpos;
 
 	SetScrollInfo(
-		ps_tset->p_hwnd,
+		ps_tset->mp_hwnd,
 		msg == WM_HSCROLL
 		? SB_HORZ
 		: SB_VERT
@@ -1358,7 +1358,7 @@ lbl_UPDATE:
 		TRUE
 	);
 
-	InvalidateRect(ps_tset->p_hwnd, NULL, TRUE);
+	InvalidateRect(ps_tset->mp_hwnd, NULL, TRUE);
 }
 
 /*
@@ -1409,7 +1409,7 @@ static void mbe_tsetview_internal_calcboundrect(
 	 * rectangle-select), set the new selection rectangle to the one
 	 * just calculated, and move on.
 	 */
-	if (gls_editorapp.ms_ks.m_isshift == FALSE) {
+	if (gls_editorapp.ms_flags.mf_isshift == FALSE) {
 		*ps_dest = s_drect;
 
 		return;
@@ -1475,8 +1475,8 @@ static BOOL mbe_tsetview_internal_handleselection(
 	RECT s_rnew;
 
 	/* Calculate the indices of the tile the user clicked on. */
-	reqx = (int)(ps_tset->s_xscr.nPos * MBE_TSSCALE(ps_tset->ms_sz.tsize) + GET_X_LPARAM(lparam)) / gl_viewtsize;
-	reqy = (int)(ps_tset->s_yscr.nPos * MBE_TSSCALE(ps_tset->ms_sz.tsize) + GET_Y_LPARAM(lparam)) / gl_viewtsize;
+	reqx = (int)(ps_tset->ms_scr.ms_xscr.nPos * MBE_TSSCALE(ps_tset->ms_sz.m_tsize) + GET_X_LPARAM(lparam)) / gl_viewtsize;
+	reqy = (int)(ps_tset->ms_scr.ms_yscr.nPos * MBE_TSSCALE(ps_tset->ms_sz.m_tsize) + GET_Y_LPARAM(lparam)) / gl_viewtsize;
 
 	/*
 	 * If requested selection is out of bounds,
@@ -1501,7 +1501,7 @@ static BOOL mbe_tsetview_internal_handleselection(
 	 * if the user did not make a rectangle-select via
 	 * SHIFT + LMB.
 	 */
-	if (gls_editorapp.ms_ks.m_isshift == FALSE) {
+	if (gls_editorapp.ms_flags.mf_isshift == FALSE) {
 		ps_tset->ms_sel.m_xindex = reqx;
 		ps_tset->ms_sel.m_yindex = reqy;
 	}
@@ -1509,7 +1509,7 @@ static BOOL mbe_tsetview_internal_handleselection(
 	/* Update selection rectangle. */
 	ps_tset->ms_sel.ms_rsel = s_rnew;
 
-	InvalidateRect(ps_tset->p_hwnd, NULL, TRUE);
+	InvalidateRect(ps_tset->mp_hwnd, NULL, TRUE);
 	return TRUE;
 }
 
@@ -1523,7 +1523,7 @@ static void mbe_tsetview_internal_handlecontextmenu(
 	WPARAM wparam,            /* WM_CONTEXTMENU wparam */
 	LPARAM lparam             /* WM_CONTEXTMENU lparam */
 ) {
-	if (ps_tset == NULL || ps_tset->m_isinit == FALSE || (HWND)wparam != ps_tset->p_hwnd)
+	if (ps_tset == NULL || ps_tset->m_isinit == FALSE || (HWND)wparam != ps_tset->mp_hwnd)
 		return;
 
 	HMENU p_hmenu, p_hdispmenu;
@@ -1554,7 +1554,7 @@ static void mbe_tsetview_internal_handlecontextmenu(
 		GET_X_LPARAM(lparam),
 		GET_Y_LPARAM(lparam),
 		0,
-		ps_tset->p_hwnd,
+		ps_tset->mp_hwnd,
 		NULL
 	);
 
@@ -1576,7 +1576,7 @@ static void mbe_tsetview_internal_closetileset(
 		return;
 
 	size_t index = marble_util_vec_find(
-		ps_tsetview->ps_tsets,
+		ps_tsetview->mps_tsets,
 		ps_tset,
 		0,
 		0
@@ -1588,9 +1588,24 @@ static void mbe_tsetview_internal_closetileset(
 		ps_tsetview,
 		(int)index
 	);
-	if (newindex != -1) {
+	/*
+	 * BUGFIX (2022-08-31):
+	 *   When the windows get destroyed at the end of the app's lifetime,
+	 *   and we try change the selection to something else, it generates a
+	 *   mysterious second WM_DESTROY for the window being currently selected,
+	 *   causing memory to be freed twice.
+	 *   Until the cause of this was found, we simply use a global flag to determine
+	 *   *why* we call this function.
+	 *   Possible scenarios are:
+	 *     (1) because the user decided to close the tileset
+	 *     (2) the user clicked the "Close" button of the main window
+	 * 
+	 * Only change selection if the user actively decided to close the tileset
+	 * view.
+	 */
+	if (newindex != -1 && gls_editorapp.ms_flags.mf_isdest == FALSE) {
 		TabCtrl_SetCurSel(ps_tsetview->mp_hwnd, newindex);
-
+		
 		/*
 		 * As "TCM_SETCURSEL" does not send a WM_NOTIFY + TCN_SELCHANGE notification
 		 * to the tileset view container's parent, we have to manually send it (which
@@ -1611,7 +1626,7 @@ static void mbe_tsetview_internal_closetileset(
 	/* Remove the tab. */
 	TabCtrl_DeleteItem(ps_tsetview->mp_hwnd, index);
 	--ps_tsetview->m_nts;
-	marble_util_vec_erase(ps_tsetview->ps_tsets, index, FALSE);
+	marble_util_vec_erase(ps_tsetview->mps_tsets, index, FALSE);
 
 	/*
 	 * If the tileset view container is now empty,
@@ -1622,23 +1637,6 @@ static void mbe_tsetview_internal_closetileset(
 
 		ShowWindow(ps_tsetview->mp_hwnd, SW_HIDE);
 	}
-}
-
-/*
- * Frees all resources used by a logical tileset and its view.
- * 
- * Returns nothing.
- */
-static void mbe_tset_destroy(struct mbe_tset *ps_tset /* tileset to free resources of */) {
-	if (ps_tset == NULL || ps_tset->m_isinit == FALSE)
-		return;
-
-	/* Select default bitmap into memory device context. */
-	SelectObject(ps_tset->ms_res.p_hbmpdc, ps_tset->ms_res.p_hbmpdcold);
-
-	/* Free user resources. */
-	DeleteDC(ps_tset->ms_res.p_hbmpdc);
-	DeleteObject(ps_tset->ms_res.p_hbmpdcbmp);
 }
 
 /*
@@ -1721,7 +1719,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			GetClientRect(p_hwnd, &s_rect);
 
 			/* Draw tileset bitmap. */
-			if (ps_udata->ms_sz.tsize == gl_viewtsize) {
+			if (ps_udata->ms_sz.m_tsize == gl_viewtsize) {
 				/*
 				 * If the screen tilesize is the same as the physical
 				 * tilesize, simply run a bitblit (faster).
@@ -1732,9 +1730,9 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 					s_rect.top,
 					s_rect.right - s_rect.left,
 					s_rect.bottom - s_rect.top,
-					ps_udata->ms_res.p_hbmpdc,
-					ps_udata->s_xscr.nPos,
-					ps_udata->s_yscr.nPos,
+					ps_udata->ms_res.mp_hbmpdc,
+					ps_udata->ms_scr.ms_xscr.nPos,
+					ps_udata->ms_scr.ms_yscr.nPos,
 					SRCCOPY
 				);
 			} else {
@@ -1752,19 +1750,19 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 				 * tile. This avoids interpolation inaccuracies that a single
 				 * "StretchBlt()" would have if the magnification is very high.
 				 */
-				for (int x = 0, xmpos = ps_udata->s_xscr.nPos; x < s_rect.right; x += gl_viewtsize, xmpos += ps_udata->ms_sz.tsize)
-					for (int y = 0, ympos = ps_udata->s_yscr.nPos; y < s_rect.bottom; y += gl_viewtsize, ympos += ps_udata->ms_sz.tsize)
+				for (int x = 0, xmpos = ps_udata->ms_scr.ms_xscr.nPos; x < s_rect.right; x += gl_viewtsize, xmpos += ps_udata->ms_sz.m_tsize)
+					for (int y = 0, ympos = ps_udata->ms_scr.ms_yscr.nPos; y < s_rect.bottom; y += gl_viewtsize, ympos += ps_udata->ms_sz.m_tsize)
 						StretchBlt(
 							p_hdc,
 							x, 
 							y,
 							gl_viewtsize,
 							gl_viewtsize,
-							ps_udata->ms_res.p_hbmpdc,
+							ps_udata->ms_res.mp_hbmpdc,
 							xmpos,
 							ympos,
-							ps_udata->ms_sz.tsize,
-							ps_udata->ms_sz.tsize,
+							ps_udata->ms_sz.m_tsize,
+							ps_udata->ms_sz.m_tsize,
 							SRCCOPY
 						);
 
@@ -1785,8 +1783,8 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 			 * tileset view. This is used as an offset factor for
 			 * drawing the grid.
 			 */
-			orix = -(int)(ps_udata->s_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) % gl_viewtsize;
-			oriy = -(int)(ps_udata->s_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) % gl_viewtsize;
+			orix = -(int)(ps_udata->ms_scr.ms_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.m_tsize)) % gl_viewtsize;
+			oriy = -(int)(ps_udata->ms_scr.ms_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.m_tsize)) % gl_viewtsize;
 
 			/* Draw vertical grid lines. */
 			for (int x = orix; x < s_rect.right; x += gl_viewtsize) {
@@ -1819,10 +1817,10 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 
 			Rectangle(
 				p_hdc,
-				ps_udata->ms_sel.ms_rsel.left   - (int)(ps_udata->s_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1,
-				ps_udata->ms_sel.ms_rsel.top    - (int)(ps_udata->s_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1,
-				ps_udata->ms_sel.ms_rsel.right  - (int)(ps_udata->s_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1,
-				ps_udata->ms_sel.ms_rsel.bottom - (int)(ps_udata->s_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.tsize)) + 1
+				ps_udata->ms_sel.ms_rsel.left   - (int)(ps_udata->ms_scr.ms_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.m_tsize)) + 1,
+				ps_udata->ms_sel.ms_rsel.top    - (int)(ps_udata->ms_scr.ms_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.m_tsize)) + 1,
+				ps_udata->ms_sel.ms_rsel.right  - (int)(ps_udata->ms_scr.ms_xscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.m_tsize)) + 1,
+				ps_udata->ms_sel.ms_rsel.bottom - (int)(ps_udata->ms_scr.ms_yscr.nPos * MBE_TSSCALE(ps_udata->ms_sz.m_tsize)) + 1
 			);
 
 			SelectPen(p_hdc, p_hpold);
@@ -1857,7 +1855,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 
 					/* Issue rename command. */
 					TabCtrl_SetItem(
-						ps_udata->ps_parent->mp_hwnd,
+						ps_udata->mps_parent->mp_hwnd,
 						index,
 						&s_item
 					);
@@ -1910,7 +1908,7 @@ static marble_ecode_t mbe_tsetview_internal_prepareview(
 	mbe_tsetview_internal_getrect(ps_parent, s_parentsize);
 
 	/* Create window of tileset view. */
-	ps_tset->p_hwnd = CreateWindowEx(
+	ps_tset->mp_hwnd = CreateWindowEx(
 		WS_EX_COMPOSITED,
 		glpz_tsviewwndclname,
 		NULL,
@@ -1924,7 +1922,7 @@ static marble_ecode_t mbe_tsetview_internal_prepareview(
 		gls_editorapp.mp_hinst,
 		(LPVOID)ps_tset
 	);
-	if (ps_tset->p_hwnd == NULL) {
+	if (ps_tset->mp_hwnd == NULL) {
 		TabCtrl_DeleteItem(
 			ps_parent->mp_hwnd,
 			ps_parent->m_nts
@@ -1945,7 +1943,12 @@ static void mbe_tsetview_internal_initselection(struct mbe_tset *ps_tset /* tile
 	if (ps_tset == NULL)
 		return;
 
-	SendMessage(ps_tset->p_hwnd, WM_LBUTTONDOWN, 0, 0);
+	/*
+	 * Send a fake WM_LBUTTONDOWN that simulates a mouse
+	 * click on bitmap position (0,0), essentially placing
+	 * the selection on the tile in the top-left corner.
+	 */
+	SendMessage(ps_tset->mp_hwnd, WM_LBUTTONDOWN, 0, 0);
 }
 
 /*
@@ -1991,12 +1994,9 @@ static marble_ecode_t mbe_tsetview_internal_createemptyts(
 	ps_tset->m_isinit = TRUE;
 
 lbl_END:
-	if (ecode != MARBLE_EC_OK) {
-		if (ps_tset->p_hwnd != NULL)
-			DestroyWindow(ps_tset->p_hwnd);
-
-		mbe_tset_destroy(ps_tset);
-	}
+	if (ecode != MARBLE_EC_OK)
+		if (ps_tset->mp_hwnd != NULL)
+			DestroyWindow(ps_tset->mp_hwnd);
 
 	return ecode;
 }
@@ -2115,8 +2115,8 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 	mbe_tsetview_internal_initselection(ps_tset);
 
 	/* Update init state. */
-	ps_tset->m_isinit  = TRUE;
-	ps_tset->ps_parent = ps_parent;
+	ps_tset->m_isinit   = TRUE;
+	ps_tset->mps_parent = ps_parent;
 
 lbl_END:
 	return ecode;
@@ -2170,7 +2170,7 @@ marble_ecode_t mbe_tsetview_init(
 	ecode = marble_util_vec_create(
 		0,
 		NULL,
-		&ps_tsetview->ps_tsets
+		&ps_tsetview->mps_tsets
 	);
 
 	/* Register tileset view window class. */
@@ -2227,7 +2227,7 @@ lbl_END:
 		if (ps_tsetview->mp_hwnd != NULL)
 			DestroyWindow(ps_tsetview->mp_hwnd);
 
-		ZeroMemory(ps_tsetview, sizeof ps_tsetview);
+		ZeroMemory(ps_tsetview, sizeof *ps_tsetview);
 	}
 
 	return ecode;
@@ -2238,7 +2238,7 @@ void mbe_tsetview_uninit(struct mbe_tsetview *ps_tsetview) {
 		return;
 
 	/* Free all resources used by all tilesets. */
-	marble_util_vec_destroy(&ps_tsetview->ps_tsets);
+	marble_util_vec_destroy(&ps_tsetview->mps_tsets);
 
 	/* Reset state. */
 	ps_tsetview->m_isinit = FALSE;
@@ -2265,12 +2265,12 @@ void mbe_tsetview_resize(
 	RECT s_parentsize;
 	mbe_tsetview_internal_getrect(ps_tsetview, &s_parentsize);
 
-	struct mbe_tset *ps_curts = marble_util_vec_get(ps_tsetview->ps_tsets, ps_tsetview->m_curtsi);
+	struct mbe_tset *ps_curts = marble_util_vec_get(ps_tsetview->mps_tsets, ps_tsetview->m_curtsi);
 	if (ps_curts == NULL)
 		return;
 
 	SetWindowPos(
-		ps_curts->p_hwnd,
+		ps_curts->mp_hwnd,
 		NULL,
 		s_parentsize.left,
 		s_parentsize.top,
@@ -2355,7 +2355,7 @@ marble_ecode_t mbe_tsetview_bmptsdlg(struct mbe_tsetview *ps_tsetview) {
 		if (ecode != MARBLE_EC_OK)
 			goto lbl_END;
 
-		ecode = marble_util_vec_pushback(ps_tsetview->ps_tsets, ps_tset);
+		ecode = marble_util_vec_pushback(ps_tsetview->mps_tsets, ps_tset);
 		if (ecode != MARBLE_EC_OK)
 			goto lbl_END;
 
@@ -2380,7 +2380,7 @@ marble_ecode_t mbe_tsetview_bmptsdlg(struct mbe_tsetview *ps_tsetview) {
 
 	lbl_END:
 		if (ecode != MARBLE_EC_OK) {
-			DestroyWindow(ps_tset->p_hwnd);
+			DestroyWindow(ps_tset->mp_hwnd);
 
 			return ecode;
 		}
@@ -2401,14 +2401,14 @@ void mbe_tsetview_setpage(
 	 * the page that's about to become
 	 * visible.
 	 */
-	struct mbe_tset *ps_oldts = marble_util_vec_get(ps_tsetview->ps_tsets, ps_tsetview->m_curtsi);
-	struct mbe_tset *ps_newts = marble_util_vec_get(ps_tsetview->ps_tsets, index);
+	struct mbe_tset *ps_oldts = marble_util_vec_get(ps_tsetview->mps_tsets, ps_tsetview->m_curtsi);
+	struct mbe_tset *ps_newts = marble_util_vec_get(ps_tsetview->mps_tsets, index);
 	if (ps_oldts == NULL || ps_newts == NULL)
 		return;
 
 	/* Hide it. */
-	UpdateWindow(ps_oldts->p_hwnd);
-	ShowWindow(ps_oldts->p_hwnd, SW_HIDE);
+	UpdateWindow(ps_oldts->mp_hwnd);
+	ShowWindow(ps_oldts->mp_hwnd, SW_HIDE);
 
 	/* Update selection and show the new page. */
 	ps_tsetview->m_curtsi = index;
@@ -2419,13 +2419,13 @@ void mbe_tsetview_setpage(
 	 * the control.
 	 * When the page gets changed, the now visible page
 	 * may have wrong dimensions, so we query the size
-	 * of the view container and resize our page accordingly. 
+	 * of the view container and resize the page accordingly. 
 	 */
 	RECT s_parentsize;
 	mbe_tsetview_internal_getrect(ps_tsetview, &s_parentsize);
 
 	SetWindowPos(
-		ps_newts->p_hwnd,
+		ps_newts->mp_hwnd,
 		NULL,
 		s_parentsize.left,
 		s_parentsize.top,
@@ -2433,8 +2433,8 @@ void mbe_tsetview_setpage(
 		s_parentsize.bottom - s_parentsize.top,
 		SWP_NOACTIVATE
 	);
-	UpdateWindow(ps_newts->p_hwnd);
-	ShowWindow(ps_newts->p_hwnd, SW_SHOW);
+	UpdateWindow(ps_newts->mp_hwnd);
+	ShowWindow(ps_newts->mp_hwnd, SW_SHOW);
 }
 
 

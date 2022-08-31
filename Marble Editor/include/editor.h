@@ -22,10 +22,11 @@ extern struct mbe_application {
 		HPEN   mp_hpgrid;   /* grid pen */
 	} ms_res;
 
-	/* Tracks the state of modifier keys. */
+	/* Application-wide flags. */
 	struct {
-		BOOL m_isshift; /* state of shift key */
-	} ms_ks;
+		BOOL mf_isshift; /* state of shift key */
+		BOOL mf_isdest;  /* destroy flag */
+	} ms_flags;
 
 	/* tileset view */
 	struct mbe_tsetview ms_tsview;
