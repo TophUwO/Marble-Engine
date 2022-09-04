@@ -84,18 +84,25 @@ static void marble_application_internal_uninitlayerstack(void) {
 		return;
 
 	/*
-	 * Execute "onpop" callbacks of all layers,
-	 * starting with the first layer in the stack (the one 
-	 * that also gets updated first).
+	 * Destroy layers manually instead of letting the vector do it. This allows
+	 * for better flexibility in case we do want to destroy in a specific order
+	 * or we want to treat layers differently.
 	 */
 	for (size_t i = 0; i < gls_app.ms_layerstack.mps_vec->m_size; i++) {
 		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 
-		if (ps_layer->m_ispushed == true) {
-			(*ps_layer->ms_cbs.cb_onpop)(ps_layer->m_id, ps_layer->mp_userdata);
+		/*
+		 * Even though the layer is technically still pushed to the
+		 * layerstack, we set the "ispushed" flag to false in order
+		 * to prevent "marble_layer_destroy()" from popping the layer.
+		 *
+		 * "marble_layer_destroy()" should only pop the layer if the
+		 * layerstack itself is to be destroyed.
+		 */
+		ps_layer->m_ispushed = false;
 
-			ps_layer->m_ispushed = false;
-		}
+		/* Destroy the layer. */
+		marble_layer_destroy(&ps_layer);
 	}
 
 	marble_util_vec_destroy(&gls_app.ms_layerstack.mps_vec);
@@ -113,7 +120,7 @@ _Critical_ static marble_ecode_t marble_application_internal_initlayerstack_impl
 	
 	ecode = marble_util_vec_create(
 		0,
-		(void (*)(void **))&marble_layer_destroy,
+		NULL,
 		&gls_app.ms_layerstack.mps_vec
 	);
 	if (ecode != MARBLE_EC_OK) {

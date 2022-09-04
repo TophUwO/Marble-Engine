@@ -21,15 +21,7 @@ static int volatile gl_layerid = 0;
  * validation before invoking the them.
  */
 #pragma region dummy callbacks
-static void MB_CALLBACK __marble_layer_internal_cbpush__(
-	         int layerid,
-	_In_opt_ void *p_userdata
-) {
-	UNREFERENCED_PARAMETER(layerid);
-	UNREFERENCED_PARAMETER(p_userdata);
-}
-
-static void MB_CALLBACK __marble_layer_internal_cbpop__(
+static void MB_CALLBACK __marble_layer_internal_cbcreate__(
 	         int layerid,
 	_In_opt_ void *p_userdata
 ) {
@@ -56,6 +48,14 @@ static void MB_CALLBACK __marble_layer_internal_cbevent__(
 	UNREFERENCED_PARAMETER(p_event);
 	UNREFERENCED_PARAMETER(p_userdata);
 }
+
+static void MB_CALLBACK __marble_layer_internal_cbdestroy__(
+	         int layerid,
+	_In_opt_ void *p_userdata
+) {
+	UNREFERENCED_PARAMETER(layerid);
+	UNREFERENCED_PARAMETER(p_userdata);
+}
 #pragma endregion
 
 
@@ -68,10 +68,10 @@ static void MB_CALLBACK __marble_layer_internal_cbevent__(
 static void marble_layer_internal_fixcbs(
 	_In_ struct marble_layer_cbs *ps_cbs /* callback structure to "fix" */
 ) {
-	ps_cbs->cb_onpush   = ps_cbs->cb_onpush   ? ps_cbs->cb_onpush   : &__marble_layer_internal_cbpush__;
-	ps_cbs->cb_onpop    = ps_cbs->cb_onpop    ? ps_cbs->cb_onpop    : &__marble_layer_internal_cbpop__;
-	ps_cbs->cb_onupdate = ps_cbs->cb_onupdate ? ps_cbs->cb_onupdate : &__marble_layer_internal_cbupdate__;
-	ps_cbs->cb_onevent  = ps_cbs->cb_onevent  ? ps_cbs->cb_onevent  : &__marble_layer_internal_cbevent__;
+	ps_cbs->cb_oncreate   = ps_cbs->cb_oncreate ? ps_cbs->cb_oncreate  : &__marble_layer_internal_cbcreate__;
+	ps_cbs->cb_onupdate  = ps_cbs->cb_onupdate  ? ps_cbs->cb_onupdate  : &__marble_layer_internal_cbupdate__;
+	ps_cbs->cb_onevent   = ps_cbs->cb_onevent   ? ps_cbs->cb_onevent   : &__marble_layer_internal_cbevent__;
+	ps_cbs->cb_ondestroy = ps_cbs->cb_ondestroy ? ps_cbs->cb_ondestroy : &__marble_layer_internal_cbdestroy__;
 }
 
 /*
@@ -170,12 +170,8 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_push(
 		if (!istopmost)
 			++gls_app.ms_layerstack.m_lastlayer;
 
-		/*
-		 * We will simply pass-through the return value. If "cb_onpush"
-		 * fails, we will catch the error code in "marble_application_createlayer()"
-		 * and handle it appropriately.
-		 */
-		(*ps_layer->ms_cbs.cb_onpush)(ps_layer->m_id, ps_layer->mp_userdata);
+		/* Update layer state. */
+		ps_layer->m_ispushed = true;
 	}
 
 	return ecode;
@@ -199,8 +195,11 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 	);
 
 	/*
-	 * If the layer could be found, execute its
-	 * "cb_onpop" handler and erase it from the layer stack.
+	 * If the layer could be found, erase it from the
+	 * layer stack without calling its destructor.
+	 * 
+	 * This should be done by the caller when they
+	 * see it fit.
 	 */
 	if (index != (size_t)(-1)) {
 		marble_util_vec_erase(
@@ -208,19 +207,6 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 			index,
 			false
 		);
-
-		/*
-		 * Execute "cb_onpop" handler if it hasn't
-		 * been executed yet. 
-		 */
-		if (ps_layer->m_ispushed == true) {
-			(*ps_layer->ms_cbs.cb_onpop)(
-				ps_layer->m_id,
-				ps_layer->mp_userdata
-			);
-
-			ps_layer->m_ispushed = false;
-		}
 
 		if (ps_layer->m_istopmost == false)
 			--gls_app.ms_layerstack.m_lastlayer;
@@ -245,16 +231,20 @@ void marble_layer_destroy(
 		return;
 
 	/*
-	 * Pop the layer. Ideally, the "cb_onpop" handler will take care of
-	 * free'ing the userdata. If the user fails to do so, the memory that
-	 * is being occupied by the userdata will leak. This is only true, however,
-	 * when **marble_layer::mp_userdata** itself points to dynamically allocated memory
-	 * or **marble_layer::mp_userdata** contains pointers to dynamically allocated
-	 * memory.
-	 * We cannot do anything with the userdata here because we do now know the layout
-	 * of the struct.
+	 * Pop the layer from the layerstack
+	 * if it is still pushed. 
 	 */
-	marble_layer_internal_pop(*pps_layer);
+	if ((*pps_layer)->m_ispushed == true)
+		marble_layer_internal_pop(*pps_layer);
+
+	/*
+	 * Execute "OnDestroy()" handler, giving the user
+	 * the chance to destroy userdata. 
+	 */
+	(*(*pps_layer)->ms_cbs.cb_ondestroy)(
+		(*pps_layer)->m_id,
+		(*pps_layer)->mp_userdata
+	);
 
 	/* Free-up layer memory. */
 	free(*pps_layer);
@@ -305,6 +295,12 @@ marble_ecode_t marble_application_createlayer(
 
 	*p_layerid = ps_layer->m_id;
 	marble_system_cpystr(ps_layer->maz_stringid, pz_stringid, MB_STRINGIDMAX);
+
+	/*
+	 * Execute "OnCreate()" handler, used to initialize
+	 * some userdata.
+	 */
+	(*ps_layer->ms_cbs.cb_oncreate)(ps_layer->m_id, ps_layer->mp_userdata);
 
 	return MARBLE_EC_OK;
 }

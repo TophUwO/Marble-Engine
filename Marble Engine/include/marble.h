@@ -81,10 +81,10 @@ MB_API marble_ecode_t marble_application_createlayer(
  * cb_onevent:  Called upon receiving a system event.
  */
 struct marble_layer_cbs {
-	void (MB_CALLBACK *cb_onpush)(int layerid, void *p_userdata);
-	void (MB_CALLBACK *cb_onpop)(int layerid, void *p_userdata);
+	void (MB_CALLBACK *cb_oncreate)(int layerid, void *p_userdata);
 	void (MB_CALLBACK *cb_onupdate)(int layerid, float ft, void *p_userdata);
 	void (MB_CALLBACK *cb_onevent)(int layerid, struct marble_event *ps_event, void *p_userdata);
+	void (MB_CALLBACK *cb_ondestroy)(int layerid, void* p_userdata);
 };
 
 
