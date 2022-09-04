@@ -49,3 +49,20 @@ struct mbe_scrollinfo {
 };
 
 
+/*
+ * Enable visual styles to make UI look more modern
+ * on modern platforms. I did not dislike the default design on
+ * Windows 10, though. On Windows 11, however, things look weird
+ * as some controls seem to have a more modern look by default,
+ * such as scrollbars.
+ * We just enable visual styles to make the look consistent.
+ */
+#pragma comment(linker,                                          \
+	"\"/manifestdependency:type='win32'"                         \
+	"name='Microsoft.Windows.Common-Controls' version='6.0.0.0'" \
+	"processorArchitecture='*'"                                  \
+	"publicKeyToken='6595b64144ccf1df'"                          \
+	"language='*'\""                                             \
+)
+
+
