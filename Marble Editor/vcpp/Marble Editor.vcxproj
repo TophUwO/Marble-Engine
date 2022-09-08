@@ -74,28 +74,28 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
-    <OutDir>..\bin\</OutDir>
+    <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
-    <OutDir>..\bin\</OutDir>
+    <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
-    <OutDir>..\bin\</OutDir>
+    <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
-    <OutDir>..\bin\</OutDir>
+    <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -110,7 +110,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>marblemn_x86d.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -129,7 +129,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>marblemn32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -144,7 +144,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>marblemn_x64d.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -163,7 +163,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>marblemn64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -174,9 +174,11 @@
     <ClInclude Include="..\include\base.h" />
     <ClInclude Include="..\include\editor.h" />
     <ClInclude Include="..\include\tsetview.h" />
+    <ClCompile Include="..\src\tabview.c" />
     <ClCompile Include="..\src\tsetview.c">
       <FileType>CppHeader</FileType>
     </ClCompile>
+    <ClInclude Include="..\include\tabview.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

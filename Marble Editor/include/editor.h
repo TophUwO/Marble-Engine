@@ -1,7 +1,10 @@
 #pragma once
 
 #include <..\vcpp\resource.h>
+
 #include <tsetview.h>
+
+#include <tabview.h>
 
 
 /*
@@ -28,8 +31,8 @@ extern struct mbe_application {
 		BOOL mf_isdest;  /* destroy flag */
 	} ms_flags;
 
-	/* tileset view */
-	struct mbe_tsetview ms_tsview;
+	struct mbe_tsetview ms_tsview;   /* tileset view */
+	struct mbe_tabview *mps_lvlview; /* level view */
 } gls_editorapp;
 
 

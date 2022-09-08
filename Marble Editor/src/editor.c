@@ -78,12 +78,14 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 	NMHDR *ps_nmhdr;
 	int cursel;
 	struct mbe_tsetview *ps_tsview;
+	struct mbe_wndsize s_wndsize;
+	POINT s_pt;
 
 	switch (msg) {
 		case WM_CREATE:
 			mbe_editor_internal_loadmenu(p_hwnd);
 			mbe_editor_internal_loadresources();
-
+			
 			return FALSE;
 		case WM_SIZE:
 			/* Resize tileset view. */
@@ -92,6 +94,20 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 				GET_X_LPARAM(lparam),
 				GET_Y_LPARAM(lparam)
 			);
+
+			/* Resize level view. */
+			if (gls_editorapp.mps_lvlview == NULL)
+				return FALSE;
+
+			mbe_base_getwindowpos(gls_editorapp.mps_lvlview->mp_hwndtab, &s_pt);
+
+			s_wndsize = (struct mbe_wndsize){
+				.m_xpos   = s_pt.x,
+				.m_ypos   = 0,
+				.m_width  = GET_X_LPARAM(lparam) - s_pt.x,
+				.m_height = GET_Y_LPARAM(lparam)
+			};
+			mbe_tabview_resize(gls_editorapp.mps_lvlview, &s_wndsize);
 
 			return FALSE;
 		case WM_COMMAND:
@@ -210,6 +226,8 @@ marble_ecode_t mbe_editor_init(
 	if (InitCommonControlsEx(&s_ctrls) == false)
 		return MARBLE_EC_REGWNDCLASS;
 
+	mbe_tabview_inl_regwndclass();
+
 	/* Create main window. */
 	marble_ecode_t res = mbe_editor_internal_createmainwnd(p_hinst);
 	if (res != MARBLE_EC_OK)
@@ -219,6 +237,18 @@ marble_ecode_t mbe_editor_init(
 	res = mbe_tsetview_init(gls_editorapp.mp_hwnd, &gls_editorapp.ms_tsview);
 	if (res != MARBLE_EC_OK)
 		return res;
+
+	/* Initialize level view. */
+	RECT s_viewrect;
+	GetClientRect(gls_editorapp.mp_hwnd, &s_viewrect);
+
+	struct mbe_wndsize const s_size = {
+		.m_xpos   = 210,
+		.m_ypos   = 0,
+		.m_width  = s_viewrect.right - 210,
+		.m_height = s_viewrect.bottom
+	};
+	res = mbe_tabview_create(gls_editorapp.mp_hwnd, &s_size, &gls_editorapp.mps_lvlview);
 
 	/* Show main window. */
 	UpdateWindow(gls_editorapp.mp_hwnd);
@@ -260,6 +290,7 @@ marble_ecode_t mbe_editor_run(void) {
 
 	/* Free resources and exit. */
 	mbe_tsetview_uninit(&gls_editorapp.ms_tsview);
+	mbe_tabview_destroy(&gls_editorapp.mps_lvlview);
 
 	mbe_editor_internal_freeresources();
 #if (defined _DEBUG)

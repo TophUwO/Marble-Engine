@@ -7,6 +7,8 @@
 #define MBE_DLG_BmpTS                   110
 #define MBE_TSetView_ContextMenu        112
 #define MBE_DLG_RenameTS                113
+#define MBE_DLG_NewLevel                115
+#define MBE_DLG_NewLvl                  115
 #define EmptyTSDlg_EDIT_Name            1001
 #define EmptyTSDlg_EDIT_Comment         1002
 #define EmptyTSDlg_EDIT_Width           1003
@@ -44,6 +46,16 @@
 #define RenameTSDLG_BTN_Apply           1049
 #define RenameTSDLG_BTN_Cancel          1050
 #define IDC_TREE1                       1054
+#define NewLvlDlg_EDIT_Name             1055
+#define NewLvlDlg_EDIT_Comment          1056
+#define NewLvlDlg_EDIT_Width            1057
+#define NewLvlDlg_EDIT_Height           1058
+#define NewLvlDlg_CB_LockAspect         1059
+#define NewLvlDlg_SPIN_Width            1060
+#define NewLvlDlg_SPIN_Height           1061
+#define NewLvlDlg_BTN_Ok                1062
+#define NewLvlDlg_BTN_Cancel            1063
+#define NewLvlDlg_BTN_Reset             1064
 #define MBE_FileNew_Tileset             40005
 #define ID_TILESET_FROMDIALOG           40006
 #define ID_TILESET_FROMBITMAP           40007
@@ -64,14 +76,16 @@
 #define MBE_TSetMenu_Reload             40022
 #define MBE_TSetMenu_Rename             40023
 #define MBE_TSetMenu_Close              40024
+#define ID_NEW_LEVEL                    40025
+#define MBE_FileNew_Level               40026
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        115
-#define _APS_NEXT_COMMAND_VALUE         40025
-#define _APS_NEXT_CONTROL_VALUE         1055
+#define _APS_NEXT_RESOURCE_VALUE        117
+#define _APS_NEXT_COMMAND_VALUE         40027
+#define _APS_NEXT_CONTROL_VALUE         1065
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

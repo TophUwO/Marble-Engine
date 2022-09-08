@@ -308,7 +308,7 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 		ps_window->mps_renderer->m_orix,
 		ps_window->mps_renderer->m_oriy,
 		ps_window->mps_renderer->m_orix + ps_window->ms_data.ms_ext.ms_client.m_width,
-		ps_window->mps_renderer->m_oriy + ps_window->ms_data.ms_ext.ms_client.m_width
+		ps_window->mps_renderer->m_oriy + ps_window->ms_data.ms_ext.ms_client.m_height
 	};
 	D2D1_BRUSH_PROPERTIES s_brushprops = {
 		.opacity = 1.0f
@@ -344,7 +344,7 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 _Success_ok_ static marble_ecode_t marble_application_internal_cleanup(
 	marble_ecode_t ecode /* error code to return to system */
 ) {
-	marble_log_info(NULL, "System shutdown ...", 0);
+	marble_log_info(NULL, "System shutdown ...");
 
 	marble_window_destroy(&gls_app.ps_wnd);
 
@@ -456,7 +456,7 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 lbl_CLEANUP:
 	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
 
-	if (gls_app.ms_state.m_isfatal) {
+	if (gls_app.ms_state.m_isfatal == true) {
 		TCHAR a_buf[1024] = { 0 };
 
 		_stprintf_s(

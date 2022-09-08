@@ -9,6 +9,7 @@
 #include <window.h>
 #include <renderer.h>
 #include <asset.h>
+#include <level.h>
 #include <log.h>
 
 

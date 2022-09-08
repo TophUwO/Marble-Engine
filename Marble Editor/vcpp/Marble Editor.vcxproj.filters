@@ -24,6 +24,9 @@
     <ClCompile Include="..\src\tsetview.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\tabview.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\editor.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\tabview.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

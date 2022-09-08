@@ -151,10 +151,8 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_push(
 	_In_ struct marble_layer *ps_layer, /* layer to push */
 	     bool istopmost                 /* push as topmost? */
 ) { MB_ERRNO
-	if (ps_layer == NULL)
-		return MARBLE_EC_INTERNALPARAM;
-	if (ps_layer->m_ispushed == true)
-		return MARBLE_EC_LAYERALREADYPUSHED;
+	if (ps_layer == NULL)             return MARBLE_EC_INTERNALPARAM;
+	if (ps_layer->m_ispushed == true) return MARBLE_EC_LAYERALREADYPUSHED;
 
 	if (istopmost)
 		ecode = marble_util_vec_pushback(gls_app.ms_layerstack.mps_vec, ps_layer);
@@ -183,7 +181,7 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_push(
 _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 	_In_ struct marble_layer *ps_layer /* layer to pop */
 ) {
-	if (ps_layer == NULL)                       return MARBLE_EC_INTERNALPARAM;
+	if (ps_layer == NULL)                        return MARBLE_EC_INTERNALPARAM;
 	if (gls_app.ms_layerstack.m_isinit == false) return MARBLE_EC_COMPSTATE;
 
 	/* Scan the entire layer stack. */

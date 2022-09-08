@@ -57,6 +57,7 @@ BEGIN
         POPUP "New"
         BEGIN
             MENUITEM "Tileset",                     MBE_FileNew_Tileset
+            MENUITEM "Level",                       MBE_FileNew_Level, HELP
         END
         POPUP "Import"
         BEGIN
@@ -102,7 +103,7 @@ BEGIN
     PUSHBUTTON      "Choose >>",EmptyTSDlg_BTN_ChooseCol,233,123,50,14
     DEFPUSHBUTTON   "OK",EmptyTSDlg_BTN_Ok,198,155,50,14
     PUSHBUTTON      "Cancel",EmptyTSDlg_BTN_Cancel,252,155,50,14
-    DEFPUSHBUTTON   "Reset",EmptyTSDlg_BTN_Reset,5,155,50,14
+    PUSHBUTTON      "Reset",EmptyTSDlg_BTN_Reset,5,155,50,14
     GROUPBOX        "Options",IDC_STATIC,6,60,294,90
     LTEXT           "Name",IDC_STATIC,12,9,19,8
     LTEXT           "Comment",IDC_STATIC,12,24,36,8
@@ -157,6 +158,28 @@ BEGIN
     LTEXT           "New Name",IDC_STATIC,10,15,35,8
 END
 
+MBE_DLG_NewLvl DIALOGEX 0, 0, 309, 151
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Create new level"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    EDITTEXT        NewLvlDlg_EDIT_Name,54,6,132,14,ES_AUTOHSCROLL
+    EDITTEXT        NewLvlDlg_EDIT_Comment,54,24,246,30,ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL
+    EDITTEXT        NewLvlDlg_EDIT_Width,54,78,30,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        NewLvlDlg_EDIT_Height,54,96,30,14,ES_AUTOHSCROLL | ES_NUMBER
+    DEFPUSHBUTTON   "OK",NewLvlDlg_BTN_Ok,198,130,50,14
+    PUSHBUTTON      "Cancel",NewLvlDlg_BTN_Cancel,252,130,50,14
+    PUSHBUTTON      "Reset",NewLvlDlg_BTN_Reset,5,130,50,14
+    GROUPBOX        "Options",IDC_STATIC,6,60,296,64
+    LTEXT           "Name",IDC_STATIC,12,9,19,8
+    LTEXT           "Comment",IDC_STATIC,12,24,36,8
+    CONTROL         "Lock",NewLvlDlg_CB_LockAspect,"Button",BS_AUTOCHECKBOX,100,89,31,10
+    LTEXT           "Width",IDC_STATIC,18,81,24,8
+    CONTROL         "",NewLvlDlg_SPIN_Width,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,78,10,14
+    LTEXT           "Height",IDC_STATIC,18,99,24,8
+    CONTROL         "",NewLvlDlg_SPIN_Height,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,96,11,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -189,6 +212,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 49
     END
+
+    MBE_DLG_NewLvl, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 144
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -209,6 +240,11 @@ BEGIN
 END
 
 MBE_DLG_RenameTS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+MBE_DLG_NewLvl AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

@@ -3,12 +3,30 @@
 #include <windows.h>
 #include <commctrl.h>
 
+/*
+ * Enable visual styles to make UI look more modern
+ * on modern platforms. I did not dislike the default design on
+ * Windows 10, though. On Windows 11, however, things look weird
+ * as some controls seem to have a more modern look by default,
+ * such as scrollbars.
+ * We just enable visual styles to make the look consistent.
+ */
+#pragma comment(linker,                       \
+	"\"/manifestdependency:                   \
+     type='win32'                             \
+	 name='Microsoft.Windows.Common-Controls' \
+     version='6.0.0.0'                        \
+	 processorArchitecture='*'                \
+	 publicKeyToken='6595b64144ccf1df'        \
+	 language='*'\""                          \
+)
+
 
 /*
  * All of the following "length" definitions denote
  * lengths in characters.
  */
-#define MBE_MAXTSNAME (32)   /* max. tileset name length */
+#define MBE_MAXIDLEN (32)   /* max. tileset name length */
 #define MBE_MAXCMT    (256)  /* max. comment length */
 #define MBE_MAXTSC    (16)   /* max. number of tilesets per view */
 #define MBE_MAXPATH   (1024) /* max. number of characters in a path */
@@ -48,21 +66,51 @@ struct mbe_scrollinfo {
 	BOOL m_yscrv;       /* vertical scrollbar visible state */
 };
 
+/*
+ * Window size parameters. Used when a window is to be
+ * created.
+ * **m_xpos** and **m_ypos** are relative to the
+ * upper-left corner of the parent window, or the screen
+ * if there is none.
+ */
+struct mbe_wndsize {
+	int m_xpos;   /* x-position, in pixels */
+	int m_ypos;   /* y-positon, in pixels */
+	int m_width;  /* width, in pixels */
+	int m_height; /* height, in pixels */
+};
+
 
 /*
- * Enable visual styles to make UI look more modern
- * on modern platforms. I did not dislike the default design on
- * Windows 10, though. On Windows 11, however, things look weird
- * as some controls seem to have a more modern look by default,
- * such as scrollbars.
- * We just enable visual styles to make the look consistent.
+ * Calculates the position of a window relative
+ * to the upper-left corner of its parent window.
+ * 
+ * Returns nothing.
  */
-#pragma comment(linker,                                         \
-	"\"/manifestdependency:type='win32'                         \
-	 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
-	 processorArchitecture='*'                                  \
-	 publicKeyToken='6595b64144ccf1df'                          \
-	 language='*'\""                                            \
-)
+inline void mbe_base_getwindowpos(
+	_In_  HWND p_hwnd,
+	_Out_ POINT *ps_outpt
+) {
+	if (p_hwnd == NULL || ps_outpt == NULL)
+		return;
+
+	/* Get window position relative to screen. */
+	RECT s_rect;
+	GetWindowRect(p_hwnd, &s_rect);
+
+	/*
+	 * Transform screen coordinates relative
+	 * to the upper-left corner of the parent
+	 *  window of **p_hwnd**.
+	 */
+	MapWindowPoints(
+		HWND_DESKTOP,
+		GetParent(p_hwnd),
+		(POINT *)&s_rect,
+		2
+	);
+
+	*ps_outpt = *(POINT *)&s_rect;
+}
 
 

@@ -93,7 +93,7 @@ struct marble_layer_cbs {
  * 
  * Returns a pointer to the userdata structure that
  * id currently attached to the layer. This is the same
- * pointer that was submitted by a past call to 
+ * pointer that was submitted by a past call to
  * "marble_application_createlayer()" or "marble_layer_submituserdata()".
  * If the layer does not exist, or there is no userdata currently
  * attached to the layer, the function returns NULL.

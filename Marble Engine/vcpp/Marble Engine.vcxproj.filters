@@ -54,6 +54,9 @@
     <ClCompile Include="..\src\log.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\level.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\error.h">
@@ -100,6 +103,9 @@
     </ClInclude>
     <ClInclude Include="..\include\external\tfmt.h">
       <Filter>Header Files\external</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\level.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

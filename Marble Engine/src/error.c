@@ -52,7 +52,8 @@ static char const *const glapz_ecodestrs[] = {
 	"MARBLE_EC_LOADRESOURCE",
 	"MARBLE_EC_CREATEMEMDC",
 	"MARBLE_EC_CREATEMEMBITMAP",
-	"MARBLE_EC_GETDC"
+	"MARBLE_EC_GETDC",
+	"MARBLE_EC_GETWNDCLASSATTRIBS"
 };
 
 /* Error code descriptions */
@@ -106,7 +107,9 @@ static char const *const glapz_ecodedescs[] = {
 	"Resource could not be loaded.",
 	"Could not create GDI memory device context.",
 	"Could not create GDI memory bitmap",
-	"Could not obtain GDI device context."
+	"Could not obtain GDI device context.",
+	"Could not obtain window class attributes.",
+	"Failed to create region."
 };
 
 

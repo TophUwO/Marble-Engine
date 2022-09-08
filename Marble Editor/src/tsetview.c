@@ -30,7 +30,7 @@ struct mbe_tsviewdlg_cp {
 struct mbe_dlgnewts_cp {
 	struct mbe_tsviewdlg_cp _base; /* common create parameters */
 
-	TCHAR maz_name[MBE_MAXTSNAME]; /* tileset name */
+	TCHAR maz_name[MBE_MAXIDLEN];  /* tileset name */
 	TCHAR maz_cmt[MBE_MAXCMT];     /* comment/description */
 
 	BOOL m_istrans; /* transparent background? */
@@ -76,7 +76,7 @@ size_t const gl_nudopts = ARRAYSIZE(glas_udopts);
  * in this table.
  */
 static struct { int m_id; size_t m_len; } const glas_eclimits[] = {
-	{ EmptyTSDlg_EDIT_Name,    MBE_MAXTSNAME - 1 },
+	{ EmptyTSDlg_EDIT_Name,    MBE_MAXIDLEN - 1  },
 	{ EmptyTSDlg_EDIT_Comment, MBE_MAXCMT - 1    },
 	{ EmptyTSDlg_EDIT_Width,   4                 },
 	{ EmptyTSDlg_EDIT_Height,  4                 },
@@ -381,7 +381,7 @@ static BOOL CALLBACK mbe_tsetview_emptytsdlg_dlgproc(
 					 * throughout the lifetime of the dialog.
 					 */
 					if (wparam == EmptyTSDlg_BTN_Ok) {
-						GetWindowText(MBE_DLGWND(EmptyTSDlg_EDIT_Name), ps_param->maz_name, MBE_MAXTSNAME);
+						GetWindowText(MBE_DLGWND(EmptyTSDlg_EDIT_Name), ps_param->maz_name, MBE_MAXIDLEN);
 						GetWindowText(MBE_DLGWND(EmptyTSDlg_EDIT_Comment), ps_param->maz_cmt, MBE_MAXCMT);
 						
 						mbe_tsetview_emptytsdlg_writeback(p_hwnd, ps_param);
@@ -739,8 +739,8 @@ static BOOL CALLBACK mbe_tsetview_bmptsdlg_dlgproc(
  * dialog.
  */
 struct mbe_renametsdlg_cp {
-	BOOL  m_renamefile;            /* rename file on disk? */
-	TCHAR maz_name[MBE_MAXTSNAME]; /* new name */
+	BOOL  m_renamefile;           /* rename file on disk? */
+	TCHAR maz_name[MBE_MAXIDLEN]; /* new name */
 };
 
 
@@ -821,7 +821,7 @@ static BOOL CALLBACK mbe_tsetview_renametsdlg_dlgproc(
 							GetWindowText(
 								MBE_DLGWND(RenameTSDLG_EDIT_NewName),
 								ps_cps->maz_name,
-								MBE_MAXTSNAME
+								MBE_MAXIDLEN
 							);
 
 							break;
@@ -1754,7 +1754,7 @@ static LRESULT CALLBACK mbe_tsetview_internal_wndproc(
 					for (int y = 0, ympos = ps_udata->ms_scr.ms_yscr.nPos; y < s_rect.bottom; y += gl_viewtsize, ympos += ps_udata->ms_sz.m_tsize)
 						StretchBlt(
 							p_hdc,
-							x, 
+							x,
 							y,
 							gl_viewtsize,
 							gl_viewtsize,
@@ -2080,7 +2080,7 @@ static marble_ecode_t mbe_tsetview_internal_createtsfrombmp(
 		NULL,
 		0,
 		ps_tset->maz_name,
-		MBE_MAXTSNAME,
+		MBE_MAXIDLEN,
 		NULL,
 		0
 	);

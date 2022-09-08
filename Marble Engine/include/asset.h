@@ -7,6 +7,8 @@
 enum marble_asset_type {
 	MARBLE_ASSETTYPE_UNKNOWN    = 0, /* reserved */
 
+	MARBLE_ASSETTYPE_LEVEL,          /* level/map asset */
+
 	__MARBLE_NUMASSETTYPES__         /* for internal use */
 };
 
@@ -52,17 +54,17 @@ struct marble_asset_commonhead {
 		};
 	};
 	/*
-	* m_flags reference
-	* 
-	* Used for additional flags.
-	* 
-	* +--------+--------+--------+--------+
-	* |        |        |        |        |
-	* +--------+--------+--------+--------+
-	* 0        7        15       23       31
-	* 
-	* [0] ... asset is persistent (will not be unloaded when refcount becomes 0)
-	*/
+	 * m_flags reference
+	 * 
+	 * Used for additional flags.
+	 * 
+	 * +--------+--------+--------+--------+
+	 * |        |        |        |        |
+	 * +--------+--------+--------+--------+
+	 * 0        7        15       23       31
+	 * 
+	 * [0] ... asset is persistent (will not be unloaded when refcount becomes 0)
+	 */
 	uint32_t m_flags;
 	char     maz_strid[MB_STRINGIDMAX]; /* asset string ID */
 	uint32_t m_numofdeps;               /* number of dependency table entries */
@@ -78,7 +80,7 @@ struct marble_asset_commonhead {
  */
 struct marble_asset {
 	int   m_type;                     /* asset type ID */
-	char  maz_strid[MB_STRINGIDMAX];   /* asset string ID */
+	char  maz_strid[MB_STRINGIDMAX];  /* asset string ID */
 	int   m_refcount;                 /* internal ref-count */
 
 	struct marble_util_vec *mps_deps; /* dependencies loaded by the asset */ 

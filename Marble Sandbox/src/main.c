@@ -9,7 +9,7 @@ struct layer1_userdata {
 void MB_CALLBACK marble_callback_submitsettings(char const *pz_cmdline, struct marble_app_settings *ps_settings) {
 	*ps_settings = (struct marble_app_settings){
 		.mpz_title  = "Marble Engine Sandbox",
-		.m_width    = 32,
+		.m_width    = 48,
 		.m_height   = 32,
 		.m_tilesize = 24
 	};

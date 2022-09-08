@@ -10,10 +10,10 @@
  * Structure representing a logical tileset. 
  */
 struct mbe_tset {
-	TCHAR maz_name[MBE_MAXTSNAME];  /* tileset name */
-	TCHAR maz_cmt[MBE_MAXCMT];      /* comment/descriptio*/
+	TCHAR maz_name[MBE_MAXIDLEN];    /* tileset name */
+	TCHAR maz_cmt[MBE_MAXCMT];       /* comment/description */
 	HWND mp_hwnd;                    /* tileset view window */
-	BOOL m_isinit;                  /* init state */
+	BOOL m_isinit;                   /* init state */
 	struct mbe_tsetview *mps_parent; /* parent control */
 
 	/*

@@ -190,6 +190,7 @@
     <ClCompile Include="..\src\event.c" />
     <ClCompile Include="..\src\external\tfmt.c" />
     <ClCompile Include="..\src\layer.c" />
+    <ClCompile Include="..\src\level.c" />
     <ClCompile Include="..\src\log.c" />
     <ClCompile Include="..\src\renderer.c" />
     <ClCompile Include="..\src\window.c" />
@@ -202,6 +203,7 @@
     <ClInclude Include="..\include\entrypoint.h" />
     <ClInclude Include="..\include\event.h" />
     <ClInclude Include="..\include\external\tfmt.h" />
+    <ClInclude Include="..\include\level.h" />
     <ClInclude Include="..\include\log.h" />
     <ClInclude Include="..\include\marble.h" />
     <ClInclude Include="..\include\error.h" />
