@@ -111,6 +111,9 @@ static void mbe_dialog_int_resetctrls(
 				break;
 			case MBE_DLGCTRLTYPE_EDIT:
 				SetWindowText(p_hctrl, ps_tmp->_edit.mpz_defstr);
+				
+				if (ps_tmp->_edit.m_maxlen > 0)
+					SendMessage(p_hctrl, EM_SETLIMITTEXT, ps_tmp->_edit.m_maxlen, 0);
 
 				break;
 		}
@@ -137,10 +140,10 @@ static BOOL mbe_dialog_int_btncallback(
 	 * The default behavior is to return TRUE if no callback is
 	 * associated with the button.
 	 */
-	if (ps_ctrlinfo->_button.mpfn_click == NULL)
+	if (ps_ctrlinfo->_button.mpfn_onselect == NULL)
 		return TRUE;
 
-	return (*ps_ctrlinfo->_button.mpfn_click)(p_hwnd, p_udata);
+	return (*ps_ctrlinfo->_button.mpfn_onselect)(p_hwnd, p_udata);
 }
 
 /*

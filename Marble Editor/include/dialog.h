@@ -56,7 +56,7 @@ struct mbe_dlg_ctrlinfo {
 	 */
 	off_t  m_wboff;
 	size_t m_wbsize;    /* size of writeback buffer, in bytes */
-	_Bool  m_isenabled; /* default enabled state */
+	BOOL   m_isenabled; /* default enabled state */
 	
 	/*
 	 * The member **m_type** declares what field
@@ -77,7 +77,7 @@ struct mbe_dlg_ctrlinfo {
 			 * AFTER the system has run any predefined
 			 * callbacks.
 			 */
-			BOOL (MB_CALLBACK *mpfn_click)(HWND, void *);
+			BOOL (MB_CALLBACK *mpfn_onselect)(HWND, void *);
 		} _button;
 
 		/*
@@ -110,6 +110,7 @@ struct mbe_dlg_ctrlinfo {
 			 * an empty string.
 			 */
 			TCHAR *mpz_defstr;
+			int m_maxlen;
 		} _edit;
 	};
 };
