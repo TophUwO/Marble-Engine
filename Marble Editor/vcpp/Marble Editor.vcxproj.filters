@@ -27,6 +27,9 @@
     <ClCompile Include="..\src\tabview.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\dialog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\editor.h">
@@ -42,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\tabview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dialog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

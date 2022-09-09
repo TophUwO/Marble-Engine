@@ -5,6 +5,7 @@
 #include <tsetview.h>
 
 #include <tabview.h>
+#include <dialog.h>
 
 
 /*

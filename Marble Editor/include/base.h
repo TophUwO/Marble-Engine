@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <commctrl.h>
 
+#include <def.h>
+
 /*
  * Enable visual styles to make UI look more modern
  * on modern platforms. I did not dislike the default design on
@@ -44,9 +46,19 @@
 
 /*
  * Custom window messages defined by this application.
- * Offset by WM_USER.
+ * Offset by WM_APP.
  */
-#define MBE_WM_INITRES (WM_USER + 1) /* sent when the window has to initialize its own resources */
+
+/*
+ * sent when the window has to initialize
+ * its own resources
+ */
+#define MBE_WM_INITRES     (WM_APP + 1)
+/*
+ * sent to a dialog window when its controls
+ * and its userdata must be initialized
+ */
+#define MBE_WM_INITDLGDATA (WM_APP + 2)
 
 /*
  * Extra command for the scrollbar update function to
@@ -107,7 +119,7 @@ inline void mbe_base_getwindowpos(
 		HWND_DESKTOP,
 		GetParent(p_hwnd),
 		(POINT *)&s_rect,
-		2
+		1
 	);
 
 	*ps_outpt = *(POINT *)&s_rect;

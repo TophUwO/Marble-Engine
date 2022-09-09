@@ -167,11 +167,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\dialog.c" />
     <ClCompile Include="..\src\editor.c" />
     <ClCompile Include="..\src\main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\base.h" />
+    <ClInclude Include="..\include\dialog.h" />
     <ClInclude Include="..\include\editor.h" />
     <ClInclude Include="..\include\tsetview.h" />
     <ClCompile Include="..\src\tabview.c" />

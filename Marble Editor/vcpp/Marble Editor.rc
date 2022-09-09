@@ -50,21 +50,21 @@ END
 // Menu
 //
 
-MBE_MainWnd_Menubar MENU
+MBE_MainWnd_Menubar MENUEX
 BEGIN
-    POPUP "File"
+    POPUP "File",                           65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        POPUP "New"
+        POPUP "New",                            65535,MFT_STRING,MFS_ENABLED
         BEGIN
-            MENUITEM "Tileset",                     MBE_FileNew_Tileset
-            MENUITEM "Level",                       MBE_FileNew_Level, HELP
+            MENUITEM "Tileset",                     MBE_FileNew_Tileset,MFT_STRING,MFS_ENABLED
+            MENUITEM "Level",                       MBE_FileNew_Level,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
         END
-        POPUP "Import"
+        POPUP "Import",                         65535,MFT_STRING,MFS_ENABLED
         BEGIN
-            MENUITEM "Tileset from Bitmap",         MBE_Menubar_File_Import_BmpTS
+            MENUITEM "Tileset from Bitmap",         MBE_Menubar_File_Import_BmpTS,MFT_STRING,MFS_ENABLED
         END
-        MENUITEM SEPARATOR
-        MENUITEM "Close",                       MBE_MainMenu_File_Close
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Close",                       MBE_MainMenu_File_Close,MFT_STRING,MFS_ENABLED
     END
 END
 
