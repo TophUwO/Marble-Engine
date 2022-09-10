@@ -32,7 +32,12 @@ static int const gl_viewtsize = 32;
 static void mbe_levelview_int_destroylvl(
 	_Uninit_(pps_lvl) struct mbe_level **pps_lvl /* level to destroy */
 ) {
+	/* Destroy level asset. */
+	marble_levelasset_destroy(&(*pps_lvl)->ps_asset);
 
+	/* Destroy struct memory. */
+	free(*pps_lvl);
+	*pps_lvl = NULL;
 }
 
 _Critical_ static marble_ecode_t mbe_levelview_int_newlvl(
@@ -124,15 +129,8 @@ static BOOL MB_CALLBACK mbe_levelview_int_ondestroy(
 	if (ps_tpage == NULL)
 		return FALSE;
 
-	struct mbe_level *ps_lvl = (struct mbe_level *)ps_tpage->mp_udata;
-	if (ps_lvl == NULL)
-		return FALSE;
-
-	/* Destroy level asset. */
-	marble_levelasset_destroy(&ps_lvl->ps_asset);
-
-	/* Destroy struct memory. */
-	free(ps_lvl);
+	/* Destroy level structure. */
+	mbe_levelview_int_destroylvl((struct mbe_level **)&ps_tpage->mp_udata);
 
 	return TRUE;
 }
