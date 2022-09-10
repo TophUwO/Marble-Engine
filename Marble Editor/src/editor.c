@@ -5,21 +5,6 @@ struct mbe_application gls_editorapp = { NULL };
 
 
 /*
- * Opens a debug console that can be written to using
- * regular "printf()" calls.
- * Will not be used in distribution builds.
- * 
- * Returns nothing.
- */
-static void mbe_editor_internal_opendebugcon(void) {
-	if (AllocConsole() == TRUE) {
-		FILE *p_file;
-
-		freopen_s(&p_file, "CONOUT$", "wb", stdout);
-	}
-}
-
-/*
  * Loads system resources. These resources may be used by other
  * windows of the editor application.
  * 
@@ -216,11 +201,10 @@ static void mbe_editor_internal_freeresources(void) {
 marble_ecode_t mbe_editor_init(
 	HINSTANCE p_hinst,
 	LPSTR pz_cmdline
-) {
-#if (defined _DEBUG || MBE_DEVBUILD)
-	/* Open debug console. */
-	mbe_editor_internal_opendebugcon();
-#endif
+) { MB_ERRNO
+	ecode = marble_log_init("editorlog.txt");
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
 
 	/* Initialize common controls. */
 	INITCOMMONCONTROLSEX s_ctrls = {
@@ -262,6 +246,8 @@ marble_ecode_t mbe_editor_init(
 }
 
 marble_ecode_t mbe_editor_run(void) {
+	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
+
 	MSG s_msg;
 	while (GetMessage(&s_msg, NULL, 0, 0) > 0) {
 		TranslateMessage(&s_msg);
@@ -292,9 +278,13 @@ marble_ecode_t mbe_editor_run(void) {
 		DispatchMessage(&s_msg);
 	}
 
+	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
+	marble_log_info(NULL, "Application shutdown ...");
+
 	/* Free resources and exit. */
 	mbe_tsetview_uninit(&gls_editorapp.ms_tsview);
 	mbe_tabview_destroy(&gls_editorapp.mps_lvlview);
+	marble_log_uninit();
 
 	mbe_editor_internal_freeresources();
 #if (defined _DEBUG)

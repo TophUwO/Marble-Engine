@@ -44,7 +44,7 @@
 #pragma endregion
 
 
-#if (defined MB_DYNAMIC_LIBRARY)
+#if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
 /*
  * Initializes logger. If **pz_logfile** is not NULL,
  * the file is created and opened; an existing file is
@@ -52,7 +52,7 @@
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ extern marble_ecode_t marble_log_init(
+_Critical_ MB_API marble_ecode_t marble_log_init(
 	_In_opt_z_ char const *pz_logfile
 );
 
@@ -64,7 +64,7 @@ _Critical_ extern marble_ecode_t marble_log_init(
  * 
  * Returns nothing.
  */
-extern void marble_log_uninit(void);
+MB_API void marble_log_uninit(void);
 #endif
 
 

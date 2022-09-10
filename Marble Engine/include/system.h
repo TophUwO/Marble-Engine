@@ -66,14 +66,12 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
 		return MARBLE_EC_MEMALLOC;
 	}
 
-#if (defined MB_DYNAMIC_LIBRARY)
 	MB_LOG_DEBUG(
 		"Allocator: sz=%zu [ori: %s (l: %zu)]",
 		(int)size,
 		pz_fn,
 		line
 	);
-#endif
 
 	return MARBLE_EC_OK;
 }

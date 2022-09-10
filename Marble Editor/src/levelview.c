@@ -30,7 +30,9 @@ struct mbe_levelview_dlgnewlvl_udata {
 static BOOL MB_CALLBACK mbe_levelview_newlvldlg_onok(HWND p_hwnd, void *p_udata) {
 	struct mbe_levelview_dlgnewlvl_udata *ps_udata = (struct mbe_levelview_dlgnewlvl_udata *)p_udata;
 
-	if (*ps_udata->pz_name == TEXT('\0')) {
+	if (ps_udata->pz_name == NULL || *ps_udata->pz_name == TEXT('\0')) {
+		MB_LOG_WARN("No (valid) level name was entered.", 0);
+
 		MessageBox(
 			p_hwnd,
 			TEXT("You must enter a level name."),
@@ -61,6 +63,7 @@ BOOL mbe_levelview_newlvlbydlg(
 	if (ps_tview == NULL || ps_tview->m_isinit == FALSE)
 		return FALSE;
 
+	struct mbe_tabpage *ps_tpage;
 	struct mbe_levelview_dlgnewlvl_udata s_udata;
 	BOOL res;
 
@@ -73,24 +76,26 @@ BOOL mbe_levelview_newlvlbydlg(
 		.m_udatasz    = sizeof s_udata,
 		.m_templ      = MBE_DLG_NewLvl
 	};
+	struct mbe_tabpage_callbacks s_cbs = {
+		.mpfn_oncreate = &mbe_levelview_int_oncreate
+	};
 
 	/* Run the dialog. */
 	res = mbe_dialog_dodialog(&s_info);
 	if (res == FALSE)
 		return FALSE;
 
-	struct mbe_tabpage_callbacks const s_cbs = {
-		.mpfn_oncreate = &mbe_levelview_int_oncreate
-	};
-
-	struct mbe_tabpage *ps_tpage;
-	return mbe_tabview_newpage(
+	res = mbe_tabview_newpage(
 		ps_tview,
 		s_udata.pz_name,
 		s_udata.pz_cmt,
 		&s_cbs,
 		&ps_tpage
 	);
+	if (res == TRUE)
+		MB_LOG_ERROR("Failed to create tab-view page.", 0);
+
+	return res;
 }
 #pragma endregion
 

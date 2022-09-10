@@ -4,6 +4,7 @@
 #include <commctrl.h>
 
 #include <def.h>
+#include <log.h>
 
 /*
  * Enable visual styles to make UI look more modern
