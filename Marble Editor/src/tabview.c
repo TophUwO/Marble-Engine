@@ -110,7 +110,7 @@ LRESULT CALLBACK mbe_tabpage_int_wndproc(
 lbl_DEFPROC:
 	return DefWindowProc(p_hwnd, msg, wparam, lparam);
 }
-#pragma region
+#pragma endregion
 
 
 #pragma region TABVIEW-CTRL
