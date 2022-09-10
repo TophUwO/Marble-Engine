@@ -236,7 +236,7 @@ marble_ecode_t mbe_editor_init(
 		.m_width  = s_viewrect.right - 200,
 		.m_height = s_viewrect.bottom
 	};
-	res = mbe_tabview_create(gls_editorapp.mp_hwnd, &s_size, &gls_editorapp.mps_lvlview);
+	res = mbe_tabview_create(gls_editorapp.mp_hwnd, &s_size, NULL, NULL, &gls_editorapp.mps_lvlview);
 
 	/* Show main window. */
 	UpdateWindow(gls_editorapp.mp_hwnd);

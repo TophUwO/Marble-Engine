@@ -1,23 +1,16 @@
 #include <editor.h>
+#include <level.h>
 
 
-#pragma region PAGE-CALLBACKS
-static BOOL MB_CALLBACK mbe_levelview_int_oncreate(_In_ struct mbe_tabpage *ps_tpage) {
-	if (ps_tpage == NULL)
-		return FALSE;
+struct mbe_level {
+	int m_twidth;
+	int m_theight;
+	int m_pwidth;
+	int m_pheight;
 
-	ps_tpage->mp_udata = NULL;
+	struct marble_levelasset *ps_asset;
+};
 
-	return 
-		mbe_tabview_addpage(
-			ps_tpage->ps_parent,
-			ps_tpage
-		) == MARBLE_EC_OK;
-}
-#pragma endregion
-
-
-#pragma region DLG-NEWLEVEL
 struct mbe_levelview_dlgnewlvl_udata {
 	TCHAR *pz_name;
 	TCHAR *pz_cmt;
@@ -27,6 +20,126 @@ struct mbe_levelview_dlgnewlvl_udata {
 };
 
 
+/*
+ * The size of a tile on screen, in pixels. Tiles of a
+ * different original size will be scaled-up/-down to
+ * this size.
+ */
+static int const gl_viewtsize = 32;
+
+
+#pragma region LEVEL
+static void mbe_levelview_int_destroylvl(
+	_Uninit_(pps_lvl) struct mbe_level **pps_lvl /* level to destroy */
+) {
+
+}
+
+_Critical_ static marble_ecode_t mbe_levelview_int_newlvl(
+	_In_            struct mbe_levelview_dlgnewlvl_udata *ps_crparams,
+	_Init_(pps_lvl) struct mbe_level **pps_lvl
+) { MB_ERRNO
+	if (ps_crparams == NULL || pps_lvl == NULL)
+		return MARBLE_EC_INTERNALPARAM;
+
+	/* Allocate memory for the level. */
+	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
+		sizeof **pps_lvl,
+		false,
+		false,
+		pps_lvl
+	);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+
+	/* Calculate level metrics. */
+	(*pps_lvl)->m_twidth  = ps_crparams->m_width;
+	(*pps_lvl)->m_theight = ps_crparams->m_height;
+	(*pps_lvl)->m_pwidth  = (*pps_lvl)->m_twidth * gl_viewtsize;
+	(*pps_lvl)->m_pheight = (*pps_lvl)->m_theight * gl_viewtsize;
+
+	/* Create Marble level asset. */
+	ecode = marble_levelasset_new(
+		(*pps_lvl)->m_twidth,
+		(*pps_lvl)->m_theight,
+		&(*pps_lvl)->ps_asset
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
+
+lbl_END:
+	if (ecode != MARBLE_EC_OK)
+		mbe_levelview_int_destroylvl(pps_lvl);
+
+	return ecode;
+}
+#pragma endregion
+
+
+#pragma region LEVELVIEW
+// TODO: ADD oncreate handlers
+#pragma endregion
+
+
+#pragma region PAGE-CALLBACKS
+static BOOL MB_CALLBACK mbe_levelview_int_oncreate(
+	_In_     struct mbe_tabpage *ps_tpage,
+	_In_opt_ void *p_crparams
+) {
+	if (ps_tpage == NULL)
+		return FALSE;
+
+	/* Create the level structure. */
+	if (p_crparams != NULL)
+		if (mbe_levelview_int_newlvl(
+			(struct mbe_levelview_dlgnewlvl_udata *)p_crparams,
+			(struct mbe_level **)&ps_tpage->mp_udata
+		) != MARBLE_EC_OK) return FALSE;
+
+	/* Add the page to the view. */
+	return 
+		mbe_tabview_addpage(
+			ps_tpage->ps_parent,
+			ps_tpage
+		) == MARBLE_EC_OK;
+}
+
+static BOOL MB_CALLBACK mbe_levelview_int_onresize(
+	_In_ struct mbe_tabpage *ps_tpage,
+	     int nwidth,
+	     int nheight
+) {
+	return TRUE;
+}
+
+/*
+ * Destroys the userdata of a tab-page holding a level object.
+ * 
+ * Returns nothing.
+ */
+static BOOL MB_CALLBACK mbe_levelview_int_ondestroy(
+	_Inout_ struct mbe_tabpage *ps_tpage /* page to destroy userdata of */
+) {
+	if (ps_tpage == NULL)
+		return FALSE;
+
+	struct mbe_level *ps_lvl = (struct mbe_level *)ps_tpage->mp_udata;
+	if (ps_lvl == NULL)
+		return FALSE;
+
+	/* Destroy level asset. */
+	marble_levelasset_destroy(&ps_lvl->ps_asset);
+
+	/* Destroy struct memory. */
+	free(ps_lvl);
+
+	return TRUE;
+}
+#pragma endregion
+
+
+#pragma region DLG-NEWLEVEL
 static BOOL MB_CALLBACK mbe_levelview_newlvldlg_onok(HWND p_hwnd, void *p_udata) {
 	struct mbe_levelview_dlgnewlvl_udata *ps_udata = (struct mbe_levelview_dlgnewlvl_udata *)p_udata;
 
@@ -68,7 +181,7 @@ BOOL mbe_levelview_newlvlbydlg(
 	BOOL res;
 
 	/* Set dialog attributes. */
-	struct mbe_dlginfo s_info = {
+	struct mbe_dlginfo const s_info = {
 		.mp_hparent   = gls_editorapp.mp_hwnd,
 		.map_ctrlinfo = glsa_newlvlctrlinfo,
 		.m_nctrlinfo  = ARRAYSIZE(glsa_newlvlctrlinfo),
@@ -76,8 +189,9 @@ BOOL mbe_levelview_newlvlbydlg(
 		.m_udatasz    = sizeof s_udata,
 		.m_templ      = MBE_DLG_NewLvl
 	};
-	struct mbe_tabpage_callbacks s_cbs = {
-		.mpfn_oncreate = &mbe_levelview_int_oncreate
+	struct mbe_tabpage_callbacks const s_cbs = {
+		.mpfn_oncreate  = &mbe_levelview_int_oncreate,
+		.mpfn_ondestroy = &mbe_levelview_int_ondestroy
 	};
 
 	/* Run the dialog. */
@@ -90,6 +204,7 @@ BOOL mbe_levelview_newlvlbydlg(
 		s_udata.pz_name,
 		s_udata.pz_cmt,
 		&s_cbs,
+		&s_udata,
 		&ps_tpage
 	);
 	if (res == TRUE)

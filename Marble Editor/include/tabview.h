@@ -3,14 +3,26 @@
 #include <base.h>
 
 
-struct mbe_tabpage_callbacks {
-	BOOL (MB_CALLBACK *mpfn_oncreate)(_In_ struct mbe_tabpage *);           /* executed when the page userdata must be initialized */
-	BOOL (MB_CALLBACK *mpfn_onpaint)(_In_ struct mbe_tabpage *);            /* executed when the page needs to be repained */
-	BOOL (MB_CALLBACK *mpfn_onresize)(_In_ struct mbe_tabpage *, int, int); /* executed after the page window was resized */
-	BOOL (MB_CALLBACK *mpfn_onselect)(_In_ struct mbe_tabpage *);           /* executed right before the page is selected */
-	BOOL (MB_CALLBACK *mpfn_onunselect)(_In_ struct mbe_tabpage *);         /* executed right before the page is unselected */
-	BOOL (MB_CALLBACK *mpfn_ondestroy)(_In_ struct mbe_tabpage *);          /* executed when it is time to destroy the page userdata */
+/*
+ * Callbacks for tab-view
+ */
+struct mbe_tabview_callbacks {
+	BOOL (MB_CALLBACK *mpfn_oncreate)(_In_ struct mbe_tabview *, _In_opt_ void *); /* executed when the tab-view userdata must be initialized */
+	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabview *);              /* executed when the tab-view userdata must be destroyed */
 };
+
+/*
+ * Callbacks for tab-page 
+ */
+struct mbe_tabpage_callbacks {
+	BOOL (MB_CALLBACK *mpfn_oncreate)(_In_ struct mbe_tabpage *, _In_opt_ void *); /* executed when the page userdata must be initialized */
+	BOOL (MB_CALLBACK *mpfn_onpaint)(_In_ struct mbe_tabpage *);                   /* executed when the page needs to be repained */
+	BOOL (MB_CALLBACK *mpfn_onresize)(_In_ struct mbe_tabpage *, int, int);        /* executed after the page window was resized */
+	BOOL (MB_CALLBACK *mpfn_onselect)(_In_ struct mbe_tabpage *);                  /* executed right before the page is selected */
+	BOOL (MB_CALLBACK *mpfn_onunselect)(_In_ struct mbe_tabpage *);                /* executed right before the page is unselected */
+	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabpage *);              /* executed when it is time to destroy the page userdata */
+};
+
 
 /*
  * Structure representing a tab page. The tab view
@@ -36,13 +48,17 @@ struct mbe_tabpage {
  * and switching of pages.
  */
 struct mbe_tabview {
-	HWND mp_hwndtab;    /* window of tab view */
-	HWND mp_hwndpage;   /* window of visible page */
-	RECT ms_dimensions; /* client dimensions */
-	BOOL m_isinit;      /* init-state */
+	HWND  mp_hwndtab;    /* window of tab view */
+	HWND  mp_hwndpage;   /* window of visible page */
+	RECT  ms_dimensions; /* client dimensions */
+	BOOL  m_isinit;      /* init-state */
+	void *mp_udata;      /* */
 
 	struct mbe_tabpage *mps_cursel;    /* currently selected page */
 	struct marble_util_vec *mps_pages; /* list of pages */
+
+	/* view callbacks */
+	struct mbe_tabview_callbacks ms_cbs;
 };
 
 
@@ -53,9 +69,11 @@ struct mbe_tabview {
  * Returns 0 on success, non-zero on failure.
  */
 _Critical_ extern marble_ecode_t mbe_tabview_create(
-	_In_              HWND p_hparent,                    /* parent window handle */
-	_In_              struct mbe_wndsize const *ps_size, /* size parameters */
-	_Init_(pps_tview) struct mbe_tabview **pps_tview     /* tabview to init */
+	_In_              HWND p_hparent,                             /* parent window handle */
+	_In_              struct mbe_wndsize const *ps_size,          /* size parameters */
+	_In_opt_          struct mbe_tabview_callbacks const *ps_cbs, /* optional callbacks */
+	_In_opt_          void *p_crparams,                           /* optional create-params for "oncreate" handler */
+	_Init_(pps_tview) struct mbe_tabview **pps_tview              /* tabview to init */
 );
 
 /*
@@ -89,6 +107,7 @@ _Critical_ extern marble_ecode_t mbe_tabview_newpage(
 	_In_              TCHAR *pz_title,                            /* page title */
 	_In_opt_          TCHAR *pz_comment,                          /* optional page description */
 	_In_opt_          struct mbe_tabpage_callbacks const *ps_cbs, /* user-callbacks */
+	_In_opt_          void *p_crparams,                           /* create-params for "oncreate" handler */
 	/*
 	 * pointer to receive the pointer to
 	 * the newly-created page

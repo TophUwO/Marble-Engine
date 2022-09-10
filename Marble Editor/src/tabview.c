@@ -7,18 +7,28 @@ TCHAR const *const glpz_pagewndcl    = TEXT("mbe_ctrl_tabpage");
 
 
 #pragma region TABPAGE-CTRL
-#define MBE_TPAGE_FIXCB(member, def) (void)(member == NULL ? (member = &def) : (0))
+#define MBE_TVIEW_FIXCB(member, def) (void)(member == NULL ? (member = &def) : (0))
 
 
-/* default tabpage callbacks */
-static BOOL MB_CALLBACK mbe_pageview_int_defoncreate(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+/* default tab-view callbacks */
+static BOOL MB_CALLBACK mbe_tabview_int_defoncreate(_In_ struct mbe_tabview *ps_tview, _In_opt_ void *p_crparams) { return TRUE; }
+static BOOL MB_CALLBACK mbe_tabview_int_defondestroy(_In_ struct mbe_tabview *ps_tview) { return TRUE; }
+
+/* default tab-page callbacks */
+static BOOL MB_CALLBACK mbe_pageview_int_defoncreate(_In_ struct mbe_tabpage *ps_tpage, _In_opt_ void *p_crparams) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonpaint(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonresize(_In_ struct mbe_tabpage *ps_tpage, int nwidth, int nheight) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonselect(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonunselect(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defondestroy(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 
-/* default callback structure */
+/* default tab-view callback struct */
+static struct mbe_tabview_callbacks const gls_defviewcbs = {
+	&mbe_tabview_int_defoncreate,
+	&mbe_tabview_int_defondestroy
+};
+
+/* default tab-page callback struct */
 static struct mbe_tabpage_callbacks const gls_defpagecbs = {
 	&mbe_pageview_int_defoncreate,
 	&mbe_pageview_int_defonpaint,
@@ -102,37 +112,46 @@ static void mbe_tabview_int_getdisprect(
  * 
  * Returns nothing.
  */
-static void mbe_tabview_int_setpagecbs(
-	_In_     struct mbe_tabpage_callbacks *ps_cbs,      /* callback struct to init */
-	_In_opt_ struct mbe_tabpage_callbacks const *ps_src /* callback source */
+static void mbe_tabview_int_setcbs(
+	_In_     void *restrict p_cbs,       /* callback struct to init */
+	_In_opt_ void const *restrict p_src, /* callback source */
+	_In_     void const *restrict p_def, /* default callbacks */
+	_In_     size_t structsz             /* callback struct size, in bytes */
 ) {
-	if (ps_cbs == NULL)
+	if (p_cbs == NULL)
 		return;
 
 	/*
 	 * If no callbacks were given, just set
 	 * everything to default.
 	 */
-	if (ps_src == NULL) {
-		*ps_cbs = gls_defpagecbs;
+	if (p_src == NULL) {
+		memcpy(p_cbs, p_def, structsz);
 
 		return;
 	}
 
-	/*
-	 * Set NULL callbacks to default.
-	 * This removes the need for checking the callback
-	 * function pointer against NULL everytime we are
-	 * about to execute it.
-	 */
-	*ps_cbs = *ps_src;
+	/* Calculate number of callbacks to iterate over */
+	size_t const nelem = structsz / sizeof p_cbs;
 
-	MBE_TPAGE_FIXCB(ps_cbs->mpfn_oncreate,   mbe_pageview_int_defoncreate);
-	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onpaint,    mbe_pageview_int_defonpaint);
-	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onresize,   mbe_pageview_int_defonresize);
-	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onselect,   mbe_pageview_int_defonselect);
-	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onunselect, mbe_pageview_int_defonunselect);
-	MBE_TPAGE_FIXCB(ps_cbs->mpfn_ondestroy,  mbe_pageview_int_defondestroy);
+	/* Begin with simply copying over the given callbacks. */
+	memcpy(p_cbs, p_src, structsz);
+
+	/*
+	 * Iterate over callback struct, replacing NULL callbacks
+	 * in **p_src** with the corresponding default callback
+	 * provided by **p_def**.
+	 */
+	for (size_t index = 0; index < nelem; index++) {
+		off_t const offset = (off_t)(index * sizeof p_cbs);
+		void *p_givencb    = (BYTE *)p_cbs + offset;
+
+		if (*(INT_PTR *)p_givencb == (INT_PTR)0) {
+			void *p_defcb = (BYTE *)p_def + offset;
+
+			memcpy(p_givencb, p_defcb, sizeof p_givencb);
+		}
+	}
 }
 
 /*
@@ -189,6 +208,8 @@ LRESULT CALLBACK mbe_tabview_int_wndproc(
 _Critical_ marble_ecode_t mbe_tabview_create(
 	_In_              HWND p_hparent,
 	_In_              struct mbe_wndsize const *ps_size,
+	_In_opt_          struct mbe_tabview_callbacks const *ps_cbs,
+	_In_opt_          void *p_crparams,
 	_Init_(pps_tview) struct mbe_tabview **pps_tview
 ) { MB_ERRNO
 	if (p_hparent == NULL || pps_tview == NULL || ps_size == NULL) {
@@ -197,6 +218,8 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 
 		return MARBLE_EC_PARAM;
 	}
+
+	BOOL ret;
 
 	/* Allocate memory for view structure. */
 	ecode = marble_system_alloc(
@@ -263,6 +286,22 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
 
+	/* Set-up callbacks. */
+	mbe_tabview_int_setcbs(
+		&(*pps_tview)->ms_cbs,
+		ps_cbs,
+		&gls_defviewcbs,
+		sizeof gls_defviewcbs
+	);
+
+	/* Initialize userdata. */
+	ret = (*(*pps_tview)->ms_cbs.mpfn_oncreate)(*pps_tview, p_crparams);
+	if (ret == FALSE) {
+		ecode = MARBLE_EC_USERINIT;
+
+		goto lbl_END;
+	}
+
 	/* Set init-state. */
 	(*pps_tview)->m_isinit = TRUE;
 
@@ -286,6 +325,9 @@ void mbe_tabview_destroy(
 ) {
 	if (pps_tview == NULL || *pps_tview == NULL)
 		return;
+
+	/* Run "ondestroy" handler. */
+	(*(*pps_tview)->ms_cbs.mpfn_ondestroy)(*pps_tview);
 
 	/* Destroy loaded pages. */
 	marble_util_vec_destroy(&(*pps_tview)->mps_pages);
@@ -324,6 +366,7 @@ _Critical_ marble_ecode_t mbe_tabview_newpage(
 	_In_              TCHAR *pz_title,
 	_In_opt_          TCHAR *pz_comment,
 	_In_opt_          struct mbe_tabpage_callbacks const *ps_cbs,
+	_In_opt_          void *p_crparams,
 	_Init_(pps_tpage) struct mbe_tabpage **pps_tpage
 ) { MB_ERRNO
 	if (ps_tview == NULL || pps_tpage == NULL) return MARBLE_EC_PARAM;
@@ -346,10 +389,15 @@ _Critical_ marble_ecode_t mbe_tabview_newpage(
 	(*pps_tpage)->mpz_cmt   = pz_comment;
 	
 	/* Set callbacks and correct them, if necessary. */
-	mbe_tabview_int_setpagecbs(&(*pps_tpage)->ms_cbs, ps_cbs);
+	mbe_tabview_int_setcbs(
+		&(*pps_tpage)->ms_cbs,
+		ps_cbs,
+		&gls_defpagecbs,
+		sizeof gls_defpagecbs
+	);
 
 	/* Execute "oncreate" callback. */
-	BOOL ret = (*(*pps_tpage)->ms_cbs.mpfn_oncreate)(*pps_tpage);
+	BOOL ret = (*(*pps_tpage)->ms_cbs.mpfn_oncreate)(*pps_tpage, p_crparams);
 	if (ret == FALSE) {
 		/*
 		 * If the callback returns FALSE, we assume this
@@ -391,8 +439,13 @@ marble_ecode_t mbe_tabview_addpage(
 	ps_tview->mps_cursel = ps_tpage;
 	TabCtrl_SetCurSel(ps_tview->mp_hwndtab, last);
 
-	/* Resize page window. */
-	mbe_tabview_int_resizepagewnd(ps_tview);
+	/*
+	 * Resize page window if its the first page to be added.
+	 * This has to be done because the display area shrinks
+	 * if the first tab is added.
+	 */
+	if (last == 0)
+		mbe_tabview_int_resizepagewnd(ps_tview);
 
 	/* Force update of page window. */
 	InvalidateRect(ps_tview->mp_hwndpage, NULL, FALSE);
