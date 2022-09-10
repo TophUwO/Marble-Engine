@@ -67,6 +67,7 @@ typedef enum marble_ecode {
 	MARBLE_EC_CREATEMEMBITMAP,
 	MARBLE_EC_GETDC,
 	MARBLE_EC_GETWNDCLASSATTRIBS,
+	MARBLE_EC_USERINIT,
 
 	__MARBLE_NUMERRORCODES__ /* for internal use */
 } marble_ecode_t;

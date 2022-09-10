@@ -1,26 +1,6 @@
 #include <editor.h>
 
 
-//struct udata {
-//	TCHAR *mpz_name;
-//	TCHAR *mpz_cmt;
-//
-//	int m_width;
-//	int m_height;
-//};
-//
-//static struct mbe_dlg_ctrlinfo glsa_dlgctrlinfo[] = {
-//	{ NewLvlDlg_BTN_Ok,        MBE_DLGCTRLTYPE_BUTTON,  0,                                0,           TRUE, ._button = { 0, MBE_DLGBTNFLAG_OK, NULL            } },
-//	{ NewLvlDlg_BTN_Cancel,    MBE_DLGCTRLTYPE_BUTTON,  0,                                0,           TRUE, ._button = { 0, MBE_DLGBTNFLAG_CANCEL, NULL        } },
-//	{ NewLvlDlg_BTN_Reset,     MBE_DLGCTRLTYPE_BUTTON,  0,                                0,           TRUE, ._button = { 0, MBE_DLGBTNFLAG_RESET, NULL         } },
-//	{ NewLvlDlg_SPIN_Width,    MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct udata, m_width),  sizeof(int), TRUE, ._spin   = { NewLvlDlg_EDIT_Width, 64, 1, 2 << 16  } },
-//	{ NewLvlDlg_SPIN_Height,   MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct udata, m_height), sizeof(int), TRUE, ._spin   = { NewLvlDlg_EDIT_Height, 64, 1, 2 << 16 } },
-//	{ NewLvlDlg_CB_LockAspect, MBE_DLGCTRLTYPE_BUTTON,  0,                                0,           TRUE, ._button = { BST_UNCHECKED, 0, NULL                } },
-//	{ NewLvlDlg_EDIT_Name,     MBE_DLGCTRLTYPE_EDIT,    offsetof(struct udata, mpz_name), -1,          TRUE, ._edit   = { TEXT("unnamed")                       } },
-//	{ NewLvlDlg_EDIT_Comment,  MBE_DLGCTRLTYPE_EDIT,    offsetof(struct udata, mpz_cmt),  -1,          TRUE, ._edit   = { NULL                                  } }
-//};
-
-
 /*
  * Gets the button control ID of the button
  * that has the role denoted by **role**.
@@ -147,7 +127,13 @@ static BOOL mbe_dialog_int_btncallback(
 }
 
 /*
- *  
+ * Update the write-back structure (member **mp_udata** of the **ps_dlginfo** struct).
+ * This function may allocate memory dynamically. The caller is responsible for deallocating
+ * this memory.
+ * In case there is an error with writing-back the contents of a specific control, the
+ * function will not return but continue until all known controls have been "visited".
+ * 
+ * Returns nothing.
  */
 static void mbe_dialog_int_writeback(
 	_In_ HWND p_hwnd,                   /* dialog window */
@@ -156,61 +142,98 @@ static void mbe_dialog_int_writeback(
 	if (p_hwnd == NULL || ps_dlginfo == NULL || ps_dlginfo->mp_udata == NULL)
 		return;
 
-	HWND p_hctrl;
-	struct mbe_dlg_ctrlinfo const *ps_tmp;
-	int ntmp;
-	void *p_src, *p_dest;
-	size_t cpysize;
-	marble_ecode_t ecode;
+	HWND p_hctrl;                          /* handle to the current control window */
+	struct mbe_dlg_ctrlinfo const *ps_tmp; /* pointer to the control info entry of the current control */
+	int ntmp;                              /* temp. integer variable */
+	UINT msg;                              /* temp. message */
+	void *p_src, *p_dest;                  /* source and dest for memcpy() operation */
+	size_t cpysize;                        /* size for memcpy() operation, in bytes */
+	TCHAR *pz_str;                         /* pointer to a dynamically-allocated string buffer */
 
+	/*
+	 * Loop through the control info array, writing-back
+	 * the control contents in the order specified by the
+	 * struct layout. 
+	 */
 	for (size_t index = 0; index < ps_dlginfo->m_nctrlinfo; index++) {
-		ps_tmp = &ps_dlginfo->map_ctrlinfo[index];
+		ps_tmp  = &ps_dlginfo->map_ctrlinfo[index];
 		p_hctrl = MBE_DLGWND(ps_dlginfo->map_ctrlinfo[index].m_item);
-		if (p_hctrl == NULL || ps_tmp->m_wbsize == 0)
+		if (p_hctrl == NULL || (ps_tmp->m_wbsize == 0 && ps_tmp->m_type != MBE_DLGCTRLTYPE_EDIT))
 			continue;
+		
+		/* Calculate location of writeback buffer. */
 		p_dest = (BYTE *)ps_dlginfo->mp_udata + ps_tmp->m_wboff;
 
+		/*
+		 * Write-back the result, depending on the
+		 * control type.
+		 */
 		switch (ps_tmp->m_type) {
 			case MBE_DLGCTRLTYPE_BUTTON:
-				ntmp = (int)SendMessage(p_hctrl, BM_GETCHECK, 0, 0);
-
-				p_src   = &ntmp;
-				cpysize = ps_tmp->m_wbsize;
-				break;
 			case MBE_DLGCTRLTYPE_SPINBOX:
-				ntmp = (int)SendMessage(p_hctrl, UDM_GETPOS32, 0, 0);
+				msg = ps_tmp->m_type == MBE_DLGCTRLTYPE_BUTTON
+					? BM_GETCHECK
+					: UDM_GETPOS32
+				;
+
+				ntmp = (int)SendMessage(p_hctrl, msg, 0, 0);
 
 				p_src   = &ntmp;
 				cpysize = ps_tmp->m_wbsize;
 				break;
 			case MBE_DLGCTRLTYPE_EDIT:
-				if (ps_tmp->m_wbsize == -1) {
+				if (ps_tmp->m_wbsize == 0) {
 					size_t size = (size_t)GetWindowTextLength(p_hctrl);
 
-					TCHAR *pz_str = NULL;
-					ecode = marble_system_alloc(
+					/*
+					 * If the size to copy is 0, meaning an empty textbox,
+					 * we just copy a NULL pointer. The caller has to be
+					 * able to handle this.
+					 */
+					pz_str = NULL;
+					if (size == 0)
+						goto lbl_COPYPTR;
+
+					/* Dynamically allocate memory to hold the string. */
+					if (marble_system_alloc(
 						MB_CALLER_INFO,
 						(size + 1) * sizeof *pz_str,
 						true,
 						false,
 						&pz_str
-					);
-					if (ecode != MARBLE_EC_OK)
-						continue;
+					) != MARBLE_EC_OK) {
+						/*
+						 * Just copy a NULL pointer in case allocation fails.
+						 * This way, the writeback buffer will always be in
+						 * a determinate state when the function returns.
+						 * 
+						 * "marble_system_alloc()" will always set *pz_str to NULL when
+						 * it fails.
+						 */
+						size = 0;
 
-					GetWindowText(p_hctrl, pz_str, (int)size);
+						goto lbl_COPYPTR;
+					}
 
-					p_src   = pz_str;
+					/* Query window text. */
+					GetWindowText(p_hctrl, pz_str, (int)size + 1);
+
+				lbl_COPYPTR:
+					p_src   = (TCHAR *)&pz_str;
 					cpysize = sizeof pz_str;
 					break;
 				}
 
-				GetWindowText(p_hctrl, p_dest, (int)(ps_tmp->m_wbsize / sizeof(TCHAR)));
+				GetWindowText(p_hctrl, p_dest, (int)(ps_tmp->m_wbsize / sizeof *pz_str));
 				continue;
 			default: continue;
 		}
 
-		memcpy(p_dest, p_src, ps_tmp->m_wbsize);
+		/*
+		 * Copy the memory into the writeback structure provided
+		 * by the caller of the dialog.
+		 */
+		memcpy(p_dest, p_src, cpysize);
 	}
 }
 
@@ -290,7 +313,7 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 				 * or invalid values, etc.
 				 */
 				if (mbe_dialog_int_btncallback(p_hwnd, ps_ctrlinfo, ps_udata->mp_udata) == FALSE)
-					ret = FALSE;
+					break;
 
 				/* Return the dialog result. */
 				EndDialog(p_hwnd, ret);

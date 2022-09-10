@@ -120,6 +120,10 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 					mbe_tsetview_bmptsdlg(&gls_editorapp.ms_tsview);
 
 					break;
+				case MBE_FileNew_Level:
+					mbe_levelview_newlvlbydlg(gls_editorapp.mps_lvlview);
+
+					break;
 				case MBE_MainMenu_File_Close:
 					PostMessage(p_hwnd, WM_CLOSE, 0, 0);
 
@@ -243,9 +247,9 @@ marble_ecode_t mbe_editor_init(
 	GetClientRect(gls_editorapp.mp_hwnd, &s_viewrect);
 
 	struct mbe_wndsize const s_size = {
-		.m_xpos   = 210,
+		.m_xpos   = 200,
 		.m_ypos   = 0,
-		.m_width  = s_viewrect.right - 210,
+		.m_width  = s_viewrect.right - 200,
 		.m_height = s_viewrect.bottom
 	};
 	res = mbe_tabview_create(gls_editorapp.mp_hwnd, &s_size, &gls_editorapp.mps_lvlview);

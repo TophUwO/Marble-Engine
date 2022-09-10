@@ -7,6 +7,27 @@ TCHAR const *const glpz_pagewndcl    = TEXT("mbe_ctrl_tabpage");
 
 
 #pragma region TABPAGE-CTRL
+#define MBE_TPAGE_FIXCB(member, def) (void)(member == NULL ? (member = &def) : (0))
+
+
+/* default tabpage callbacks */
+static BOOL MB_CALLBACK mbe_pageview_int_defoncreate(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonpaint(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonresize(_In_ struct mbe_tabpage *ps_tpage, int nwidth, int nheight) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonselect(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonunselect(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defondestroy(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+
+/* default callback structure */
+static struct mbe_tabpage_callbacks const gls_defpagecbs = {
+	&mbe_pageview_int_defoncreate,
+	&mbe_pageview_int_defonpaint,
+	&mbe_pageview_int_defonresize,
+	&mbe_pageview_int_defonselect,
+	&mbe_pageview_int_defonunselect,
+	&mbe_pageview_int_defondestroy
+};
+
 /*
  * Destroys a tab page.
  * Userdata is destroyed using a special
@@ -20,6 +41,10 @@ static void mbe_tabpage_int_destroy(
 	if (pps_tpage == NULL || *pps_tpage == NULL)
 		return;
 
+	/* Destroy userdata. */
+	(*(*pps_tpage)->ms_cbs.mpfn_ondestroy)(*pps_tpage);
+
+	/* Destroy common page data. */
 	free((*pps_tpage)->mpz_name);
 	free((*pps_tpage)->mpz_cmt);
 
@@ -67,6 +92,74 @@ static void mbe_tabview_int_getdisprect(
 	 * and other non-client features.
 	 */
 	TabCtrl_AdjustRect(p_hwnd, FALSE, ps_outrect);
+}
+
+/*
+ * Sets the page callbacks to the provided functions, and replace any NULL
+ * pointers (i.e. undefined callbacks) with default callback functions.
+ * These default callbacks normally do nothing but return TRUE, signifying
+ * a successful result.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tabview_int_setpagecbs(
+	_In_     struct mbe_tabpage_callbacks *ps_cbs,      /* callback struct to init */
+	_In_opt_ struct mbe_tabpage_callbacks const *ps_src /* callback source */
+) {
+	if (ps_cbs == NULL)
+		return;
+
+	/*
+	 * If no callbacks were given, just set
+	 * everything to default.
+	 */
+	if (ps_src == NULL) {
+		*ps_cbs = gls_defpagecbs;
+
+		return;
+	}
+
+	/*
+	 * Set NULL callbacks to default.
+	 * This removes the need for checking the callback
+	 * function pointer against NULL everytime we are
+	 * about to execute it.
+	 */
+	*ps_cbs = *ps_src;
+
+	MBE_TPAGE_FIXCB(ps_cbs->mpfn_oncreate,   mbe_pageview_int_defoncreate);
+	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onpaint,    mbe_pageview_int_defonpaint);
+	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onresize,   mbe_pageview_int_defonresize);
+	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onselect,   mbe_pageview_int_defonselect);
+	MBE_TPAGE_FIXCB(ps_cbs->mpfn_onunselect, mbe_pageview_int_defonunselect);
+	MBE_TPAGE_FIXCB(ps_cbs->mpfn_ondestroy,  mbe_pageview_int_defondestroy);
+}
+
+/*
+ * Resizes the page window of the tab-view. It also recalculates the
+ * coordinates of the display rect.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tabview_int_resizepagewnd(_In_ struct mbe_tabview *ps_tview /* tabview to resize page window of */) {
+	if (ps_tview == NULL)
+		return;
+
+	/* Get dimensions of display area. */
+	mbe_tabview_int_getdisprect(ps_tview->mp_hwndtab, &ps_tview->ms_dimensions);
+
+	/*
+	 * Set position and dimensions to exactly reflect the
+	 * size of the display area of the tab-view.
+	 */
+	MoveWindow(
+		ps_tview->mp_hwndpage,
+		ps_tview->ms_dimensions.left,
+		ps_tview->ms_dimensions.top,
+		ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
+		ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top,
+		TRUE
+	);
 }
 
 
@@ -218,8 +311,93 @@ void mbe_tabview_resize(
 		TRUE
 	);
 
-	/* Update display area metrics. */
-	mbe_tabview_int_getdisprect(ps_tview->mp_hwndtab, &ps_tview->ms_dimensions);
+	/*
+	 * Updates the size of the tab-view page window.
+	 * This will also update the size of the display rectangle of
+	 * the tab-view.
+	 */
+	mbe_tabview_int_resizepagewnd(ps_tview);
+}
+
+_Critical_ marble_ecode_t mbe_tabview_newpage(
+	_In_              struct mbe_tabview *ps_tview,
+	_In_              TCHAR *pz_title,
+	_In_opt_          TCHAR *pz_comment,
+	_In_opt_          struct mbe_tabpage_callbacks const *ps_cbs,
+	_Init_(pps_tpage) struct mbe_tabpage **pps_tpage
+) { MB_ERRNO
+	if (ps_tview == NULL || pps_tpage == NULL) return MARBLE_EC_PARAM;
+	if (ps_tview->m_isinit == FALSE)           return MARBLE_EC_COMPSTATE;
+
+	/* Allocate memory for the page. */
+	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
+		sizeof **pps_tpage,
+		true,
+		false,
+		pps_tpage
+	);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+
+	/* Set common init-data. */
+	(*pps_tpage)->ps_parent = ps_tview;
+	(*pps_tpage)->mpz_name  = pz_title;
+	(*pps_tpage)->mpz_cmt   = pz_comment;
+	
+	/* Set callbacks and correct them, if necessary. */
+	mbe_tabview_int_setpagecbs(&(*pps_tpage)->ms_cbs, ps_cbs);
+
+	/* Execute "oncreate" callback. */
+	BOOL ret = (*(*pps_tpage)->ms_cbs.mpfn_oncreate)(*pps_tpage);
+	if (ret == FALSE) {
+		/*
+		 * If the callback returns FALSE, we assume this
+		 * is an error, so we destroy our page and pretend
+		 * it never happened.
+		 */
+		mbe_tabpage_int_destroy(pps_tpage);
+
+		return MARBLE_EC_USERINIT;
+	}
+
+	/* Update page init-state. */
+	(*pps_tpage)->m_isinit = TRUE;
+
+	return MARBLE_EC_OK;
+}
+
+marble_ecode_t mbe_tabview_addpage(
+	_In_ struct mbe_tabview *ps_tview,
+	_In_ struct mbe_tabpage *ps_tpage
+) { MB_ERRNO
+	if (ps_tview == NULL || ps_tpage == NULL) return MARBLE_EC_PARAM;
+	if (ps_tview->m_isinit == FALSE)          return MARBLE_EC_COMPSTATE;
+
+	/* Add page to list. */
+	ecode = marble_util_vec_pushback(ps_tview->mps_pages, ps_tpage);
+	if (ecode != MARBLE_EC_OK)
+		return ecode;
+
+	/* Add new page to tab-view. */
+	int last = (int)ps_tview->mps_pages->m_size - 1;
+	TCITEM s_item = {
+		.mask    = TCIF_TEXT,
+		.pszText = ps_tpage->mpz_name
+	};
+	TabCtrl_InsertItem(ps_tview->mp_hwndtab, last, &s_item);
+
+	/* Update selection of tab-view. */
+	ps_tview->mps_cursel = ps_tpage;
+	TabCtrl_SetCurSel(ps_tview->mp_hwndtab, last);
+
+	/* Resize page window. */
+	mbe_tabview_int_resizepagewnd(ps_tview);
+
+	/* Force update of page window. */
+	InvalidateRect(ps_tview->mp_hwndpage, NULL, FALSE);
+
+	return MARBLE_EC_OK;
 }
 #pragma endregion
 

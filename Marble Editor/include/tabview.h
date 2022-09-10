@@ -3,6 +3,15 @@
 #include <base.h>
 
 
+struct mbe_tabpage_callbacks {
+	BOOL (MB_CALLBACK *mpfn_oncreate)(_In_ struct mbe_tabpage *);           /* executed when the page userdata must be initialized */
+	BOOL (MB_CALLBACK *mpfn_onpaint)(_In_ struct mbe_tabpage *);            /* executed when the page needs to be repained */
+	BOOL (MB_CALLBACK *mpfn_onresize)(_In_ struct mbe_tabpage *, int, int); /* executed after the page window was resized */
+	BOOL (MB_CALLBACK *mpfn_onselect)(_In_ struct mbe_tabpage *);           /* executed right before the page is selected */
+	BOOL (MB_CALLBACK *mpfn_onunselect)(_In_ struct mbe_tabpage *);         /* executed right before the page is unselected */
+	BOOL (MB_CALLBACK *mpfn_ondestroy)(_In_ struct mbe_tabpage *);          /* executed when it is time to destroy the page userdata */
+};
+
 /*
  * Structure representing a tab page. The tab view
  * will only be able to render one page at a time
@@ -16,6 +25,9 @@ struct mbe_tabpage {
 
 	struct mbe_tabview    *ps_parent;  /* parent */
 	struct mbe_scrollinfo  ms_scrinfo; /* scrollbar info */
+
+	/* page callbacks */
+	struct mbe_tabpage_callbacks ms_cbs;
 };
 
 /*
@@ -64,6 +76,34 @@ extern void mbe_tabview_destroy(
 extern void mbe_tabview_resize(
 	_In_ struct mbe_tabview *ps_tview,     /* tabview to resize */
 	_In_ struct mbe_wndsize const *ps_dims /* new window position and size */
+);
+
+/*
+ * Creates a new and empty page. The page is not automatically added to the
+ * page list.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+_Critical_ extern marble_ecode_t mbe_tabview_newpage(
+	_In_              struct mbe_tabview *ps_tview,               /* parent of the page */
+	_In_              TCHAR *pz_title,                            /* page title */
+	_In_opt_          TCHAR *pz_comment,                          /* optional page description */
+	_In_opt_          struct mbe_tabpage_callbacks const *ps_cbs, /* user-callbacks */
+	/*
+	 * pointer to receive the pointer to
+	 * the newly-created page
+	 */
+	_Init_(pps_tpage) struct mbe_tabpage **pps_tpage
+);
+
+/*
+ * Adds a page to the tabview.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+extern marble_ecode_t mbe_tabview_addpage(
+	_In_ struct mbe_tabview *ps_tview, /* tabview to resize */
+	_In_ struct mbe_tabpage *ps_tpage  /* page to add */
 );
 
 

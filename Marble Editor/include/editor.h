@@ -6,6 +6,7 @@
 
 #include <tabview.h>
 #include <dialog.h>
+#include <levelview.h>
 
 
 /*
