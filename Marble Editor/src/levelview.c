@@ -110,11 +110,33 @@ static BOOL MB_CALLBACK mbe_levelview_int_oncreate(
 		) == MARBLE_EC_OK;
 }
 
+/*
+ * Renders a view of the level associated with the
+ * currently-selected page.
+ * 
+ * Returns TRUE on success, FALSE on failure.
+ */
+static BOOL MB_CALLBACK mbe_levelview_int_onpaint(
+	_In_ struct mbe_tabpage *ps_tpage /* page to render */
+) {
+	if (ps_tpage == NULL || ps_tpage->m_isinit == FALSE)
+		return FALSE;
+
+	// TODO: add render-code
+
+	return TRUE;
+}
+
 static BOOL MB_CALLBACK mbe_levelview_int_onresize(
 	_In_ struct mbe_tabpage *ps_tpage,
 	     int nwidth,
 	     int nheight
 ) {
+	if (ps_tpage == NULL)
+		return FALSE;
+
+	// TODO: add resize-code
+
 	return TRUE;
 }
 
@@ -189,6 +211,7 @@ BOOL mbe_levelview_newlvlbydlg(
 	};
 	struct mbe_tabpage_callbacks const s_cbs = {
 		.mpfn_oncreate  = &mbe_levelview_int_oncreate,
+		.mpfn_onpaint   = &mbe_levelview_int_onpaint,
 		.mpfn_ondestroy = &mbe_levelview_int_ondestroy
 	};
 

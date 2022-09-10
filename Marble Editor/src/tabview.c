@@ -69,10 +69,45 @@ LRESULT CALLBACK mbe_tabpage_int_wndproc(
 	WPARAM wparam,
 	LPARAM lparam
 ) {
-	switch (msg) {
+	MBE_WNDUSERDATA(ps_udata, struct mbe_tabview *);
 
+	/*
+	 * If we want to process a message other than WM_CREATE,
+	 * we only allow it to be processed by this function if the
+	 * tab-view is properly initialized and has a page selected.
+	 */
+	if (msg != WM_CREATE && (ps_udata == NULL || ps_udata->m_isinit == FALSE || ps_udata->mps_cursel == NULL))
+		goto lbl_DEFPROC;
+
+	switch (msg) {
+		case WM_CREATE:
+			MBE_SETUDATA();
+
+			return 0;
+		case WM_SIZE:
+			/* Execute "onresize" handler. */
+			(*ps_udata->mps_cursel->ms_cbs.mpfn_onresize)(
+				ps_udata->mps_cursel,
+				GET_X_LPARAM(lparam),
+				GET_Y_LPARAM(lparam)
+			);
+
+			/* Post a WM_PAINT message. */
+			InvalidateRect(p_hwnd, NULL, FALSE);
+			return 0;
+		case WM_PAINT:
+			/*
+			 * Execute "onpaint" handler of the currently-selected
+			 * page to draw the view.
+			 */
+			(*ps_udata->mps_cursel->ms_cbs.mpfn_onpaint)(ps_udata->mps_cursel);
+
+			/* Mark the window update region as empty. */
+			ValidateRect(p_hwnd, NULL);
+			return 0;
 	}
 
+lbl_DEFPROC:
 	return DefWindowProc(p_hwnd, msg, wparam, lparam);
 }
 #pragma region
@@ -269,7 +304,7 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 		(*pps_tview)->mp_hwndtab,
 		NULL,
 		gls_editorapp.mp_hinst,
-		NULL
+		*pps_tview
 	);
 	if ((*pps_tview)->mp_hwndpage == NULL) {
 		ecode = MARBLE_EC_CREATEWND;
