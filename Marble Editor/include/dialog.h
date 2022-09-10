@@ -77,7 +77,7 @@ struct mbe_dlg_ctrlinfo {
 			 * AFTER the system has run any predefined
 			 * callbacks.
 			 */
-			BOOL (MB_CALLBACK *mpfn_onselect)(HWND, void *);
+			BOOL (MB_CALLBACK *mpfn_onselect)(_In_ HWND, _In_opt_ void *);
 		} _button;
 
 		/*

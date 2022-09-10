@@ -2,21 +2,34 @@
 #include <level.h>
 
 
+/*
+ * Structure representing a level in the editor.
+ * 
+ * Used directly as the userdata field in a
+ * tab-page.
+ */
 struct mbe_level {
-	int m_twidth;
-	int m_theight;
-	int m_pwidth;
-	int m_pheight;
+	int m_twidth;  /* width, in tiles */
+	int m_theight; /* height, in tiles */
+	int m_pwidth;  /* physical width, in pixels */
+	int m_pheight; /* physical height, in pixels */
 
+	/*
+	 * Marble asset representing the actual level data.
+	 * See "level.h" in Marble Engine for more information.
+	 */
 	struct marble_levelasset *ps_asset;
 };
 
+/*
+ * Userdata for the "Create new level" dialog. 
+ */
 struct mbe_levelview_dlgnewlvl_udata {
-	TCHAR *pz_name;
-	TCHAR *pz_cmt;
+	TCHAR *pz_name; /* name of tileset */
+	TCHAR *pz_cmt;  /* opt. comment/description */
 
-	int m_width;
-	int m_height;
+	int m_width;    /* width of the new level, in tiles */
+	int m_height;   /* height of the new level, in tiles */
 };
 
 
@@ -29,6 +42,13 @@ static int const gl_viewtsize = 32;
 
 
 #pragma region LEVEL
+/*
+ * Destroys the editor level structure.
+ * The underlying Marble level structure is
+ * also destroyed.
+ * 
+ * Returns nothing.
+ */
 static void mbe_levelview_int_destroylvl(
 	_Uninit_(pps_lvl) struct mbe_level **pps_lvl /* level to destroy */
 ) {
@@ -40,8 +60,18 @@ static void mbe_levelview_int_destroylvl(
 	*pps_lvl = NULL;
 }
 
+/*
+ * Creates a new and empty editor level, including an empty
+ * Marble level.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
 _Critical_ static marble_ecode_t mbe_levelview_int_newlvl(
-	_In_            struct mbe_levelview_dlgnewlvl_udata *ps_crparams,
+	_In_            struct mbe_levelview_dlgnewlvl_udata *ps_crparams, /* create-params */
+	/*
+	 * pointer to a pointer to receive the
+	 * newly-created editor level
+	 */
 	_Init_(pps_lvl) struct mbe_level **pps_lvl
 ) { MB_ERRNO
 	if (ps_crparams == NULL || pps_lvl == NULL)
@@ -88,9 +118,16 @@ lbl_END:
 
 
 #pragma region PAGE-CALLBACKS
+/*
+ * This handler is called after a new page was created by a
+ * tab-view and the page's userdata structure must be
+ * initialized.
+ * 
+ * Returns TRUE on success, FALSE on failure.
+ */
 static BOOL MB_CALLBACK mbe_levelview_int_oncreate(
-	_In_     struct mbe_tabpage *ps_tpage,
-	_In_opt_ void *p_crparams
+	_In_     struct mbe_tabpage *ps_tpage, /* page to create userdata of */
+	_In_opt_ void *p_crparams              /* opt. create-params */
 ) {
 	if (ps_tpage == NULL)
 		return FALSE;
@@ -127,10 +164,16 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpaint(
 	return TRUE;
 }
 
+/*
+ * Carries out operations that are supposed to happen on resize,
+ * such as scrollbar range updates etc.
+ * 
+ * Returns TRUE on success, FALSE on failure.
+ */
 static BOOL MB_CALLBACK mbe_levelview_int_onresize(
-	_In_ struct mbe_tabpage *ps_tpage,
-	     int nwidth,
-	     int nheight
+	_In_ struct mbe_tabpage *ps_tpage, /* tab-page */
+	     int nwidth,                   /* new width of tab-page window */
+	     int nheight                   /* new height of tab-page window */
 ) {
 	if (ps_tpage == NULL)
 		return FALSE;
@@ -160,7 +203,22 @@ static BOOL MB_CALLBACK mbe_levelview_int_ondestroy(
 
 
 #pragma region DLG-NEWLEVEL
-static BOOL MB_CALLBACK mbe_levelview_newlvldlg_onok(HWND p_hwnd, void *p_udata) {
+/*
+ * Executed when the user selects the OK button of the "Create new level"
+ * dialog.
+ * This callback is used to validate the dialog input and notify the
+ * user in case there is an issue.
+ * 
+ * Returns TRUE if the data is valid, FALSE is there is an issue, prompting
+ * the user to review their input.
+ */
+static BOOL MB_CALLBACK mbe_levelview_newlvldlg_onok(
+	_In_     HWND p_hwnd,  /* dialog window*/
+	_In_opt_ void *p_udata /* dialog userdata */
+) {
+	if (p_hwnd == NULL || p_udata == NULL)
+		return FALSE;
+
 	struct mbe_levelview_dlgnewlvl_udata *ps_udata = (struct mbe_levelview_dlgnewlvl_udata *)p_udata;
 
 	if (ps_udata->pz_name == NULL || *ps_udata->pz_name == TEXT('\0')) {
@@ -220,6 +278,11 @@ BOOL mbe_levelview_newlvlbydlg(
 	if (res == FALSE)
 		return FALSE;
 
+	/*
+	 * Create a new page.
+	 * The page is automatically added to the tab-view
+	 * through the "oncreate" callback.
+	 */
 	res = mbe_tabview_newpage(
 		ps_tview,
 		s_udata.pz_name,
