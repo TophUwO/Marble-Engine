@@ -72,28 +72,28 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Mainb\source\repos\Marble-Engine\Marble Wrappers\include;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
     <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Mainb\source\repos\Marble-Engine\Marble Wrappers\include;$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
     <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Mainb\source\repos\Marble-Engine\Marble Wrappers\include;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
     <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Mainb\source\repos\Marble-Engine\Marble Wrappers\include;$(SolutionDir)Marble Engine\include\external\;$(SolutionDir)Marble Engine\include\;$(SolutionDir)Marble Editor\include\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Marble Sandbox\bin\;$(LibraryPath)</LibraryPath>
     <OutDir>..\..\Marble Sandbox\bin\</OutDir>
     <TargetName>mbeditor64</TargetName>
@@ -110,7 +110,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>marblemn_x86d.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d2d1.lib;marblewr_$(PlatformShortName)d.lib;marblemn_x86d.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -129,7 +129,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>marblemn32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d2d1.lib;marblewr_$(PlatformShortName)r.lib;marblemn32.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -144,7 +144,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>marblemn_x64d.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d2d1.lib;marblewr_$(PlatformShortName)d.lib;marblemn_x64d.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -163,7 +163,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>marblemn64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d2d1.lib;marblewr_$(PlatformShortName)r.lib;marblemn64.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

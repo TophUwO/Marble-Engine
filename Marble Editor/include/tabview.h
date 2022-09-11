@@ -7,20 +7,20 @@
  * Callbacks for tab-view
  */
 struct mbe_tabview_callbacks {
-	BOOL (MB_CALLBACK *mpfn_oncreate)(_In_ struct mbe_tabview *, _In_opt_ void *); /* executed when the tab-view userdata must be initialized */
-	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabview *);              /* executed when the tab-view userdata must be destroyed */
+	BOOL (MB_CALLBACK *mpfn_oncreate)(_Inout_ struct mbe_tabview *, _In_opt_ void *); /* executed when the tab-view userdata must be initialized */
+	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabview *);                 /* executed when the tab-view userdata must be destroyed */
 };
 
 /*
  * Callbacks for tab-page
  */
 struct mbe_tabpage_callbacks {
-	BOOL (MB_CALLBACK *mpfn_oncreate)(_In_ struct mbe_tabpage *, _In_opt_ void *); /* executed when the page userdata must be initialized */
-	BOOL (MB_CALLBACK *mpfn_onpaint)(_In_ struct mbe_tabpage *);                   /* executed when the page needs to be repained */
-	BOOL (MB_CALLBACK *mpfn_onresize)(_In_ struct mbe_tabpage *, int, int);        /* executed after the page window was resized */
-	BOOL (MB_CALLBACK *mpfn_onselect)(_In_ struct mbe_tabpage *);                  /* executed right before the page is selected */
-	BOOL (MB_CALLBACK *mpfn_onunselect)(_In_ struct mbe_tabpage *);                /* executed right before the page is unselected */
-	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabpage *);              /* executed when it is time to destroy the page userdata */
+	BOOL (MB_CALLBACK *mpfn_oncreate)(_Inout_ struct mbe_tabpage *, _In_opt_ void *); /* executed when the page userdata must be initialized */
+	BOOL (MB_CALLBACK *mpfn_onpaint)(_Inout_ struct mbe_tabpage *);                   /* executed when the page needs to be repained */
+	BOOL (MB_CALLBACK *mpfn_onresize)(_Inout_ struct mbe_tabpage *, int, int);        /* executed after the page window was resized */
+	BOOL (MB_CALLBACK *mpfn_onselect)(_Inout_ struct mbe_tabpage *);                  /* executed right before the page is selected */
+	BOOL (MB_CALLBACK *mpfn_onunselect)(_Inout_ struct mbe_tabpage *);                /* executed right before the page is unselected */
+	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabpage *);                 /* executed when it is time to destroy the page userdata */
 };
 
 

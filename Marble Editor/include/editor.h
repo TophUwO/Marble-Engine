@@ -25,6 +25,9 @@ extern struct mbe_application {
 		HBRUSH mp_hbrblack; /* black brush */
 		HPEN   mp_hpsel;    /* selection outline pen */
 		HPEN   mp_hpgrid;   /* grid pen */
+
+		/* Direct2D resources */
+		ID2D1Factory *mps_d2dfac; /* for Direct2D rendering */
 	} ms_res;
 
 	/* Application-wide flags. */

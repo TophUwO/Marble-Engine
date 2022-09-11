@@ -10,7 +10,9 @@ struct mbe_application gls_editorapp = { NULL };
  * 
  * Returns nothing.
  */
-static marble_ecode_t mbe_editor_internal_loadresources(void) {
+static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
+	HRESULT hres;
+
 	gls_editorapp.ms_res.mp_hguifont = CreateFont(
 		14,
 		0,
@@ -32,6 +34,21 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) {
 	gls_editorapp.ms_res.mp_hbrblack = CreateSolidBrush(RGB(0, 0, 0));
 	gls_editorapp.ms_res.mp_hpsel    = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
 	gls_editorapp.ms_res.mp_hpgrid   = CreatePen(PS_DOT, 1, RGB(0, 0, 0));
+
+	/* Create Direct2D and WIC resources. */
+#if (defined _DEBUG) || (defined MB_DEVBUILD)
+	D2D1_FACTORY_OPTIONS s_opts = { .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION }, *ps_opts = &s_opts;
+#else
+	D2D1_FACTORY_OPTIONS *ps_opts = NULL;
+#endif
+	hres = D2D1CreateFactory(
+		D2D1_FACTORY_TYPE_MULTI_THREADED,
+		&IID_ID2D1Factory,
+		ps_opts,
+		&gls_editorapp.ms_res.mps_d2dfac
+	);
+	if (hres != S_OK)
+		ecode = MARBLE_EC_CREATED2DFAC;
 
 	return MARBLE_EC_OK;
 }
@@ -195,6 +212,8 @@ static void mbe_editor_internal_freeresources(void) {
 	DeleteObject(gls_editorapp.ms_res.mp_hpsel);
 	DeleteObject(gls_editorapp.ms_res.mp_hpgrid);
 	DeleteObject(gls_editorapp.ms_res.mp_hguifont);
+
+	D2DWr_Factory_Release(gls_editorapp.ms_res.mps_d2dfac);
 }
 
 
@@ -202,6 +221,9 @@ marble_ecode_t mbe_editor_init(
 	HINSTANCE p_hinst,
 	LPSTR pz_cmdline
 ) { MB_ERRNO
+	static BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(_Inout_ struct mbe_tabview *, _In_opt_ void *);
+	static BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(_Inout_ struct mbe_tabview *);
+
 	ecode = marble_log_init("editorlog.txt");
 	if (ecode != MARBLE_EC_OK)
 		return ecode;
@@ -236,7 +258,18 @@ marble_ecode_t mbe_editor_init(
 		.m_width  = s_viewrect.right - 200,
 		.m_height = s_viewrect.bottom
 	};
-	res = mbe_tabview_create(gls_editorapp.mp_hwnd, &s_size, NULL, NULL, &gls_editorapp.mps_lvlview);
+	struct mbe_tabview_callbacks const s_cbs = {
+		.mpfn_oncreate  = &mbe_levelview_int_ontviewcreate,
+		.mpfn_ondestroy = &mbe_levelview_int_ontviewdestroy
+	};
+	res = mbe_tabview_create(
+		gls_editorapp.mp_hwnd,
+		&s_size, &s_cbs,
+		NULL,
+		&gls_editorapp.mps_lvlview
+	);
+	if (res != MARBLE_EC_OK)
+		return res;
 
 	/* Show main window. */
 	UpdateWindow(gls_editorapp.mp_hwnd);

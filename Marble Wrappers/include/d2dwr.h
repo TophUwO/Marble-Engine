@@ -74,6 +74,7 @@ _WR_EXTERN_C_ void                     WINAPI D2DWr_RenderTarget_SetTags(ID2D1Re
 _WR_EXTERN_C_ void                     WINAPI D2DWr_RenderTarget_SetTextAntialiasMode(ID2D1RenderTarget *sRenderTarget, D2D1_TEXT_ANTIALIAS_MODE eTextAntialiasingMode);
 _WR_EXTERN_C_ void                     WINAPI D2DWr_RenderTarget_SetTextRenderingParams(ID2D1RenderTarget *sRenderTarget, IDWriteRenderingParams *sTextRenderingParams);
 _WR_EXTERN_C_ void                     WINAPI D2DWr_RenderTarget_SetTransform(ID2D1RenderTarget *sRenderTarget, D2D1_MATRIX_3X2_F *sTransform);
+_WR_EXTERN_C_ ULONG                    WINAPI D2DWr_RenderTarget_Release(ID2D1RenderTarget *sRenderTarget);
 
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Device_CreateDeviceContext(ID2D1Device *sDevice, D2D1_DEVICE_CONTEXT_OPTIONS eOptions, ID2D1DeviceContext **ptrpDeviceContext);
 _WR_EXTERN_C_ ULONG   WINAPI D2DWr_Device_Release(ID2D1Device *sDevice);

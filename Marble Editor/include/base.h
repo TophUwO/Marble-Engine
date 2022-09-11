@@ -5,6 +5,7 @@
 
 #include <def.h>
 #include <log.h>
+#include <d2dwr.h>
 
 /*
  * Enable visual styles to make UI look more modern

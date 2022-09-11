@@ -213,4 +213,8 @@ void WINAPI D2DWr_RenderTarget_SetTransform(ID2D1RenderTarget *sRenderTarget, D2
 	sRenderTarget->SetTransform(sTransform);
 }
 
+ULONG WINAPI D2DWr_RenderTarget_Release(ID2D1RenderTarget *sRenderTarget) {
+	return sRenderTarget->Release();
+}
+
 

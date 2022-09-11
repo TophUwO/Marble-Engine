@@ -22,6 +22,13 @@ struct mbe_level {
 };
 
 /*
+ * Structure representing tab-view userdata
+ */
+struct mbe_levelview {
+	ID2D1HwndRenderTarget *mps_rt; /* page-window rendertarget */
+};
+
+/*
  * Userdata for the "Create new level" dialog. 
  */
 struct mbe_levelview_dlgnewlvl_udata {
@@ -121,7 +128,96 @@ lbl_END:
 
 
 #pragma region LEVELVIEW
-// TODO: ADD oncreate handlers
+/*
+ * Creates the userdata of the tab-view.
+ * 
+ * Returns TRUE on success, FALSE on failure.
+ */
+BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
+	_Inout_  struct mbe_tabview *ps_tview, /* tab-view to init userdata of */
+	_In_opt_ void *p_crparams              /* optional create-params */
+) { MB_ERRNO
+	UNREFERENCED_PARAMETER(p_crparams);
+
+	if (ps_tview == NULL)
+		return FALSE;
+
+	HRESULT hres;
+	struct mbe_levelview *ps_lvlview = NULL;
+
+	/* Allocate userdata memory. */
+	ecode = marble_system_alloc(
+		MB_CALLER_INFO,
+		sizeof *ps_lvlview,
+		false,
+		false,
+		&ps_lvlview
+	);
+	if (ecode != MARBLE_EC_OK)
+		return FALSE;
+
+	/* Set rendertarget properties. */
+	D2D1_RENDER_TARGET_PROPERTIES const s_props = {
+		.type = D2D1_RENDER_TARGET_TYPE_HARDWARE,
+		.pixelFormat = {
+			.format    = DXGI_FORMAT_B8G8R8A8_UNORM,
+			.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED
+		},
+		.usage    = D2D1_RENDER_TARGET_USAGE_NONE,
+		.minLevel = D2D1_FEATURE_LEVEL_DEFAULT
+	};
+	D2D1_HWND_RENDER_TARGET_PROPERTIES const s_hwndprops = {
+		.hwnd = ps_tview->mp_hwndpage,
+		.pixelSize = {
+			.width  = ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
+			.height = ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top
+		},
+		.presentOptions = D2D1_PRESENT_OPTIONS_IMMEDIATELY
+	};
+
+	/* Create Direct2D rendertarget. */
+	hres = D2DWr_Factory_CreateHwndRenderTarget(
+		gls_editorapp.ms_res.mps_d2dfac,
+		&s_props,
+		&s_hwndprops,
+		&ps_lvlview->mps_rt
+	);
+	if (hres != S_OK) {
+		free(ps_lvlview);
+
+		return FALSE;
+	}
+
+	/* Update internal userdata pointer. */
+	ps_tview->mp_udata = ps_lvlview;
+	return TRUE;
+}
+
+/*
+ * Destroys the userdata of the tab-view.
+ * The function also has to deallocate the memory used
+ * by the userdata structure itself.
+ * 
+ * Returns TRUE on success, FALSE on failure.
+ */
+BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(
+	_Inout_ struct mbe_tabview *ps_tview /* tab-view to destroy userdata of */
+) {
+	if (ps_tview == NULL)
+		return FALSE;
+
+	struct mbe_levelview *ps_udata = (struct mbe_levelview *)ps_tview->mp_udata;
+	if (ps_udata == NULL)
+		return TRUE;
+
+	/* Release the rendertarget. */
+	if (ps_udata->mps_rt != NULL)
+		D2DWr_RenderTarget_Release((ID2D1RenderTarget *)ps_udata->mps_rt);
+
+	/* Free struct memory. */
+	free(ps_tview->mp_udata);
+	return TRUE;
+}
 #pragma endregion
 
 
@@ -133,8 +229,8 @@ lbl_END:
  * 
  * Returns TRUE on success, FALSE on failure.
  */
-static BOOL MB_CALLBACK mbe_levelview_int_oncreate(
-	_In_     struct mbe_tabpage *ps_tpage, /* page to create userdata of */
+static BOOL MB_CALLBACK mbe_levelview_int_onpagecreate(
+	_Inout_  struct mbe_tabpage *ps_tpage, /* page to create userdata of */
 	_In_opt_ void *p_crparams              /* opt. create-params */
 ) {
 	if (ps_tpage == NULL)
@@ -161,14 +257,29 @@ static BOOL MB_CALLBACK mbe_levelview_int_oncreate(
  * 
  * Returns TRUE on success, FALSE on failure.
  */
-static BOOL MB_CALLBACK mbe_levelview_int_onpaint(
-	_In_ struct mbe_tabpage *ps_tpage /* page to render */
+static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
+	_Inout_ struct mbe_tabpage *ps_tpage /* page to render */
 ) {
 	if (ps_tpage == NULL || ps_tpage->m_isinit == FALSE)
 		return FALSE;
 
-	// TODO: add render-code
+	/*
+	 * Get the pointer to the structure holding
+	 * the Direct2D rendertarget.
+	 */
+	struct mbe_levelview *ps_res = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
 
+	/* Render the content of the page. */
+	D2DWr_RenderTarget_BeginDraw((ID2D1RenderTarget *)ps_res->mps_rt);
+
+	/* Erase screen with solid white. */
+	D2D1_COLOR_F s_col = { 1.0f, 1.0f, 1.0f, 1.0f };
+	D2DWr_RenderTarget_Clear((ID2D1RenderTarget *)ps_res->mps_rt, &s_col);
+
+	// TODO: add tile-rendering code
+
+	/* Present the frame. */
+	D2DWr_RenderTarget_EndDraw((ID2D1RenderTarget *)ps_res->mps_rt, NULL, NULL);
 	return TRUE;
 }
 
@@ -178,10 +289,10 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpaint(
  * 
  * Returns TRUE on success, FALSE on failure.
  */
-static BOOL MB_CALLBACK mbe_levelview_int_onresize(
-	_In_ struct mbe_tabpage *ps_tpage, /* tab-page */
-	     int nwidth,                   /* new width of tab-page window */
-	     int nheight                   /* new height of tab-page window */
+static BOOL MB_CALLBACK mbe_levelview_int_onpageresize(
+	_Inout_ struct mbe_tabpage *ps_tpage, /* tab-page */
+	        int nwidth,                   /* new width of tab-page window */
+	        int nheight                   /* new height of tab-page window */
 ) {
 	if (ps_tpage == NULL)
 		return FALSE;
@@ -196,7 +307,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onresize(
  * 
  * Returns nothing.
  */
-static BOOL MB_CALLBACK mbe_levelview_int_ondestroy(
+static BOOL MB_CALLBACK mbe_levelview_int_onpagedestroy(
 	_Inout_ struct mbe_tabpage *ps_tpage /* page to destroy userdata of */
 ) {
 	if (ps_tpage == NULL)
@@ -276,9 +387,10 @@ BOOL mbe_levelview_newlvlbydlg(
 		.m_templ      = MBE_DLG_NewLvl
 	};
 	struct mbe_tabpage_callbacks const s_cbs = {
-		.mpfn_oncreate  = &mbe_levelview_int_oncreate,
-		.mpfn_onpaint   = &mbe_levelview_int_onpaint,
-		.mpfn_ondestroy = &mbe_levelview_int_ondestroy
+		.mpfn_oncreate  = &mbe_levelview_int_onpagecreate,
+		.mpfn_onpaint   = &mbe_levelview_int_onpagepaint,
+		.mpfn_onresize  = &mbe_levelview_int_onpageresize,
+		.mpfn_ondestroy = &mbe_levelview_int_onpagedestroy
 	};
 
 	/* Run the dialog. */
