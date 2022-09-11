@@ -103,6 +103,14 @@ _Critical_ static marble_ecode_t mbe_levelview_int_newlvl(
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
 
+	/* Add a texture layer to the level. */
+	ecode = marble_levelasset_addlayer(
+		(*pps_lvl)->ps_asset,
+		MARBLE_LVLLAYERTYPE_TEXTURE
+	);
+	if (ecode != MARBLE_EC_OK)
+		goto lbl_END;
+
 lbl_END:
 	if (ecode != MARBLE_EC_OK)
 		mbe_levelview_int_destroylvl(pps_lvl);

@@ -66,15 +66,15 @@ union marble_levelasset_layerobj {
 	 *     y := { 0, height - 1 }
 	 */
 	struct marble_levelasset_texobj {
-		int m_depindex; /* index into the dep-table */
+		uint16_t m_depindex; /* index into the dep-table */
 		/*
 		 * index into the dependency
 		 * 
 		 * The index is represented by a format
 		 * similar to the one described by **i**.
 		 */
-		int m_x;
-		int m_y;
+		uint16_t m_x;
+		uint16_t m_y;
 	} _tex;
 };
 
