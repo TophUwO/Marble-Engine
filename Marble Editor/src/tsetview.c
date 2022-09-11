@@ -1899,7 +1899,7 @@ static marble_ecode_t mbe_tsetview_internal_prepareview(
 	/* Insert tab item. */
 	TCITEM const s_item = {
 		.mask    = TCIF_TEXT,
-		.pszText = (LPWSTR)pz_title
+		.pszText = (TCHAR *)pz_title
 	};
 	if (TabCtrl_InsertItem(ps_parent->mp_hwnd, ps_parent->m_nts, &s_item) == -1)
 		return MARBLE_EC_UNKNOWN;

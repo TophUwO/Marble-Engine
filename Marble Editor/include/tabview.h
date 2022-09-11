@@ -12,7 +12,7 @@ struct mbe_tabview_callbacks {
 };
 
 /*
- * Callbacks for tab-page 
+ * Callbacks for tab-page
  */
 struct mbe_tabpage_callbacks {
 	BOOL (MB_CALLBACK *mpfn_oncreate)(_In_ struct mbe_tabpage *, _In_opt_ void *); /* executed when the page userdata must be initialized */

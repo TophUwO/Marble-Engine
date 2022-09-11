@@ -287,6 +287,11 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 
 		goto lbl_END;
 	}
+	SetWindowFont(
+		(*pps_tview)->mp_hwndtab,
+		gls_editorapp.ms_res.mp_hguifont,
+		TRUE
+	);
 
 	/* Obtain tab view window dimensions. */
 	mbe_tabview_int_getdisprect((*pps_tview)->mp_hwndtab, &(*pps_tview)->ms_dimensions);

@@ -12,7 +12,7 @@ struct mbe_application gls_editorapp = { NULL };
  */
 static marble_ecode_t mbe_editor_internal_loadresources(void) {
 	gls_editorapp.ms_res.mp_hguifont = CreateFont(
-		16,
+		14,
 		0,
 		0,
 		0,
@@ -25,7 +25,7 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) {
 		0,
 		CLEARTYPE_QUALITY,
 		FF_DONTCARE,
-		TEXT("Segoe UI")
+		TEXT("MS Shell Dlg")
 	);
 
 	gls_editorapp.ms_res.mp_hbrwhite = CreateSolidBrush(RGB(255, 255, 255));
