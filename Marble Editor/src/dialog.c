@@ -98,7 +98,11 @@ static void mbe_dialog_int_resetctrls(
 				break;
 		}
 
-		EnableWindow(p_hctrl, ps_tmp->m_isenabled);
+		/* Allow setting the initial focus to a specific control. */
+		if (ps_tmp->m_flags & MBE_DLGCTRLFLAG_INITIALFOCUS)
+			SendMessage(p_hwnd, WM_NEXTDLGCTL, (WPARAM)p_hctrl, TRUE);
+
+		EnableWindow(p_hctrl, !(ps_tmp->m_flags & MBE_DLGCTRLFLAG_DISABLED));
 	}
 }
 

@@ -36,6 +36,16 @@ enum mbe_dlg_btnflags {
 	MBE_DLGBTNFLAG_MISC    = 0       /* regular button with no special role */
 };
 
+/*
+ * common control flags 
+ */
+enum mbe_dlg_ctrlflags {
+	MBE_DLGCTRLFLAG_UNKNOWN = 0,           /* unknown/unspecified */
+
+	MBE_DLGCTRLFLAG_DISABLED     = 1 << 0, /* disabled by default */
+	MBE_DLGCTRLFLAG_INITIALFOCUS = 1 << 1  /* has initial focus */
+};
+
 
 /*
  * Structure representing dialog control information.
@@ -55,8 +65,8 @@ struct mbe_dlg_ctrlinfo {
 	 * in bytes.
 	 */
 	off_t  m_wboff;
-	size_t m_wbsize;    /* size of writeback buffer, in bytes */
-	BOOL   m_isenabled; /* default enabled state */
+	size_t m_wbsize; /* size of writeback buffer, in bytes */
+	int    m_flags;  /* common control flags */
 	
 	/*
 	 * The member **m_type** declares what field

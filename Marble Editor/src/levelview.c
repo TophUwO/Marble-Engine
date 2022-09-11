@@ -246,13 +246,13 @@ static BOOL MB_CALLBACK mbe_levelview_newlvldlg_onok(
 }
 
 static struct mbe_dlg_ctrlinfo const glsa_newlvlctrlinfo[] = {
-	{ NewLvlDlg_EDIT_Name,    MBE_DLGCTRLTYPE_EDIT,    offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_name),  0,           TRUE, ._edit   = TEXT("unnamed")                                         },
-	{ NewLvlDlg_EDIT_Comment, MBE_DLGCTRLTYPE_EDIT,    offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_cmt),   0,           TRUE                                                                     },
-	{ NewLvlDlg_SPIN_Width,   MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct mbe_levelview_dlgnewlvl_udata, m_width),  sizeof(int), TRUE, ._spin   = { NewLvlDlg_EDIT_Width,  64, 1, 1 << 16               } },
-	{ NewLvlDlg_SPIN_Height,  MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct mbe_levelview_dlgnewlvl_udata, m_height), sizeof(int), TRUE, ._spin   = { NewLvlDlg_EDIT_Height, 64, 1, 1 << 16               } },
-	{ NewLvlDlg_BTN_Ok,       MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           TRUE, ._button = { 0, MBE_DLGBTNFLAG_OK, &mbe_levelview_newlvldlg_onok } },
-	{ NewLvlDlg_BTN_Cancel,   MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           TRUE, ._button = { 0, MBE_DLGBTNFLAG_CANCEL                            } },
-	{ NewLvlDlg_BTN_Reset,    MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           TRUE, ._button = { 0, MBE_DLGBTNFLAG_RESET                             } }
+	{ NewLvlDlg_EDIT_Name,    MBE_DLGCTRLTYPE_EDIT,    offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_name),  0,           MBE_DLGCTRLFLAG_INITIALFOCUS, ._edit   = TEXT("unnamed")                                         },
+	{ NewLvlDlg_EDIT_Comment, MBE_DLGCTRLTYPE_EDIT,    offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_cmt)                                                                                                                  },
+	{ NewLvlDlg_SPIN_Width,   MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct mbe_levelview_dlgnewlvl_udata, m_width),  sizeof(int), 0,                            ._spin   = { NewLvlDlg_EDIT_Width,  64, 1, 1 << 16               } },
+	{ NewLvlDlg_SPIN_Height,  MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct mbe_levelview_dlgnewlvl_udata, m_height), sizeof(int), 0,                            ._spin   = { NewLvlDlg_EDIT_Height, 64, 1, 1 << 16               } },
+	{ NewLvlDlg_BTN_Ok,       MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           0,                            ._button = { 0, MBE_DLGBTNFLAG_OK, &mbe_levelview_newlvldlg_onok } },
+	{ NewLvlDlg_BTN_Cancel,   MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           0,                            ._button = { 0, MBE_DLGBTNFLAG_CANCEL                            } },
+	{ NewLvlDlg_BTN_Reset,    MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           0,                            ._button = { 0, MBE_DLGBTNFLAG_RESET                             } }
 };
 
 
