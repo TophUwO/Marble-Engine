@@ -25,7 +25,7 @@ struct mbe_level {
  * Structure representing tab-view userdata
  */
 struct mbe_levelview {
-	ID2D1HwndRenderTarget *mps_rt; /* page-window rendertarget */
+	ID2D1RenderTarget *mps_rt; /* page-window rendertarget */
 };
 
 /*
@@ -166,21 +166,12 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
 		.usage    = D2D1_RENDER_TARGET_USAGE_NONE,
 		.minLevel = D2D1_FEATURE_LEVEL_DEFAULT
 	};
-	D2D1_HWND_RENDER_TARGET_PROPERTIES const s_hwndprops = {
-		.hwnd = ps_tview->mp_hwndpage,
-		.pixelSize = {
-			.width  = ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
-			.height = ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top
-		},
-		.presentOptions = D2D1_PRESENT_OPTIONS_IMMEDIATELY
-	};
 
 	/* Create Direct2D rendertarget. */
-	hres = D2DWr_Factory_CreateHwndRenderTarget(
+	hres = D2DWr_Factory_CreateDCRenderTarget(
 		gls_editorapp.ms_res.mps_d2dfac,
 		&s_props,
-		&s_hwndprops,
-		&ps_lvlview->mps_rt
+		(ID2D1DCRenderTarget **)&ps_lvlview->mps_rt
 	);
 	if (hres != S_OK) {
 		free(ps_lvlview);
@@ -212,7 +203,7 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(
 
 	/* Release the rendertarget. */
 	if (ps_udata->mps_rt != NULL)
-		D2DWr_RenderTarget_Release((ID2D1RenderTarget *)ps_udata->mps_rt);
+		D2DWr_RenderTarget_Release(ps_udata->mps_rt);
 
 	/* Free struct memory. */
 	free(ps_tview->mp_udata);
@@ -263,23 +254,38 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	if (ps_tpage == NULL || ps_tpage->m_isinit == FALSE)
 		return FALSE;
 
+	HDC p_hdc;
+	RECT s_clrect;
+	struct mbe_levelview *ps_res;
+
+	struct marble_util_clock s;
+	marble_util_clock_start(&s);
+
 	/*
 	 * Get the pointer to the structure holding
 	 * the Direct2D rendertarget.
 	 */
-	struct mbe_levelview *ps_res = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
+	ps_res = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
 
 	/* Render the content of the page. */
-	D2DWr_RenderTarget_BeginDraw((ID2D1RenderTarget *)ps_res->mps_rt);
+	p_hdc = GetDC(ps_tpage->ps_parent->mp_hwndpage);
+	if (p_hdc == NULL)
+		return FALSE;
+	GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_clrect);
+
+	D2DWr_DCRenderTarget_BindDC((ID2D1DCRenderTarget *)ps_res->mps_rt, p_hdc, &s_clrect);
+	D2DWr_RenderTarget_BeginDraw(ps_res->mps_rt);
 
 	/* Erase screen with solid white. */
-	D2D1_COLOR_F s_col = { 1.0f, 1.0f, 1.0f, 1.0f };
-	D2DWr_RenderTarget_Clear((ID2D1RenderTarget *)ps_res->mps_rt, &s_col);
+	D2D1_COLOR_F s_col = { 0.0f, 1.0f, 1.0f, 1.0f };
+	D2DWr_RenderTarget_Clear(ps_res->mps_rt, &s_col);
 
 	// TODO: add tile-rendering code
 
 	/* Present the frame. */
-	D2DWr_RenderTarget_EndDraw((ID2D1RenderTarget *)ps_res->mps_rt, NULL, NULL);
+	D2DWr_RenderTarget_EndDraw(ps_res->mps_rt, NULL, NULL);
+
+	ReleaseDC(ps_tpage->ps_parent->mp_hwndpage, p_hdc);
 	return TRUE;
 }
 
@@ -297,7 +303,81 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpageresize(
 	if (ps_tpage == NULL)
 		return FALSE;
 
-	// TODO: add resize-code
+	int maxscr;
+	BOOL isxvisible, isyvisible;
+	struct mbe_level *ps_lvl = (struct mbe_level *)ps_tpage->mp_udata;
+	if (ps_lvl == NULL)
+		return FALSE;
+
+	/* Update vertical scrollbar. */
+	if (ps_lvl->m_pheight > nheight) {
+		maxscr = max(ps_lvl->m_pheight - nheight, 0); 
+
+		ps_tpage->ms_scrinfo.ms_yscr = (SCROLLINFO){
+			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_yscr,
+			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
+			.nMin   = 0,
+			.nMax   = ps_lvl->m_pheight,
+			.nPage  = nheight,
+			.nPos   = min(ps_tpage->ms_scrinfo.ms_yscr.nPos, maxscr)
+		};
+
+		isyvisible = TRUE;
+	} else {
+		/*
+		 * If the scrollbar needs to be hidden, we set the position of the
+		 * scrollbar to 0. We can safely do that as the scrollbars will only
+		 * be hidden if the entire bitmap axis the scrollbar is dedicated to
+		 * can be displayed in the current tileset view window.
+		 * If we do not set the value to 0 in such a case, the view will be stuck
+		 * in the view that it was scrolled to previously, possibly leaving
+		 * a portion of the tileset bitmap still hidden even though we have enough
+		 * space inside the window to display it.
+		 */
+		ps_tpage->ms_scrinfo.ms_yscr.fMask = SIF_POS;
+		ps_tpage->ms_scrinfo.ms_yscr.nPos  = 0;
+
+		isyvisible = FALSE;
+	}
+	/* Submit new scrollbar info. */
+	SetScrollInfo(
+		ps_tpage->ps_parent->mp_hwndpage,
+		SB_VERT,
+		&ps_tpage->ms_scrinfo.ms_yscr,
+		TRUE
+	);
+
+	/* Update horizontal scrollbar. */
+	if (ps_lvl->m_pwidth > nwidth) {
+		maxscr = max(ps_lvl->m_pwidth - nwidth, 0);
+
+		ps_tpage->ms_scrinfo.ms_xscr = (SCROLLINFO){
+			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_xscr,
+			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
+			.nMin   = 0,
+			.nMax   = ps_lvl->m_pwidth,
+			.nPage  = nwidth,
+			.nPos   = min(ps_tpage->ms_scrinfo.ms_xscr.nPos, maxscr)
+		};
+
+		isxvisible = TRUE;
+	} else {
+		ps_tpage->ms_scrinfo.ms_xscr.fMask = SIF_POS;
+		ps_tpage->ms_scrinfo.ms_xscr.nPos  = 0;
+
+		isxvisible = FALSE;
+	}
+	/* Submit new scrollbar info. */
+	SetScrollInfo(
+		ps_tpage->ps_parent->mp_hwndpage,
+		SB_HORZ,
+		&ps_tpage->ms_scrinfo.ms_xscr,
+		TRUE
+	);
+
+	/* Update visible states of scrollbars. */
+	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_HORZ, ps_tpage->ms_scrinfo.m_xscrv = isxvisible);
+	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_VERT, ps_tpage->ms_scrinfo.m_yscrv = isyvisible);
 
 	return TRUE;
 }

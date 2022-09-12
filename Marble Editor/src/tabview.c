@@ -62,6 +62,139 @@ static void mbe_tabpage_int_destroy(
 	*pps_tpage = NULL;
 }
 
+/*
+ * Handles the messages related to the scrollbar.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tabpage_int_handlescrolling(
+	_In_ struct mbe_tabview *ps_tview, /* tab-view */
+	     UINT msg,                     /* exact message */
+	     LONG param                    /* additional parameter */
+) {
+#define MBE_ISUPSCRMSG(msg)   (msg == SB_PAGEUP || msg == SB_LINEUP)
+#define MBE_ISDOWNSCRMSG(msg) (msg == SB_PAGEDOWN || msg == SB_LINEDOWN)
+
+	int newpos;
+	float fac = 1.0f;
+
+	/*
+	 * Mouse wheel behavior:
+	 * 
+	 * Scrolling:         Vertical scroll
+	 * Scrolling + SHIFT: Horizontal scroll
+	 * 
+	 * Scrolling occurs in (**gl_viewtsize**) * (HIWORD(**wparam**) / WHEEL_DELTA)
+	 * steps.
+	 * The scrolling step may be smaller than WHEEL_DELTA (120) since
+	 * there are mice with a free mouse wheel for higher precision
+	 * scrolling.
+	 */
+	switch (msg) {
+		case WM_MOUSEWHEEL:
+			/*
+			 * Translate WM_MOUSEWHEEL into WM_HSCROLL/WM_VSCROLL
+			 * + SB_LINEDOWN/SB_LINEUP combination so that the
+			 * function can deal with the message normally.
+			 */
+			fac   = -((SHORT)HIWORD(param) / (float)WHEEL_DELTA);
+			msg   = LOWORD(param) & MK_SHIFT ? WM_HSCROLL : WM_VSCROLL;
+			param = MAKELONG(HIWORD(param) < 0 ? SB_LINEUP : SB_LINEDOWN, 0);
+
+			break;
+		case WM_KEYDOWN: {
+			param = MAKELONG(MBE_SB_CTRL, (WORD)param);
+
+			msg = gls_editorapp.ms_flags.mf_isshift != FALSE 
+				? WM_HSCROLL
+				: WM_VSCROLL
+			;
+			break;
+		}
+	}
+
+	/* Get correct scrollbar information structure. */
+	SCROLLINFO *ps_scrinfo = msg == WM_HSCROLL
+		? &ps_tview->mps_cursel->ms_scrinfo.ms_xscr
+		: &ps_tview->mps_cursel->ms_scrinfo.ms_yscr
+	;
+
+	/*
+	 * If the current scrollbar is not visible, do not
+	 * allow scrolling of the window by other means such
+	 * as the mouse-wheel or even the keyboard.
+	 */
+	if (msg == WM_HSCROLL && ps_tview->mps_cursel->ms_scrinfo.m_xscrv == FALSE || msg == WM_VSCROLL && ps_tview->mps_cursel->ms_scrinfo.m_yscrv == FALSE)
+		return;
+
+	/*
+	 * Simply ignore (yet) unknown commands by
+	 * setting the new scroll position to the
+	 * current one.
+	 */
+	newpos = ps_scrinfo->nPos;
+	fac   *= MBE_ISUPSCRMSG(LOWORD(param)) ? -1.0f : 1.0f;
+	switch (LOWORD(param)) {
+		case MBE_SB_CTRL:
+			/* Handle some custom keystrokes. */
+			switch (HIWORD(param)) {
+				case VK_HOME: newpos = 0; break;
+				case VK_END:
+					newpos = ps_scrinfo->nMax - ps_scrinfo->nPage + 1;
+				
+					break;
+			}
+
+			break;
+		case SB_PAGEUP:
+		case SB_PAGEDOWN:
+			newpos = ps_scrinfo->nPos + (int)((float)ps_scrinfo->nPage * fac);
+
+			goto lbl_CLAMP;
+		case SB_LINEUP:
+		case SB_LINEDOWN:
+			newpos = ps_scrinfo->nPos + (int)(32.0f * fac);
+
+			/*
+			 * As clamping to 0 < newpos < ps_scrinfo->nMax would
+			 * allow the user to scroll outside of the bitmap, we
+			 * clamp to the origin of the last page so the last
+			 * position that can be scrolled to is essentially
+			 * the same position that the scrollbars scroll to.
+			 */
+		lbl_CLAMP:
+			newpos = min(ps_scrinfo->nMax - ps_scrinfo->nPage +	1, (UINT)max(0, newpos));
+
+			/* Skip the regular clamp. */
+			goto lbl_UPDATE;
+		case SB_THUMBPOSITION:
+		case SB_THUMBTRACK:
+			newpos = HIWORD(param);
+
+			break;
+	}
+	/* Clamp value. */
+	newpos = min(ps_scrinfo->nMax, max(0, newpos));
+
+lbl_UPDATE:
+	/* Update scrollbar info. */
+	ps_scrinfo->fMask = SIF_POS;
+	ps_scrinfo->nPos  = newpos;
+
+	SetScrollInfo(
+		ps_tview->mp_hwndpage,
+		msg == WM_HSCROLL
+			? SB_HORZ
+			: SB_VERT
+		, ps_scrinfo,
+		TRUE
+	);
+
+	/* Repaint the current page. */
+	InvalidateRect(ps_tview->mp_hwndpage, NULL, FALSE);
+	UpdateWindow(ps_tview->mp_hwndpage);
+}
+
 
 LRESULT CALLBACK mbe_tabpage_int_wndproc(
 	HWND p_hwnd,
@@ -94,6 +227,17 @@ LRESULT CALLBACK mbe_tabpage_int_wndproc(
 
 			/* Post a WM_PAINT message. */
 			InvalidateRect(p_hwnd, NULL, FALSE);
+			return 0;
+		case WM_VSCROLL:
+		case WM_HSCROLL:
+		case WM_MOUSEWHEEL:
+		case WM_KEYDOWN:
+			mbe_tabpage_int_handlescrolling(
+				ps_udata,
+				msg,
+				(LONG)wparam
+			);
+
 			return 0;
 		case WM_PAINT:
 			/*
@@ -229,7 +373,7 @@ LRESULT CALLBACK mbe_tabview_int_wndproc(
 	LPARAM lparam
 ) {
 	switch (msg) {
-		
+
 	}
 
 	/*
@@ -272,7 +416,7 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 		WS_EX_WINDOWEDGE,
 		glpz_tabviewwndcl,
 		NULL,
-		WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+		WS_VISIBLE | WS_CHILD | WS_CLIPCHILDREN,
 		ps_size->m_xpos,
 		ps_size->m_ypos,
 		ps_size->m_width,
@@ -301,7 +445,7 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 		WS_EX_WINDOWEDGE,
 		glpz_pagewndcl,
 		NULL,
-		WS_CHILD | WS_CLIPSIBLINGS,
+		WS_CHILD | WS_VSCROLL,
 		(*pps_tview)->ms_dimensions.left,
 		(*pps_tview)->ms_dimensions.top,
 		(*pps_tview)->ms_dimensions.right - (*pps_tview)->ms_dimensions.left,
@@ -484,8 +628,15 @@ marble_ecode_t mbe_tabview_addpage(
 	 * This has to be done because the display area shrinks
 	 * if the first tab is added.
 	 */
-	if (last == 0)
+	if (last == 0) {
 		mbe_tabview_int_resizepagewnd(ps_tview);
+	
+		/*
+		 * The first added page also causes the page
+		 * window to finally show.
+		 */
+		ShowWindow(ps_tview->mp_hwndpage, SW_SHOW);
+	}
 
 	/* Force update of page window. */
 	InvalidateRect(ps_tview->mp_hwndpage, NULL, FALSE);

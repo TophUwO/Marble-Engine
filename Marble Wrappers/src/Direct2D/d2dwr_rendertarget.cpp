@@ -218,3 +218,8 @@ ULONG WINAPI D2DWr_RenderTarget_Release(ID2D1RenderTarget *sRenderTarget) {
 }
 
 
+HRESULT WINAPI D2DWr_DCRenderTarget_BindDC(ID2D1DCRenderTarget *sRenderTarget, HDC pHDC, RECT const *sRect) {
+	return sRenderTarget->BindDC(pHDC, sRect);
+}
+
+

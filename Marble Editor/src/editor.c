@@ -224,6 +224,9 @@ marble_ecode_t mbe_editor_init(
 	static BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(_Inout_ struct mbe_tabview *, _In_opt_ void *);
 	static BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(_Inout_ struct mbe_tabview *);
 
+	/* Init HPC. */
+	marble_util_clock_init();
+
 	ecode = marble_log_init("editorlog.txt");
 	if (ecode != MARBLE_EC_OK)
 		return ecode;

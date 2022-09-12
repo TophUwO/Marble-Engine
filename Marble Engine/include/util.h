@@ -363,7 +363,7 @@ void inline *marble_util_vec_get(
  * means of measuring time with high resolution).
  */
 #pragma region UTIL-CLOCK
-extern uint64_t gl_pfreq; /* variable holding frequency of HPC */
+MB_API uint64_t gl_pfreq; /* variable holding frequency of HPC */
 
 
 struct marble_util_clock {
@@ -371,6 +371,18 @@ struct marble_util_clock {
 	uint64_t m_tend;   /* end time */
 };
 
+
+#if (defined MB_ECOSYSTEM)
+/*
+ * Initializes the performance frequency. This function must be called
+ * by all modules outside of the Marble main DLL.
+ * 
+ * Returns nothing.
+ */
+void inline marble_util_clock_init(void) {
+	QueryPerformanceFrequency((LARGE_INTEGER *)&gl_pfreq);
+}
+#endif
 
 /*
  * Starts/Restarts a clock.
