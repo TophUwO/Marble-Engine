@@ -13,7 +13,7 @@ _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateHwndRenderTarget(ID2D1Factory *
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreatePathGeometry(ID2D1Factory *sFactory, ID2D1PathGeometry **ptrpPathGeometry);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateRectangleGeometry(ID2D1Factory *sFactory, D2D1_RECT_F const *sRect, ID2D1RectangleGeometry **ptrpRectangleGeometry);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateRoundedRectangleGeometry(ID2D1Factory *sFactory, D2D1_ROUNDED_RECT const *sRoundedRect, ID2D1RoundedRectangleGeometry **ptrpRoundedRectangleGeometry);
-_WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateStrokeStyle(ID2D1Factory *sFactory, D2D1_STROKE_STYLE_PROPERTIES *const sStrokeStyleProps, FLOAT const *fpDashes, UINT32 udwDashesCount,ID2D1StrokeStyle **ptrpStrokeStyle);
+_WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateStrokeStyle(ID2D1Factory *sFactory, D2D1_STROKE_STYLE_PROPERTIES const *sStrokeStyleProps, FLOAT const *fpDashes, UINT32 udwDashesCount,ID2D1StrokeStyle **ptrpStrokeStyle);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateTransformedGeometry(ID2D1Factory *sFactory, ID2D1Geometry *sSourceGeometry, D2D1_MATRIX_3X2_F const *sTransform, ID2D1TransformedGeometry **ptrpTransformedGeometry);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateWicBitmapRenderTarget(ID2D1Factory *sFactory, IWICBitmap *sTarget, D2D1_RENDER_TARGET_PROPERTIES const *sProps, ID2D1RenderTarget **ptrpWicBitmapRenderTarget);
 _WR_EXTERN_C_ void    WINAPI D2DWr_Factory_GetDesktopDPI(ID2D1Factory *sFactory, FLOAT *fpDpiX, FLOAT *fpDpiY);

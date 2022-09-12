@@ -37,7 +37,7 @@ HRESULT WINAPI D2DWr_Factory_CreateRoundedRectangleGeometry(ID2D1Factory *sFacto
 	return sFactory->CreateRoundedRectangleGeometry(sRoundedRect, ptrpRoundedRectangleGeometry);
 }
 
-HRESULT WINAPI D2DWr_Factory_CreateStrokeStyle(ID2D1Factory *sFactory, D2D1_STROKE_STYLE_PROPERTIES *const sStrokeStyleProps, FLOAT const *fpDashes, UINT32 udwDashesCount,ID2D1StrokeStyle **ptrpStrokeStyle) {
+HRESULT WINAPI D2DWr_Factory_CreateStrokeStyle(ID2D1Factory *sFactory, D2D1_STROKE_STYLE_PROPERTIES const *sStrokeStyleProps, FLOAT const *fpDashes, UINT32 udwDashesCount,ID2D1StrokeStyle **ptrpStrokeStyle) {
 	return sFactory->CreateStrokeStyle(sStrokeStyleProps, fpDashes, udwDashesCount, ptrpStrokeStyle);
 }
 

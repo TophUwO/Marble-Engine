@@ -109,25 +109,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\Notes\old_vec_test.txt">
-      <Filter>Resource Files\Notes</Filter>
-    </Text>
-    <Text Include="..\..\Notes\asset_types.txt">
-      <Filter>Resource Files\Notes</Filter>
-    </Text>
-    <Text Include="..\..\Notes\script_commands.txt">
-      <Filter>Resource Files\Notes</Filter>
-    </Text>
-    <Text Include="..\..\Notes\asset_deps.txt">
-      <Filter>Resource Files\Notes</Filter>
-    </Text>
-    <Text Include="..\..\Notes\TODO.txt">
-      <Filter>Resource Files\Notes</Filter>
-    </Text>
-    <Text Include="..\..\Notes\old_asset_create.txt">
-      <Filter>Resource Files\Notes</Filter>
-    </Text>
-    <Text Include="..\..\Notes\old_rendererstuff.txt">
+    <Text Include="..\..\Notes\measure_time.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
   </ItemGroup>

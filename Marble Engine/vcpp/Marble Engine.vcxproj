@@ -214,13 +214,7 @@
     <ClInclude Include="..\include\window.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\Notes\asset_deps.txt" />
-    <Text Include="..\..\Notes\asset_types.txt" />
-    <Text Include="..\..\Notes\old_asset_create.txt" />
-    <Text Include="..\..\Notes\old_rendererstuff.txt" />
-    <Text Include="..\..\Notes\old_vec_test.txt" />
-    <Text Include="..\..\Notes\script_commands.txt" />
-    <Text Include="..\..\Notes\TODO.txt" />
+    <Text Include="..\..\Notes\measure_time.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Marble Tools\baselib.py" />

@@ -27,7 +27,8 @@ extern struct mbe_application {
 		HPEN   mp_hpgrid;   /* grid pen */
 
 		/* Direct2D resources */
-		ID2D1Factory *mps_d2dfac; /* for Direct2D rendering */
+		ID2D1Factory     *mps_d2dfac;  /* for Direct2D rendering */
+		ID2D1StrokeStyle *mp_grstroke; /* grid-line stroke style */
 	} ms_res;
 
 	/* Application-wide flags. */

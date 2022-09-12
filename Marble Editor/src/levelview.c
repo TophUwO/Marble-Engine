@@ -25,7 +25,8 @@ struct mbe_level {
  * Structure representing tab-view userdata
  */
 struct mbe_levelview {
-	ID2D1RenderTarget *mps_rt; /* page-window rendertarget */
+	ID2D1RenderTarget    *mp_rt;       /* page-window rendertarget */
+	ID2D1SolidColorBrush *mp_brblack;  /* solid black brush */
 };
 
 /*
@@ -171,13 +172,25 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
 	hres = D2DWr_Factory_CreateDCRenderTarget(
 		gls_editorapp.ms_res.mps_d2dfac,
 		&s_props,
-		(ID2D1DCRenderTarget **)&ps_lvlview->mps_rt
+		(ID2D1DCRenderTarget **)&ps_lvlview->mp_rt
 	);
-	if (hres != S_OK) {
-		free(ps_lvlview);
-
+	if (hres != S_OK)
 		return FALSE;
-	}
+
+	/*
+	 * Create a brush initially painting
+	 * in solid black.
+	 */
+	D2D1_COLOR_F const s_cblack = { 0.0f, 0.0f, 0.0f, 1.0f };
+	D2D1_BRUSH_PROPERTIES const s_brprops = { 1.0f };
+	hres = D2DWr_RenderTarget_CreateSolidColorBrush(
+		ps_lvlview->mp_rt,
+		&s_cblack,
+		&s_brprops,
+		&ps_lvlview->mp_brblack
+	);
+	if (hres != S_OK)
+		return FALSE;
 
 	/* Update internal userdata pointer. */
 	ps_tview->mp_udata = ps_lvlview;
@@ -202,8 +215,11 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(
 		return TRUE;
 
 	/* Release the rendertarget. */
-	if (ps_udata->mps_rt != NULL)
-		D2DWr_RenderTarget_Release(ps_udata->mps_rt);
+	if (ps_udata->mp_rt != NULL)
+		D2DWr_RenderTarget_Release(ps_udata->mp_rt);
+
+	if (ps_udata->mp_brblack != NULL)
+		D2DWr_SolidColorBrush_Release(ps_udata->mp_brblack);
 
 	/* Free struct memory. */
 	free(ps_tview->mp_udata);
@@ -256,14 +272,12 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 
 	HDC p_hdc;
 	RECT s_clrect;
+	int xori, yori;
 	struct mbe_levelview *ps_res;
-
-	struct marble_util_clock s;
-	marble_util_clock_start(&s);
 
 	/*
 	 * Get the pointer to the structure holding
-	 * the Direct2D rendertarget.
+	 * the required Direct2D resources.
 	 */
 	ps_res = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
 
@@ -273,17 +287,45 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 		return FALSE;
 	GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_clrect);
 
-	D2DWr_DCRenderTarget_BindDC((ID2D1DCRenderTarget *)ps_res->mps_rt, p_hdc, &s_clrect);
-	D2DWr_RenderTarget_BeginDraw(ps_res->mps_rt);
+	D2DWr_DCRenderTarget_BindDC((ID2D1DCRenderTarget *)ps_res->mp_rt, p_hdc, &s_clrect);
+	D2DWr_RenderTarget_BeginDraw(ps_res->mp_rt);
 
 	/* Erase screen with solid white. */
-	D2D1_COLOR_F s_col = { 0.0f, 1.0f, 1.0f, 1.0f };
-	D2DWr_RenderTarget_Clear(ps_res->mps_rt, &s_col);
+	D2D1_COLOR_F s_col = { 1.0f, 1.0f, 1.0f, 1.0f };
+	D2DWr_RenderTarget_Clear(ps_res->mp_rt, &s_col);
 
 	// TODO: add tile-rendering code
+	xori = -ps_tpage->ms_scrinfo.ms_xscr.nPos % gl_viewtsize;
+	yori = -ps_tpage->ms_scrinfo.ms_yscr.nPos % gl_viewtsize;
+
+	/* Draw vertical grid lines. */
+	for (int x = xori; x < s_clrect.right; x += gl_viewtsize)
+		D2DWr_RenderTarget_DrawLine(
+			ps_res->mp_rt,
+			(D2D1_POINT_2F){ (float)x - 0.5f, (float)yori },
+			(D2D1_POINT_2F){ (float)x - 0.5f, (float)s_clrect.bottom },
+			(ID2D1Brush *)ps_res->mp_brblack,
+			1.0f,
+			/*
+			 * Due to massive performance issues, no special stroke style
+			 * is currently used. 
+			 */
+			NULL
+		);
+
+	/* Draw horizontal grid lines. */
+	for (int y = yori; y < s_clrect.bottom; y += gl_viewtsize)
+		D2DWr_RenderTarget_DrawLine(
+			ps_res->mp_rt,
+			(D2D1_POINT_2F){ (float)xori, (float)y - 0.5f },
+			(D2D1_POINT_2F){ (float)s_clrect.right, (float)y - 0.5f },
+			(ID2D1Brush *)ps_res->mp_brblack,
+			1.0f,
+			NULL
+		);
 
 	/* Present the frame. */
-	D2DWr_RenderTarget_EndDraw(ps_res->mps_rt, NULL, NULL);
+	D2DWr_RenderTarget_EndDraw(ps_res->mp_rt, NULL, NULL);
 
 	ReleaseDC(ps_tpage->ps_parent->mp_hwndpage, p_hdc);
 	return TRUE;
@@ -317,7 +359,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpageresize(
 			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_yscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
 			.nMin   = 0,
-			.nMax   = ps_lvl->m_pheight,
+			.nMax   = ps_lvl->m_pheight - 1,
 			.nPage  = nheight,
 			.nPos   = min(ps_tpage->ms_scrinfo.ms_yscr.nPos, maxscr)
 		};
@@ -355,7 +397,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpageresize(
 			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_xscr,
 			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
 			.nMin   = 0,
-			.nMax   = ps_lvl->m_pwidth,
+			.nMax   = ps_lvl->m_pwidth - 1,
 			.nPage  = nwidth,
 			.nPos   = min(ps_tpage->ms_scrinfo.ms_xscr.nPos, maxscr)
 		};

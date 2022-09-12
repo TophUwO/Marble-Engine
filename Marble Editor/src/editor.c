@@ -50,7 +50,26 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 	if (hres != S_OK)
 		ecode = MARBLE_EC_CREATED2DFAC;
 
-	return MARBLE_EC_OK;
+	/* Grid-line stroke properties */
+	D2D1_STROKE_STYLE_PROPERTIES const s_strprops = {
+		.dashStyle  = D2D1_DASH_STYLE_DASH,
+		.dashCap    = D2D1_CAP_STYLE_SQUARE,
+		.dashOffset = 0.0f
+	};
+
+	/* Create stroke style. */
+	hres = D2DWr_Factory_CreateStrokeStyle(
+		gls_editorapp.ms_res.mps_d2dfac,
+		&s_strprops,
+		NULL,
+		0,
+		&gls_editorapp.ms_res.mp_grstroke
+	);
+	if (hres != S_OK)
+		ecode = MARBLE_EC_CREATED2DSTROKESTYLE;
+
+	// TODO: BUG: currently, if any of these resources fail to create, the already created resources are not released.
+	return ecode;
 }
 
 /*
