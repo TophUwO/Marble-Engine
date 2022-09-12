@@ -59,5 +59,8 @@
     <ClCompile Include="..\src\DirectWrite\dwr_textformat.cpp">
       <Filter>Source Files\DirectWrite</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Direct2D\strokestyle.cpp">
+      <Filter>Source Files\Direct2D</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -37,9 +37,11 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 
 	/* Create Direct2D and WIC resources. */
 #if (defined _DEBUG) || (defined MB_DEVBUILD)
-	D2D1_FACTORY_OPTIONS s_opts = { .debugLevel = D2D1_DEBUG_LEVEL_INFORMATION }, *ps_opts = &s_opts;
+	D2D1_FACTORY_OPTIONS const s_opts = {
+		.debugLevel = D2D1_DEBUG_LEVEL_INFORMATION
+	}, *ps_opts = &s_opts;
 #else
-	D2D1_FACTORY_OPTIONS *ps_opts = NULL;
+	D2D1_FACTORY_OPTIONS const *ps_opts = NULL;
 #endif
 	hres = D2D1CreateFactory(
 		D2D1_FACTORY_TYPE_MULTI_THREADED,
@@ -52,17 +54,18 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 
 	/* Grid-line stroke properties */
 	D2D1_STROKE_STYLE_PROPERTIES const s_strprops = {
-		.dashStyle  = D2D1_DASH_STYLE_DASH,
+		.dashStyle  = D2D1_DASH_STYLE_CUSTOM,
 		.dashCap    = D2D1_CAP_STYLE_SQUARE,
 		.dashOffset = 0.0f
 	};
+	float const a_dashes[2] = { 2.0f, 4.0f };
 
 	/* Create stroke style. */
 	hres = D2DWr_Factory_CreateStrokeStyle(
 		gls_editorapp.ms_res.mps_d2dfac,
 		&s_strprops,
-		NULL,
-		0,
+		a_dashes,
+		2,
 		&gls_editorapp.ms_res.mp_grstroke
 	);
 	if (hres != S_OK)
@@ -232,7 +235,9 @@ static void mbe_editor_internal_freeresources(void) {
 	DeleteObject(gls_editorapp.ms_res.mp_hpgrid);
 	DeleteObject(gls_editorapp.ms_res.mp_hguifont);
 
-	D2DWr_Factory_Release(gls_editorapp.ms_res.mps_d2dfac);
+	/* Release global Direct2D resources. */
+	D2DWR_SAFERELEASE(D2DWr_Factory_Release, gls_editorapp.ms_res.mps_d2dfac);
+	D2DWR_SAFERELEASE(D2DWr_StrokeStyle_Release, gls_editorapp.ms_res.mp_grstroke);
 }
 
 

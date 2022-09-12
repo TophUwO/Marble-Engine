@@ -3,6 +3,8 @@
 #include <wrbase.h>
 #include <d2d1_1.h>
 
+#define D2DWR_SAFERELEASE(fn, o) (void)(o != NULL ? (fn(o)) : (0))
+
 
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateDCRenderTarget(ID2D1Factory *sFactory, D2D1_RENDER_TARGET_PROPERTIES const *sProps, ID2D1DCRenderTarget **ptrpDCRenderTarget);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_CreateDrawingStateBlock(ID2D1Factory *sFactory, D2D1_DRAWING_STATE_DESCRIPTION const *sDesc, IDWriteRenderingParams *sRenderingParams, ID2D1DrawingStateBlock **ptrpDrawingStateBlock);
@@ -20,6 +22,8 @@ _WR_EXTERN_C_ void    WINAPI D2DWr_Factory_GetDesktopDPI(ID2D1Factory *sFactory,
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory_ReloadSystemMetrics(ID2D1Factory *sFactory);
 _WR_EXTERN_C_ ULONG   WINAPI D2DWr_Factory_Release(ID2D1Factory *sFactory);
 _WR_EXTERN_C_ HRESULT WINAPI D2DWr_Factory1_CreateDevice(ID2D1Factory1 *sFactory, IDXGIDevice *sDXGIDevice, ID2D1Device **sD2DDevice);
+
+_WR_EXTERN_C_ HRESULT WINAPI D2DWr_StrokeStyle_Release(ID2D1StrokeStyle *sStrokeStyle);
 
 _WR_EXTERN_C_ void                     WINAPI D2DWr_RenderTarget_BeginDraw(ID2D1RenderTarget *sRenderTarget);
 _WR_EXTERN_C_ void                     WINAPI D2DWr_RenderTarget_Clear(ID2D1RenderTarget *sRenderTarget, D2D1_COLOR_F const *sClearColor);

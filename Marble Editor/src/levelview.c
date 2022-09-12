@@ -25,8 +25,8 @@ struct mbe_level {
  * Structure representing tab-view userdata
  */
 struct mbe_levelview {
-	ID2D1RenderTarget    *mp_rt;       /* page-window rendertarget */
-	ID2D1SolidColorBrush *mp_brblack;  /* solid black brush */
+	ID2D1RenderTarget    *mp_rt;      /* page-window rendertarget */
+	ID2D1SolidColorBrush *mp_brsolid; /* solid-color brush */
 };
 
 /*
@@ -157,6 +157,9 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
 	if (ecode != MARBLE_EC_OK)
 		return FALSE;
 
+	/* Update internal userdata pointer. */
+	ps_tview->mp_udata = ps_lvlview;
+
 	/* Set rendertarget properties. */
 	D2D1_RENDER_TARGET_PROPERTIES const s_props = {
 		.type = D2D1_RENDER_TARGET_TYPE_HARDWARE,
@@ -178,7 +181,7 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
 		return FALSE;
 
 	/*
-	 * Create a brush initially painting
+	 * Create the brush initially painting
 	 * in solid black.
 	 */
 	D2D1_COLOR_F const s_cblack = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -187,13 +190,17 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
 		ps_lvlview->mp_rt,
 		&s_cblack,
 		&s_brprops,
-		&ps_lvlview->mp_brblack
+		&ps_lvlview->mp_brsolid
 	);
 	if (hres != S_OK)
 		return FALSE;
 
-	/* Update internal userdata pointer. */
-	ps_tview->mp_udata = ps_lvlview;
+	/*
+	 * We do not have to unroll our resource allocation here, as
+	 * returning FALSE in the event of an error will subsequently
+	 * trigger the "ondestroy" handler of our tab-page, automatically
+	 * deallocating everything that's already allocated.
+	 */
 	return TRUE;
 }
 
@@ -214,12 +221,9 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(
 	if (ps_udata == NULL)
 		return TRUE;
 
-	/* Release the rendertarget. */
-	if (ps_udata->mp_rt != NULL)
-		D2DWr_RenderTarget_Release(ps_udata->mp_rt);
-
-	if (ps_udata->mp_brblack != NULL)
-		D2DWr_SolidColorBrush_Release(ps_udata->mp_brblack);
+	/* Release Direct2D resources. */
+	D2DWR_SAFERELEASE(D2DWr_RenderTarget_Release, ps_udata->mp_rt);
+	D2DWR_SAFERELEASE(D2DWr_SolidColorBrush_Release, ps_udata->mp_brsolid);
 
 	/* Free struct memory. */
 	free(ps_tview->mp_udata);
@@ -274,6 +278,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	RECT s_clrect;
 	int xori, yori;
 	struct mbe_levelview *ps_res;
+	D2D1_ANTIALIAS_MODE oldaamode;
 
 	/*
 	 * Get the pointer to the structure holding
@@ -294,17 +299,56 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	D2D1_COLOR_F s_col = { 1.0f, 1.0f, 1.0f, 1.0f };
 	D2DWr_RenderTarget_Clear(ps_res->mp_rt, &s_col);
 
-	// TODO: add tile-rendering code
+	/*
+	 * Compute the upper-left corner of topleft
+	 * tile that is at least partly visible,
+	 * in client coordinates.
+	 */
 	xori = -ps_tpage->ms_scrinfo.ms_xscr.nPos % gl_viewtsize;
 	yori = -ps_tpage->ms_scrinfo.ms_yscr.nPos % gl_viewtsize;
+
+	// Render tiles.
+	for (int x = xori; x < s_clrect.right; x += 32)
+		for (int y = yori; y < s_clrect.bottom; y += 32) {
+			D2D1_RECT_F const s_srect = {
+				// TODO: calc bitmap rect
+				0.0f,
+				0.0f,
+				32.0f,
+				32.0f
+			};
+			D2D1_RECT_F const s_drect = {
+				(float)x,
+				(float)y,
+				(float)x + 32.0f,
+				(float)y + 32.0f
+			};
+
+			//D2DWr_RenderTarget_DrawBitmap(
+			//	ps_res->mp_rt,
+			//	NULL /* TODO: get tileset bitmap */,
+			//	&s_drect,
+			//	1.0f,
+			//	D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+			//	&s_srect
+			//);
+		}
+
+	/*
+	 * Disable antialiasing for straight lines.
+	 * This speeds-up drawing of non-solid
+	 * lines considerably.
+	 */
+	oldaamode = D2DWr_RenderTarget_GetAntialiasMode(ps_res->mp_rt);
+	D2DWr_RenderTarget_SetAntialiasMode(ps_res->mp_rt, D2D1_ANTIALIAS_MODE_ALIASED);
 
 	/* Draw vertical grid lines. */
 	for (int x = xori; x < s_clrect.right; x += gl_viewtsize)
 		D2DWr_RenderTarget_DrawLine(
 			ps_res->mp_rt,
-			(D2D1_POINT_2F){ (float)x - 0.5f, (float)yori },
-			(D2D1_POINT_2F){ (float)x - 0.5f, (float)s_clrect.bottom },
-			(ID2D1Brush *)ps_res->mp_brblack,
+			(D2D1_POINT_2F){ (float)x - 0.5f, (float)yori - 0.5f },
+			(D2D1_POINT_2F){ (float)x - 0.5f, (float)s_clrect.bottom + 0.5f },
+			(ID2D1Brush *)ps_res->mp_brsolid,
 			1.0f,
 			/*
 			 * Due to massive performance issues, no special stroke style
@@ -317,12 +361,15 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	for (int y = yori; y < s_clrect.bottom; y += gl_viewtsize)
 		D2DWr_RenderTarget_DrawLine(
 			ps_res->mp_rt,
-			(D2D1_POINT_2F){ (float)xori, (float)y - 0.5f },
-			(D2D1_POINT_2F){ (float)s_clrect.right, (float)y - 0.5f },
-			(ID2D1Brush *)ps_res->mp_brblack,
+			(D2D1_POINT_2F){ (float)xori - 0.5f, (float)y - 0.5f },
+			(D2D1_POINT_2F){ (float)s_clrect.right + 0.5f, (float)y - 0.5f },
+			(ID2D1Brush *)ps_res->mp_brsolid,
 			1.0f,
 			NULL
 		);
+
+	/* Restore the old AA-mode. */
+	D2DWr_RenderTarget_SetAntialiasMode(ps_res->mp_rt, oldaamode);
 
 	/* Present the frame. */
 	D2DWr_RenderTarget_EndDraw(ps_res->mp_rt, NULL, NULL);
