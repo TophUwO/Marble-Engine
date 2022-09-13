@@ -19,6 +19,7 @@ struct mbe_tabpage_callbacks {
 	BOOL (MB_CALLBACK *mpfn_oncreate)(_Inout_ struct mbe_tabpage *, _In_opt_ void *); /* executed when the page userdata must be initialized */
 	BOOL (MB_CALLBACK *mpfn_onpaint)(_Inout_ struct mbe_tabpage *);                   /* executed when the page needs to be repained */
 	BOOL (MB_CALLBACK *mpfn_onresize)(_Inout_ struct mbe_tabpage *, int, int);        /* executed after the page window was resized */
+	BOOL (MB_CALLBACK *mpfn_onzoom)(_Inout_ struct mbe_tabpage *);                    /* executed after the zoom-factor has changed */
 	BOOL (MB_CALLBACK *mpfn_onselect)(_Inout_ struct mbe_tabpage *);                  /* executed right before the page is selected */
 	BOOL (MB_CALLBACK *mpfn_onunselect)(_Inout_ struct mbe_tabpage *);                /* executed right before the page is unselected */
 	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabpage *);                 /* executed when it is time to destroy the page userdata */
@@ -53,7 +54,7 @@ struct mbe_tabview {
 	HWND  mp_hwndpage;   /* window of visible page */
 	RECT  ms_dimensions; /* client dimensions */
 	BOOL  m_isinit;      /* init-state */
-	void *mp_udata;      /* */
+	void *mp_udata;      /* userdata */
 
 	struct mbe_tabpage *mps_cursel;    /* currently selected page */
 	struct marble_util_vec *mps_pages; /* list of pages */

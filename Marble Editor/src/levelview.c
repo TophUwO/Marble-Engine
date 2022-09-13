@@ -47,7 +47,7 @@ struct mbe_levelview_dlgnewlvl_udata {
  * different original size will be scaled-up/-down to
  * this size.
  */
-static int const gl_viewtsize = 32;
+static int const gl_defviewtsize = 32;
 
 
 #pragma region LEVEL
@@ -76,6 +76,7 @@ static void mbe_levelview_int_destroylvl(
  * Returns 0 on success, non-zero on failure.
  */
 _Critical_ static marble_ecode_t mbe_levelview_int_newlvl(
+	_In_            struct mbe_tabpage *ps_tpage,                      /* tab-page */
 	_In_            struct mbe_levelview_dlgnewlvl_udata *ps_crparams, /* create-params */
 	/*
 	 * pointer to a pointer to receive the
@@ -84,6 +85,10 @@ _Critical_ static marble_ecode_t mbe_levelview_int_newlvl(
 	_Init_(pps_lvl) struct mbe_level **pps_lvl
 ) { MB_ERRNO
 	if (ps_crparams == NULL || pps_lvl == NULL)
+		return MARBLE_EC_INTERNALPARAM;
+
+	struct mbe_levelview *ps_lvludata = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
+	if (ps_lvludata == NULL)
 		return MARBLE_EC_INTERNALPARAM;
 
 	/* Allocate memory for the level. */
@@ -100,8 +105,8 @@ _Critical_ static marble_ecode_t mbe_levelview_int_newlvl(
 	/* Calculate level metrics. */
 	(*pps_lvl)->m_twidth  = ps_crparams->m_width;
 	(*pps_lvl)->m_theight = ps_crparams->m_height;
-	(*pps_lvl)->m_pwidth  = (*pps_lvl)->m_twidth * gl_viewtsize;
-	(*pps_lvl)->m_pheight = (*pps_lvl)->m_theight * gl_viewtsize;
+	(*pps_lvl)->m_pwidth  = (*pps_lvl)->m_twidth * (int)ceilf(gl_defviewtsize * ps_lvludata->_base.m_zoom);
+	(*pps_lvl)->m_pheight = (*pps_lvl)->m_theight * (int)ceilf(gl_defviewtsize * ps_lvludata->_base.m_zoom);
 
 	/* Create Marble level asset. */
 	ecode = marble_levelasset_new(
@@ -195,6 +200,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagecreate(
 	/* Create the level structure. */
 	if (p_crparams != NULL)
 		if (mbe_levelview_int_newlvl(
+			ps_tpage,
 			(struct mbe_levelview_dlgnewlvl_udata *)p_crparams,
 			(struct mbe_level **)&ps_tpage->mp_udata
 		) != MARBLE_EC_OK) return FALSE;
@@ -219,7 +225,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	if (ps_tpage == NULL || ps_tpage->m_isinit == FALSE)
 		return FALSE;
 
-	int xori, yori;
+	int xori, yori, tx, ty, oldty;
 	struct mbe_levelview *ps_res;
 	D2D1_ANTIALIAS_MODE oldaamode;
 
@@ -228,6 +234,9 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	 * the required Direct2D resources.
 	 */
 	ps_res = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
+
+	/* Calculate scaled view-tilesize. */
+	int const vtsize = (int)ceilf(gl_defviewtsize * ps_res->_base.m_zoom);
 
 	/* Render the content of the page. */
 	D2DWr_RenderTarget_BeginDraw(ps_res->_base.mp_rt);
@@ -240,36 +249,40 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	 * Compute the upper-left corner of topleft
 	 * tile that is at least partly visible,
 	 * in client coordinates.
+	 * 
+	 * **tx** and **ty** form the origin of the
+	 * current view, in tile coordinates.
 	 */
-	xori = -ps_tpage->ms_scrinfo.ms_xscr.nPos % gl_viewtsize;
-	yori = -ps_tpage->ms_scrinfo.ms_yscr.nPos % gl_viewtsize;
+	tx = ps_tpage->ms_scrinfo.ms_xscr.nPos / vtsize;
+	ty = ps_tpage->ms_scrinfo.ms_yscr.nPos / vtsize;
+	oldty = ty;
+	xori = -ps_tpage->ms_scrinfo.ms_xscr.nPos % vtsize;
+	yori = -ps_tpage->ms_scrinfo.ms_yscr.nPos % vtsize;
 
 	// Render tiles.
-	for (int x = xori; x < ps_res->_base.ms_clrect.right; x += 32)
-		for (int y = yori; y < ps_res->_base.ms_clrect.bottom; y += 32) {
-			D2D1_RECT_F const s_srect = {
-				// TODO: calc bitmap rect
-				0.0f,
-				0.0f,
-				32.0f,
-				32.0f
-			};
-			D2D1_RECT_F const s_drect = {
-				(float)x,
-				(float)y,
-				(float)x + 32.0f,
-				(float)y + 32.0f
-			};
+	for (int x = xori; x < ps_res->_base.ms_clrect.right; x += vtsize) {
+		for (int y = yori; y < ps_res->_base.ms_clrect.bottom; y += vtsize) {
+			/*if (tx == 0 && ty == 0 || tx == 0 && ty == 63 || tx == 63 && ty == 0 || tx == 63 && ty == 63) {
+				D2D1_RECT_F const s_drect = {
+					(float)x,
+					(float)y,
+					(float)x + vtsize,
+					(float)y + vtsize
+				};
 
-			//D2DWr_RenderTarget_DrawBitmap(
-			//	ps_res->mp_rt,
-			//	NULL /* TODO: get tileset bitmap */,
-			//	&s_drect,
-			//	1.0f,
-			//	D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
-			//	&s_srect
-			//);
+				D2DWr_RenderTarget_FillRectangle(
+					ps_res->_base.mp_rt,
+					&s_drect,
+					ps_res->_base.mp_brsolid
+				);
+			}*/
+
+			++ty;
 		}
+
+		ty = ps_tpage->ms_scrinfo.ms_yscr.nPos / vtsize;;
+		++tx;
+	}
 
 	/*
 	 * Disable antialiasing for straight lines.
@@ -280,7 +293,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	D2DWr_RenderTarget_SetAntialiasMode(ps_res->_base.mp_rt, D2D1_ANTIALIAS_MODE_ALIASED);
 
 	/* Draw vertical grid lines. */
-	for (int x = xori; x < ps_res->_base.ms_clrect.right; x += gl_viewtsize)
+	for (int x = xori; x < ps_res->_base.ms_clrect.right; x += vtsize)
 		D2DWr_RenderTarget_DrawLine(
 			ps_res->_base.mp_rt,
 			(D2D1_POINT_2F){ (float)x - 0.5f, (float)yori - 0.5f },
@@ -295,7 +308,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 		);
 
 	/* Draw horizontal grid lines. */
-	for (int y = yori; y < ps_res->_base.ms_clrect.bottom; y += gl_viewtsize)
+	for (int y = yori; y < ps_res->_base.ms_clrect.bottom; y += vtsize)
 		D2DWr_RenderTarget_DrawLine(
 			ps_res->_base.mp_rt,
 			(D2D1_POINT_2F){ (float)xori - 0.5f, (float)y - 0.5f },
@@ -338,6 +351,46 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpageresize(
 			nheight,
 			ps_udata->m_pwidth,
 			ps_udata->m_pheight
+		);
+}
+
+/*
+ * Updates any level-specific userdata in the event
+ * of a page-window zoom event.
+ * 
+ * Returns TRUE on success, FALSE on failure.
+ */
+static BOOL MB_CALLBACK mbe_levelview_int_onpagezoom(
+	_Inout_ struct mbe_tabpage *ps_tpage /* tab-page */
+) {
+	if (ps_tpage == NULL)
+		return FALSE;
+
+	struct mbe_level *ps_lvludata  = (struct mbe_level *)ps_tpage->mp_udata;
+	struct mbe_levelview *ps_udata = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
+	if (ps_lvludata == NULL || ps_udata == NULL)
+		return FALSE;
+
+	/* Update physical content dimensions. */
+	ps_lvludata->m_pwidth  = ps_lvludata->m_twidth * (int)ceilf(gl_defviewtsize * ps_udata->_base.m_zoom);
+	ps_lvludata->m_pheight = ps_lvludata->m_theight * (int)ceilf(gl_defviewtsize * ps_udata->_base.m_zoom);
+
+	RECT s_rect;
+	GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_rect);
+
+	/*
+	 * Call the "onresize" handler with the current client area
+	 * dimensions and the new content dimensions, causing the
+	 * scrollbars to update, reflecting the new window-content
+	 * size ratio.
+	 */
+	return
+		mbe_tabpage_inl_onresize_common(
+			ps_tpage,
+			ps_udata->_base.ms_clrect.right,
+			ps_udata->_base.ms_clrect.bottom,
+			ps_lvludata->m_pwidth,
+			ps_lvludata->m_pheight
 		);
 }
 
@@ -485,6 +538,7 @@ BOOL mbe_levelview_newlvlbydlg(
 		.mpfn_oncreate  = &mbe_levelview_int_onpagecreate,
 		.mpfn_onpaint   = &mbe_levelview_int_onpagepaint,
 		.mpfn_onresize  = &mbe_levelview_int_onpageresize,
+		.mpfn_onzoom    = &mbe_levelview_int_onpagezoom,
 		.mpfn_ondestroy = &mbe_levelview_int_onpagedestroy
 	};
 

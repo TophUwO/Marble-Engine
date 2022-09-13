@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#include <math.h>
 
 #include <system.h>
 #include <util.h>
@@ -33,10 +34,11 @@
  * All of the following "length" definitions denote
  * lengths in characters.
  */
-#define MBE_MAXIDLEN (32)   /* max. tileset name length */
-#define MBE_MAXCMT   (256)  /* max. comment length */
-#define MBE_MAXTSC   (16)   /* max. number of tilesets per view */
-#define MBE_MAXPATH  (1024) /* max. number of characters in a path */
+#define MBE_MAXIDLEN  (32)   /* max. tileset name length */
+#define MBE_MAXCMT    (256)  /* max. comment length */
+#define MBE_MAXTSC    (16)   /* max. number of tilesets per view */
+#define MBE_MAXPATH   (1024) /* max. number of characters in a path */
+#define MBE_MAXZSTEPS (32)   /* max. number of fixed zoom-steps */
 
 /*
  * Macros to shorten the code needed to set the window/dialog

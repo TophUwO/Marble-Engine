@@ -1,4 +1,4 @@
-#include <editor.h>
+#include <internal/shared.h>
 
 
 WNDPROC glfn_tabviewdefproc = NULL;
@@ -19,6 +19,7 @@ static BOOL MB_CALLBACK mbe_tabview_int_defondestroy(_Inout_ struct mbe_tabview 
 static BOOL MB_CALLBACK mbe_pageview_int_defoncreate(_Inout_ struct mbe_tabpage *ps_tpage, _In_opt_ void *p_crparams) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonpaint(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonresize(_Inout_ struct mbe_tabpage *ps_tpage, int nwidth, int nheight) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonzoom(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonselect(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defonunselect(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 static BOOL MB_CALLBACK mbe_pageview_int_defondestroy(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
@@ -35,6 +36,7 @@ static struct mbe_tabpage_callbacks const gls_defpagecbs = {
 	&mbe_pageview_int_defoncreate,
 	&mbe_pageview_int_defonpaint,
 	&mbe_pageview_int_defonresize,
+	&mbe_pageview_int_defonzoom,
 	&mbe_pageview_int_defonselect,
 	&mbe_pageview_int_defonunselect,
 	&mbe_pageview_int_defondestroy
@@ -197,6 +199,146 @@ lbl_UPDATE:
 	UpdateWindow(ps_tview->mp_hwndpage);
 }
 
+/*
+ * Finds the current zoom-factor in the zoom-step list.
+ * 
+ * Returns the index, 0 ... MBE_MAXZSTEPS - 1, on success,
+ * or -1 on error.
+ */
+static int mbe_tabview_int_findcurrzoomindex(
+	_In_ struct mbe_tabview_udata *ps_udata /* tab-view userdata */
+) {
+	for (int i = 0; i < ps_udata->m_nzsteps; i++)
+		if (ps_udata->map_zoomsteps[i] == ps_udata->m_zoom)
+			return i;
+
+	return -1;
+}
+
+/*
+ * Handles the event of the user holding down CTRL and scrolling with
+ * the mouse-wheel, i.e. a zoom.
+ * The zoom factor is the same for all pages at all times.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tabview_int_handlezoom(
+	_In_ struct mbe_tabview *ps_tview, /* tab-view */
+	     WPARAM wparam
+) {
+	if (ps_tview == NULL || ps_tview->m_isinit == FALSE)
+		return;
+
+	/* Get a pointer to the view userdata. */
+	struct mbe_tabview_udata *ps_udata = (struct mbe_tabview_udata *)ps_tview->mp_udata;
+	if (ps_udata == NULL)
+		return;
+
+	/* Get index of current zoom-factor. */
+	int currindex = mbe_tabview_int_findcurrzoomindex(ps_udata);
+	if (currindex == -1)
+		return;
+
+	/* Clamp new zoom-factor index. */
+	int newindex = min(
+		ps_udata->m_nzsteps - 1,
+		max(
+			0,
+			currindex + ((short)HIWORD(wparam) > 0 ? 1 : -1)
+		)
+	);
+
+	/*
+	 * If the new zoom-factor does not differ from
+	 * the previous zoom-factor, do not update the
+	 * windows.
+	 */
+	if (newindex == currindex)
+		return;
+
+	/* Update zoom-factor. */
+	ps_udata->m_zoom = ps_udata->map_zoomsteps[newindex];
+
+	/* Let all pages react to the zoom event. */
+	for (size_t i = 0; i < ps_tview->mps_pages->m_size; i++) {
+		struct mbe_tabpage *ps_page = (struct mbe_tabpage *)marble_util_vec_get(ps_tview->mps_pages, i);
+		if (ps_page == NULL)
+			break;
+
+		(*ps_page->ms_cbs.mpfn_onzoom)(ps_page);
+	}
+
+	/* Repaint the current page. */
+	InvalidateRect(ps_tview->mp_hwndpage, NULL, FALSE);
+	UpdateWindow(ps_tview->mp_hwndpage);
+}
+
+/*
+ * Get display area rectangle of tab control, relative
+ * to the upper-left corner of the tab control client
+ * rectangle.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tabview_int_getdisprect(
+	_In_  HWND p_hwnd,
+	_Out_ RECT *ps_outrect
+) {
+	if (p_hwnd == NULL || ps_outrect == NULL)
+		return;
+
+	/* Get full client area of tab view. */
+	GetClientRect(p_hwnd, ps_outrect);
+
+	/*
+	 * Adjust client rectangle so it reflects only the actual
+	 * display area of the tab-view, excluding the register view
+	 * and other non-client features.
+	 */
+	TabCtrl_AdjustRect(p_hwnd, FALSE, ps_outrect);
+}
+
+/*
+ * Resizes the page window of the tab-view. It also recalculates the
+ * coordinates of the display rect.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tabview_int_resizepagewnd(
+	_In_ struct mbe_tabview *ps_tview, /* tabview to resize page window of */
+	     BOOL resizewnd                /* page-window resize flag */
+) {
+	if (ps_tview == NULL)
+		return;
+
+	/* Get dimensions of display area. */
+	mbe_tabview_int_getdisprect(ps_tview->mp_hwndtab, &ps_tview->ms_dimensions);
+
+	/*
+	 * Set position and dimensions to exactly reflect the
+	 * size of the display area of the tab-view.
+	 */
+	if (resizewnd == TRUE)
+		MoveWindow(
+			ps_tview->mp_hwndpage,
+			ps_tview->ms_dimensions.left,
+			ps_tview->ms_dimensions.top,
+			ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
+			ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top,
+			TRUE
+		);
+
+	/*
+	 * Execute tab-view "onresize" handler. This handler is used to update
+	 * resources that are related to the tab-page window, but shared by
+	 * all tab-pages.
+	 */
+	(*ps_tview->ms_cbs.mpfn_onresize)(
+		ps_tview,
+		ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
+		ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top
+	);
+}
 
 LRESULT CALLBACK mbe_tabpage_int_wndproc(
 	HWND p_hwnd,
@@ -220,12 +362,26 @@ LRESULT CALLBACK mbe_tabpage_int_wndproc(
 
 			return 0;
 		case WM_SIZE:
-			/* Execute "onresize" handler. */
+			/*
+			 * Execute "onresize" handler of the currently
+			 * selected page.
+			 */
 			(*ps_udata->mps_cursel->ms_cbs.mpfn_onresize)(
 				ps_udata->mps_cursel,
 				GET_X_LPARAM(lparam),
 				GET_Y_LPARAM(lparam)
 			);
+
+			/*
+			 * Update the size of the display rectangle of
+			 * the tab-view.
+			 * 
+			 * This has to be done here as well "mbe_tabview_resize()" only
+			 * handles resize requests from the parent window. However,
+			 * resizing can also happen from within the window, for example,
+			 * when scrollbars get shown or hidden.
+			 */
+			mbe_tabview_int_resizepagewnd(ps_udata, FALSE);
 
 			/* Post a WM_PAINT message. */
 			InvalidateRect(p_hwnd, NULL, FALSE);
@@ -234,6 +390,20 @@ LRESULT CALLBACK mbe_tabpage_int_wndproc(
 		case WM_HSCROLL:
 		case WM_MOUSEWHEEL:
 		case WM_KEYDOWN:
+			/*
+			 * Holding down CTRL while moving the mouse-wheel
+			 * triggers a zoom event.
+			 */
+			if (msg == WM_MOUSEWHEEL && LOWORD(wparam) == MK_CONTROL) {
+				mbe_tabview_int_handlezoom(
+					ps_udata,
+					wparam
+				);
+
+				return 0;
+			}
+
+			/* Handle regular scrolling. */
 			mbe_tabpage_int_handlescrolling(
 				ps_udata,
 				msg,
@@ -260,31 +430,6 @@ lbl_DEFPROC:
 
 
 #pragma region TABVIEW-CTRL
-/*
- * Get display area rectangle of tab control, relative
- * to the upper-left corner of the tab control client
- * rectangle.
- * 
- * Returns nothing.
- */
-static void mbe_tabview_int_getdisprect(
-	_In_  HWND p_hwnd,
-	_Out_ RECT *ps_outrect
-) {
-	if (p_hwnd == NULL || ps_outrect == NULL)
-		return;
-
-	/* Get full client area of tab view. */
-	GetClientRect(p_hwnd, ps_outrect);
-
-	/*
-	 * Adjust client rectangle so it reflects only the actual
-	 * display area of the tab-view, excluding the register view
-	 * and other non-client features.
-	 */
-	TabCtrl_AdjustRect(p_hwnd, FALSE, ps_outrect);
-}
-
 /*
  * Sets the page callbacks to the provided functions, and replace any NULL
  * pointers (i.e. undefined callbacks) with default callback functions.
@@ -335,43 +480,6 @@ static void mbe_tabview_int_setcbs(
 	}
 }
 
-/*
- * Resizes the page window of the tab-view. It also recalculates the
- * coordinates of the display rect.
- * 
- * Returns nothing.
- */
-static void mbe_tabview_int_resizepagewnd(_In_ struct mbe_tabview *ps_tview /* tabview to resize page window of */) {
-	if (ps_tview == NULL)
-		return;
-
-	/* Get dimensions of display area. */
-	mbe_tabview_int_getdisprect(ps_tview->mp_hwndtab, &ps_tview->ms_dimensions);
-
-	/*
-	 * Set position and dimensions to exactly reflect the
-	 * size of the display area of the tab-view.
-	 */
-	MoveWindow(
-		ps_tview->mp_hwndpage,
-		ps_tview->ms_dimensions.left,
-		ps_tview->ms_dimensions.top,
-		ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
-		ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top,
-		TRUE
-	);
-
-	/*
-	 * Execute tab-view "onresize" handler. This handler is used to update
-	 * resources that are related to the tab-page window, but shared by
-	 * all tab-pages.
-	 */
-	(*ps_tview->ms_cbs.mpfn_onresize)(
-		ps_tview,
-		ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
-		ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top
-	);
-}
 
 
 /*
@@ -458,7 +566,7 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 		WS_EX_WINDOWEDGE,
 		glpz_pagewndcl,
 		NULL,
-		WS_CHILD | WS_VSCROLL,
+		WS_CHILD | WS_HSCROLL | WS_VSCROLL,
 		(*pps_tview)->ms_dimensions.left,
 		(*pps_tview)->ms_dimensions.top,
 		(*pps_tview)->ms_dimensions.right - (*pps_tview)->ms_dimensions.left,
@@ -555,7 +663,7 @@ void mbe_tabview_resize(
 	 * This will also update the size of the display rectangle of
 	 * the tab-view.
 	 */
-	mbe_tabview_int_resizepagewnd(ps_tview);
+	mbe_tabview_int_resizepagewnd(ps_tview, TRUE);
 }
 
 _Critical_ marble_ecode_t mbe_tabview_newpage(
@@ -642,7 +750,7 @@ marble_ecode_t mbe_tabview_addpage(
 	 * if the first tab is added.
 	 */
 	if (last == 0) {
-		mbe_tabview_int_resizepagewnd(ps_tview);
+		mbe_tabview_int_resizepagewnd(ps_tview, TRUE);
 	
 		/*
 		 * The first added page also causes the page

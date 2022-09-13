@@ -26,11 +26,14 @@
  * It must be a non-pointer field.
  */
 struct mbe_tabview_udata {
-	HDC  mp_hdc;                      /* page-window device context */
-	RECT ms_clrect;                   /* current client dimensions */
+	HDC    mp_hdc;                       /* page-window device context */
+	RECT   ms_clrect;                    /* current client dimensions */
+	float  m_zoom;                       /* zoom factor */
+	float  map_zoomsteps[MBE_MAXZSTEPS]; /* zoom steps */
+	int    m_nzsteps;                    /* number of used zoom-steps */
 
-	ID2D1RenderTarget    *mp_rt;      /* page-window rendertarget */
-	ID2D1SolidColorBrush *mp_brsolid; /* solid-color brush */
+	ID2D1RenderTarget    *mp_rt;         /* page-window rendertarget */
+	ID2D1SolidColorBrush *mp_brsolid;    /* solid-color brush */
 };
 
 
@@ -56,7 +59,7 @@ inline BOOL MB_CALLBACK mbe_tabview_inl_oncreate_common(
 	ecode = marble_system_alloc(
 		MB_CALLER_INFO,
 		sizeof *ps_udata,
-		false,
+		true,
 		false,
 		&ps_udata
 	);
@@ -117,6 +120,17 @@ inline BOOL MB_CALLBACK mbe_tabview_inl_oncreate_common(
 		&ps_udata->ms_clrect
 	);
 
+	/* Init zoom data. */
+	float const a_zsteps[] = {
+		0.25f, 0.5f, 0.75f, 1.0f,
+		1.25f, 1.5f, 1.75f, 2.0f,
+		2.5f,  3.0f, 4.0f,  5.0f
+	};
+	CopyMemory(ps_udata->map_zoomsteps, a_zsteps, sizeof a_zsteps);
+
+	ps_udata->m_zoom    = 1.0f;
+	ps_udata->m_nzsteps = ARRAYSIZE(a_zsteps);
+
 	/*
 	 * We do not have to unroll our resource allocation here, as
 	 * returning FALSE in the event of an error will subsequently
@@ -169,7 +183,7 @@ inline BOOL MB_CALLBACK mbe_tabview_inl_onresize_common(
  * 
  * Returns TRUE on success, FALSE on failure.
  */
-BOOL MB_CALLBACK mbe_tabview_inl_ondestroy_common(
+inline BOOL MB_CALLBACK mbe_tabview_inl_ondestroy_common(
 	_Inout_ struct mbe_tabview *ps_tview /* tab-view to destroy userdata of */
 ) {
 	if (ps_tview == NULL)
@@ -212,46 +226,9 @@ inline BOOL MB_CALLBACK mbe_tabpage_inl_onresize_common(
 	        int cwidth,                   /* width of the page's contents */
 	        int cheight                   /* height of the page's contents */
 ) {
+	RECT s_newclrect;
 	int maxscr;
 	BOOL isxvisible, isyvisible;
-
-	/* Update vertical scrollbar. */
-	if (cheight > nheight) {
-		maxscr = max(cheight - nheight, 0); 
-
-		ps_tpage->ms_scrinfo.ms_yscr = (SCROLLINFO){
-			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_yscr,
-			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
-			.nMin   = 0,
-			.nMax   = cheight - 1,
-			.nPage  = nheight,
-			.nPos   = min(ps_tpage->ms_scrinfo.ms_yscr.nPos, maxscr)
-		};
-
-		isyvisible = TRUE;
-	} else {
-		/*
-		* If the scrollbar needs to be hidden, we set the position of the
-		* scrollbar to 0. We can safely do that as the scrollbars will only
-		* be hidden if the entire bitmap axis the scrollbar is dedicated to
-		* can be displayed in the current tileset view window.
-		* If we do not set the value to 0 in such a case, the view will be stuck
-		* in the view that it was scrolled to previously, possibly leaving
-		* a portion of the tileset bitmap still hidden even though we have enough
-		* space inside the window to display it.
-		*/
-		ps_tpage->ms_scrinfo.ms_yscr.fMask = SIF_POS;
-		ps_tpage->ms_scrinfo.ms_yscr.nPos  = 0;
-
-		isyvisible = FALSE;
-	}
-	/* Submit new scrollbar info. */
-	SetScrollInfo(
-		ps_tpage->ps_parent->mp_hwndpage,
-		SB_VERT,
-		&ps_tpage->ms_scrinfo.ms_yscr,
-		TRUE
-	);
 
 	/* Update horizontal scrollbar. */
 	if (cwidth > nwidth) {
@@ -268,6 +245,16 @@ inline BOOL MB_CALLBACK mbe_tabpage_inl_onresize_common(
 
 		isxvisible = TRUE;
 	} else {
+		/*
+		 * If the scrollbar needs to be hidden, we set the position of the
+		 * scrollbar to 0. We can safely do that as the scrollbars will only
+		 * be hidden if the entire bitmap axis the scrollbar is dedicated to
+		 * can be displayed in the current tileset view window.
+		 * If we do not set the value to 0 in such a case, the view will be stuck
+		 * in the view that it was scrolled to previously, possibly leaving
+		 * a portion of the tileset bitmap still hidden even though we have enough
+		 * space inside the window to display it.
+		 */
 		ps_tpage->ms_scrinfo.ms_xscr.fMask = SIF_POS;
 		ps_tpage->ms_scrinfo.ms_xscr.nPos  = 0;
 
@@ -280,10 +267,47 @@ inline BOOL MB_CALLBACK mbe_tabpage_inl_onresize_common(
 		&ps_tpage->ms_scrinfo.ms_xscr,
 		TRUE
 	);
-
 	/* Update visible states of scrollbars. */
-	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_HORZ, ps_tpage->ms_scrinfo.m_xscrv = isxvisible);
-	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_VERT, ps_tpage->ms_scrinfo.m_yscrv = isyvisible);
+	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_HORZ, isxvisible);
+
+	/*
+	 * As showing or hiding the scrollbar causes the client area to
+	 * shrink/extend, we have to recalculate the client height.
+	 */
+	GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_newclrect);
+	nheight = s_newclrect.bottom;
+
+	/* Update vertical scrollbar. */
+	if (cheight > nheight) {
+		maxscr = max(cheight - nheight, 0); 
+
+		ps_tpage->ms_scrinfo.ms_yscr = (SCROLLINFO){
+			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_yscr,
+			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
+			.nMin   = 0,
+			.nMax   = cheight - 1,
+			.nPage  = nheight,
+			.nPos   = min(ps_tpage->ms_scrinfo.ms_yscr.nPos, maxscr)
+		};
+
+		isyvisible = TRUE;
+	} else {
+		ps_tpage->ms_scrinfo.ms_yscr.fMask = SIF_POS;
+		ps_tpage->ms_scrinfo.ms_yscr.nPos  = 0;
+
+		isyvisible = FALSE;
+	}
+	SetScrollInfo(
+		ps_tpage->ps_parent->mp_hwndpage,
+		SB_VERT,
+		&ps_tpage->ms_scrinfo.ms_yscr,
+		TRUE
+	);
+	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_VERT, isyvisible);
+
+	/* Update scrollbar visible state. */
+	ps_tpage->ms_scrinfo.m_xscrv = isxvisible;
+	ps_tpage->ms_scrinfo.m_yscrv = isyvisible;
 
 	return TRUE;
 }
