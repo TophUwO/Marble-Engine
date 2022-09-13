@@ -47,7 +47,7 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 		D2D1_FACTORY_TYPE_MULTI_THREADED,
 		&IID_ID2D1Factory,
 		ps_opts,
-		&gls_editorapp.ms_res.mps_d2dfac
+		&gls_editorapp.ms_res.mp_d2dfac
 	);
 	if (hres != S_OK)
 		ecode = MARBLE_EC_CREATED2DFAC;
@@ -62,7 +62,7 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 
 	/* Create stroke style. */
 	hres = D2DWr_Factory_CreateStrokeStyle(
-		gls_editorapp.ms_res.mps_d2dfac,
+		gls_editorapp.ms_res.mp_d2dfac,
 		&s_strprops,
 		a_dashes,
 		2,
@@ -113,11 +113,18 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 			return FALSE;
 		case WM_SIZE:
 			/* Resize tileset view. */
-			mbe_tsetview_resize(
-				&gls_editorapp.ms_tsview,
-				GET_X_LPARAM(lparam),
-				GET_Y_LPARAM(lparam)
-			);
+			if (gls_editorapp.mps_tsview == NULL)
+				return FALSE;
+
+			mbe_base_getwindowpos(gls_editorapp.mps_tsview->mp_hwndtab, &s_pt);
+
+			s_wndsize = (struct mbe_wndsize){
+				.m_xpos   = 0,
+				.m_ypos   = 0,
+				.m_width  = 200,
+				.m_height = GET_Y_LPARAM(lparam)
+			};
+			mbe_tabview_resize(gls_editorapp.mps_tsview, &s_wndsize);
 
 			/* Resize level view. */
 			if (gls_editorapp.mps_lvlview == NULL)
@@ -136,14 +143,6 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 			return FALSE;
 		case WM_COMMAND:
 			switch (wparam) {
-				case MBE_FileNew_Tileset:
-					mbe_tsetview_newtsdlg(&gls_editorapp.ms_tsview);
-
-					break;
-				case MBE_Menubar_File_Import_BmpTS:
-					mbe_tsetview_bmptsdlg(&gls_editorapp.ms_tsview);
-
-					break;
 				case MBE_FileNew_Level:
 					mbe_levelview_newlvlbydlg(gls_editorapp.mps_lvlview);
 
@@ -163,7 +162,7 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 					cursel    = TabCtrl_GetCurSel(ps_nmhdr->hwndFrom);
 					ps_tsview = (struct mbe_tsetview *)GetWindowLongPtr(ps_nmhdr->hwndFrom, GWLP_USERDATA);
 
-					mbe_tsetview_setpage(ps_tsview, cursel);
+					// TODO: change page
 					break;
 			}
 
@@ -236,7 +235,7 @@ static void mbe_editor_internal_freeresources(void) {
 	DeleteObject(gls_editorapp.ms_res.mp_hguifont);
 
 	/* Release global Direct2D resources. */
-	D2DWR_SAFERELEASE(D2DWr_Factory_Release, gls_editorapp.ms_res.mps_d2dfac);
+	D2DWR_SAFERELEASE(D2DWr_Factory_Release, gls_editorapp.ms_res.mp_d2dfac);
 	D2DWR_SAFERELEASE(D2DWr_StrokeStyle_Release, gls_editorapp.ms_res.mp_grstroke);
 }
 
@@ -245,8 +244,9 @@ marble_ecode_t mbe_editor_init(
 	HINSTANCE p_hinst,
 	LPSTR pz_cmdline
 ) { MB_ERRNO
-	static BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(_Inout_ struct mbe_tabview *, _In_opt_ void *);
-	static BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(_Inout_ struct mbe_tabview *);
+	extern BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(_Inout_ struct mbe_tabview *, _In_opt_ void *);
+	extern BOOL MB_CALLBACK mbe_levelview_int_ontviewresize(_Inout_ struct mbe_tabview *, int nwidth, int nheight);
+	extern BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(_Inout_ struct mbe_tabview *);
 
 	/* Init HPC. */
 	marble_util_clock_init();
@@ -270,23 +270,41 @@ marble_ecode_t mbe_editor_init(
 	if (res != MARBLE_EC_OK)
 		return res;
 
-	/* Initialize tileset view container. */
-	res = mbe_tsetview_init(gls_editorapp.mp_hwnd, &gls_editorapp.ms_tsview);
+	/* Get dimensions of main window client area. */
+	RECT s_viewrect;
+	GetClientRect(gls_editorapp.mp_hwnd, &s_viewrect);
+
+	/* Initialize tileset view. */
+	struct mbe_wndsize s_size = {
+		.m_xpos   = 0,
+		.m_ypos   = 0,
+		.m_width  = 200,
+		.m_height = s_viewrect.bottom
+	};
+	struct mbe_tabview_callbacks s_cbs = {
+		.mpfn_oncreate  = NULL,
+		.mpfn_ondestroy = NULL
+	};
+	res = mbe_tabview_create(
+		gls_editorapp.mp_hwnd,
+		&s_size,
+		&s_cbs,
+		NULL,
+		&gls_editorapp.mps_tsview
+	);
 	if (res != MARBLE_EC_OK)
 		return res;
 
 	/* Initialize level view. */
-	RECT s_viewrect;
-	GetClientRect(gls_editorapp.mp_hwnd, &s_viewrect);
-
-	struct mbe_wndsize const s_size = {
+	s_size = (struct mbe_wndsize){
 		.m_xpos   = 200,
 		.m_ypos   = 0,
 		.m_width  = s_viewrect.right - 200,
 		.m_height = s_viewrect.bottom
 	};
-	struct mbe_tabview_callbacks const s_cbs = {
+	s_cbs = (struct mbe_tabview_callbacks){
 		.mpfn_oncreate  = &mbe_levelview_int_ontviewcreate,
+		.mpfn_onresize  = &mbe_levelview_int_ontviewresize,
 		.mpfn_ondestroy = &mbe_levelview_int_ontviewdestroy
 	};
 	res = mbe_tabview_create(
@@ -342,7 +360,7 @@ marble_ecode_t mbe_editor_run(void) {
 	marble_log_info(NULL, "Application shutdown ...");
 
 	/* Free resources and exit. */
-	mbe_tsetview_uninit(&gls_editorapp.ms_tsview);
+	mbe_tabview_destroy(&gls_editorapp.mps_tsview);
 	mbe_tabview_destroy(&gls_editorapp.mps_lvlview);
 	marble_log_uninit();
 

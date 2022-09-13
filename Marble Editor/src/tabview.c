@@ -11,20 +11,22 @@ TCHAR const *const glpz_pagewndcl    = TEXT("mbe_ctrl_tabpage");
 
 
 /* default tab-view callbacks */
-static BOOL MB_CALLBACK mbe_tabview_int_defoncreate(_In_ struct mbe_tabview *ps_tview, _In_opt_ void *p_crparams) { return TRUE; }
-static BOOL MB_CALLBACK mbe_tabview_int_defondestroy(_In_ struct mbe_tabview *ps_tview) { return TRUE; }
+static BOOL MB_CALLBACK mbe_tabview_int_defoncreate(_Inout_ struct mbe_tabview *ps_tview, _In_opt_ void *p_crparams) { return TRUE; }
+static BOOL MB_CALLBACK mbe_tabview_int_defonresize(_Inout_ struct mbe_tabview *ps_tview, int nwidth, int nheight) { return TRUE; }
+static BOOL MB_CALLBACK mbe_tabview_int_defondestroy(_Inout_ struct mbe_tabview *ps_tview) { return TRUE; }
 
 /* default tab-page callbacks */
-static BOOL MB_CALLBACK mbe_pageview_int_defoncreate(_In_ struct mbe_tabpage *ps_tpage, _In_opt_ void *p_crparams) { return TRUE; }
-static BOOL MB_CALLBACK mbe_pageview_int_defonpaint(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
-static BOOL MB_CALLBACK mbe_pageview_int_defonresize(_In_ struct mbe_tabpage *ps_tpage, int nwidth, int nheight) { return TRUE; }
-static BOOL MB_CALLBACK mbe_pageview_int_defonselect(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
-static BOOL MB_CALLBACK mbe_pageview_int_defonunselect(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
-static BOOL MB_CALLBACK mbe_pageview_int_defondestroy(_In_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defoncreate(_Inout_ struct mbe_tabpage *ps_tpage, _In_opt_ void *p_crparams) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonpaint(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonresize(_Inout_ struct mbe_tabpage *ps_tpage, int nwidth, int nheight) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonselect(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defonunselect(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
+static BOOL MB_CALLBACK mbe_pageview_int_defondestroy(_Inout_ struct mbe_tabpage *ps_tpage) { return TRUE; }
 
 /* default tab-view callback struct */
 static struct mbe_tabview_callbacks const gls_defviewcbs = {
 	&mbe_tabview_int_defoncreate,
+	&mbe_tabview_int_defonresize,
 	&mbe_tabview_int_defondestroy
 };
 
@@ -357,6 +359,17 @@ static void mbe_tabview_int_resizepagewnd(_In_ struct mbe_tabview *ps_tview /* t
 		ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
 		ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top,
 		TRUE
+	);
+
+	/*
+	 * Execute tab-view "onresize" handler. This handler is used to update
+	 * resources that are related to the tab-page window, but shared by
+	 * all tab-pages.
+	 */
+	(*ps_tview->ms_cbs.mpfn_onresize)(
+		ps_tview,
+		ps_tview->ms_dimensions.right - ps_tview->ms_dimensions.left,
+		ps_tview->ms_dimensions.bottom - ps_tview->ms_dimensions.top
 	);
 }
 

@@ -1,4 +1,5 @@
-#include <editor.h>
+#include <internal/shared.h>
+
 #include <level.h>
 
 
@@ -22,11 +23,11 @@ struct mbe_level {
 };
 
 /*
- * Structure representing tab-view userdata
+ * Structure representing userdata for the tab-view
+ * control acting as the levelview. 
  */
 struct mbe_levelview {
-	ID2D1RenderTarget    *mp_rt;      /* page-window rendertarget */
-	ID2D1SolidColorBrush *mp_brsolid; /* solid-color brush */
+	struct mbe_tabview_udata _base; /* common tab-view userdata */
 };
 
 /*
@@ -137,71 +138,25 @@ lbl_END:
 BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
 	_Inout_  struct mbe_tabview *ps_tview, /* tab-view to init userdata of */
 	_In_opt_ void *p_crparams              /* optional create-params */
-) { MB_ERRNO
-	UNREFERENCED_PARAMETER(p_crparams);
+) {
+	return 
+		mbe_tabview_inl_oncreate_common(
+			ps_tview,
+			p_crparams
+		);
+}
 
-	if (ps_tview == NULL)
-		return FALSE;
-
-	HRESULT hres;
-	struct mbe_levelview *ps_lvlview = NULL;
-
-	/* Allocate userdata memory. */
-	ecode = marble_system_alloc(
-		MB_CALLER_INFO,
-		sizeof *ps_lvlview,
-		false,
-		false,
-		&ps_lvlview
-	);
-	if (ecode != MARBLE_EC_OK)
-		return FALSE;
-
-	/* Update internal userdata pointer. */
-	ps_tview->mp_udata = ps_lvlview;
-
-	/* Set rendertarget properties. */
-	D2D1_RENDER_TARGET_PROPERTIES const s_props = {
-		.type = D2D1_RENDER_TARGET_TYPE_HARDWARE,
-		.pixelFormat = {
-			.format    = DXGI_FORMAT_B8G8R8A8_UNORM,
-			.alphaMode = D2D1_ALPHA_MODE_PREMULTIPLIED
-		},
-		.usage    = D2D1_RENDER_TARGET_USAGE_NONE,
-		.minLevel = D2D1_FEATURE_LEVEL_DEFAULT
-	};
-
-	/* Create Direct2D rendertarget. */
-	hres = D2DWr_Factory_CreateDCRenderTarget(
-		gls_editorapp.ms_res.mps_d2dfac,
-		&s_props,
-		(ID2D1DCRenderTarget **)&ps_lvlview->mp_rt
-	);
-	if (hres != S_OK)
-		return FALSE;
-
-	/*
-	 * Create the brush initially painting
-	 * in solid black.
-	 */
-	D2D1_COLOR_F const s_cblack = { 0.0f, 0.0f, 0.0f, 1.0f };
-	D2D1_BRUSH_PROPERTIES const s_brprops = { 1.0f };
-	hres = D2DWr_RenderTarget_CreateSolidColorBrush(
-		ps_lvlview->mp_rt,
-		&s_cblack,
-		&s_brprops,
-		&ps_lvlview->mp_brsolid
-	);
-	if (hres != S_OK)
-		return FALSE;
-
-	/*
-	 * We do not have to unroll our resource allocation here, as
-	 * returning FALSE in the event of an error will subsequently
-	 * trigger the "ondestroy" handler of our tab-page, automatically
-	 * deallocating everything that's already allocated.
-	 */
-	return TRUE;
+BOOL MB_CALLBACK mbe_levelview_int_ontviewresize(
+	_Inout_ struct mbe_tabview *ps_tview, /* tab-view */
+	        int nwidth,                   /* new width of page window, in pixels */
+	        int nheight                   /* new height of page window, in pixels */
+) {
+	return
+		mbe_tabview_inl_onresize_common(
+			ps_tview,
+			nwidth,
+			nheight
+		);
 }
 
 /*
@@ -214,20 +169,10 @@ BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(
 BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(
 	_Inout_ struct mbe_tabview *ps_tview /* tab-view to destroy userdata of */
 ) {
-	if (ps_tview == NULL)
-		return FALSE;
-
-	struct mbe_levelview *ps_udata = (struct mbe_levelview *)ps_tview->mp_udata;
-	if (ps_udata == NULL)
-		return TRUE;
-
-	/* Release Direct2D resources. */
-	D2DWR_SAFERELEASE(D2DWr_RenderTarget_Release, ps_udata->mp_rt);
-	D2DWR_SAFERELEASE(D2DWr_SolidColorBrush_Release, ps_udata->mp_brsolid);
-
-	/* Free struct memory. */
-	free(ps_tview->mp_udata);
-	return TRUE;
+	return
+		mbe_tabview_inl_ondestroy_common(
+			ps_tview
+		);
 }
 #pragma endregion
 
@@ -274,8 +219,6 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	if (ps_tpage == NULL || ps_tpage->m_isinit == FALSE)
 		return FALSE;
 
-	HDC p_hdc;
-	RECT s_clrect;
 	int xori, yori;
 	struct mbe_levelview *ps_res;
 	D2D1_ANTIALIAS_MODE oldaamode;
@@ -287,17 +230,11 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	ps_res = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
 
 	/* Render the content of the page. */
-	p_hdc = GetDC(ps_tpage->ps_parent->mp_hwndpage);
-	if (p_hdc == NULL)
-		return FALSE;
-	GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_clrect);
-
-	D2DWr_DCRenderTarget_BindDC((ID2D1DCRenderTarget *)ps_res->mp_rt, p_hdc, &s_clrect);
-	D2DWr_RenderTarget_BeginDraw(ps_res->mp_rt);
+	D2DWr_RenderTarget_BeginDraw(ps_res->_base.mp_rt);
 
 	/* Erase screen with solid white. */
 	D2D1_COLOR_F s_col = { 1.0f, 1.0f, 1.0f, 1.0f };
-	D2DWr_RenderTarget_Clear(ps_res->mp_rt, &s_col);
+	D2DWr_RenderTarget_Clear(ps_res->_base.mp_rt, &s_col);
 
 	/*
 	 * Compute the upper-left corner of topleft
@@ -308,8 +245,8 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	yori = -ps_tpage->ms_scrinfo.ms_yscr.nPos % gl_viewtsize;
 
 	// Render tiles.
-	for (int x = xori; x < s_clrect.right; x += 32)
-		for (int y = yori; y < s_clrect.bottom; y += 32) {
+	for (int x = xori; x < ps_res->_base.ms_clrect.right; x += 32)
+		for (int y = yori; y < ps_res->_base.ms_clrect.bottom; y += 32) {
 			D2D1_RECT_F const s_srect = {
 				// TODO: calc bitmap rect
 				0.0f,
@@ -339,16 +276,16 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	 * This speeds-up drawing of non-solid
 	 * lines considerably.
 	 */
-	oldaamode = D2DWr_RenderTarget_GetAntialiasMode(ps_res->mp_rt);
-	D2DWr_RenderTarget_SetAntialiasMode(ps_res->mp_rt, D2D1_ANTIALIAS_MODE_ALIASED);
+	oldaamode = D2DWr_RenderTarget_GetAntialiasMode(ps_res->_base.mp_rt);
+	D2DWr_RenderTarget_SetAntialiasMode(ps_res->_base.mp_rt, D2D1_ANTIALIAS_MODE_ALIASED);
 
 	/* Draw vertical grid lines. */
-	for (int x = xori; x < s_clrect.right; x += gl_viewtsize)
+	for (int x = xori; x < ps_res->_base.ms_clrect.right; x += gl_viewtsize)
 		D2DWr_RenderTarget_DrawLine(
-			ps_res->mp_rt,
+			ps_res->_base.mp_rt,
 			(D2D1_POINT_2F){ (float)x - 0.5f, (float)yori - 0.5f },
-			(D2D1_POINT_2F){ (float)x - 0.5f, (float)s_clrect.bottom + 0.5f },
-			(ID2D1Brush *)ps_res->mp_brsolid,
+			(D2D1_POINT_2F){ (float)x - 0.5f, (float)ps_res->_base.ms_clrect.bottom + 0.5f },
+			(ID2D1Brush *)ps_res->_base.mp_brsolid,
 			1.0f,
 			/*
 			 * Due to massive performance issues, no special stroke style
@@ -358,23 +295,21 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 		);
 
 	/* Draw horizontal grid lines. */
-	for (int y = yori; y < s_clrect.bottom; y += gl_viewtsize)
+	for (int y = yori; y < ps_res->_base.ms_clrect.bottom; y += gl_viewtsize)
 		D2DWr_RenderTarget_DrawLine(
-			ps_res->mp_rt,
+			ps_res->_base.mp_rt,
 			(D2D1_POINT_2F){ (float)xori - 0.5f, (float)y - 0.5f },
-			(D2D1_POINT_2F){ (float)s_clrect.right + 0.5f, (float)y - 0.5f },
-			(ID2D1Brush *)ps_res->mp_brsolid,
+			(D2D1_POINT_2F){ (float)ps_res->_base.ms_clrect.right + 0.5f, (float)y - 0.5f },
+			(ID2D1Brush *)ps_res->_base.mp_brsolid,
 			1.0f,
 			NULL
 		);
 
 	/* Restore the old AA-mode. */
-	D2DWr_RenderTarget_SetAntialiasMode(ps_res->mp_rt, oldaamode);
+	D2DWr_RenderTarget_SetAntialiasMode(ps_res->_base.mp_rt, oldaamode);
 
 	/* Present the frame. */
-	D2DWr_RenderTarget_EndDraw(ps_res->mp_rt, NULL, NULL);
-
-	ReleaseDC(ps_tpage->ps_parent->mp_hwndpage, p_hdc);
+	D2DWr_RenderTarget_EndDraw(ps_res->_base.mp_rt, NULL, NULL);
 	return TRUE;
 }
 
@@ -392,83 +327,18 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpageresize(
 	if (ps_tpage == NULL)
 		return FALSE;
 
-	int maxscr;
-	BOOL isxvisible, isyvisible;
-	struct mbe_level *ps_lvl = (struct mbe_level *)ps_tpage->mp_udata;
-	if (ps_lvl == NULL)
-		return FALSE;
+	struct mbe_level *ps_udata = (struct mbe_level *)ps_tpage->mp_udata;
+	if (ps_udata == NULL)
+		return TRUE;
 
-	/* Update vertical scrollbar. */
-	if (ps_lvl->m_pheight > nheight) {
-		maxscr = max(ps_lvl->m_pheight - nheight, 0); 
-
-		ps_tpage->ms_scrinfo.ms_yscr = (SCROLLINFO){
-			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_yscr,
-			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
-			.nMin   = 0,
-			.nMax   = ps_lvl->m_pheight - 1,
-			.nPage  = nheight,
-			.nPos   = min(ps_tpage->ms_scrinfo.ms_yscr.nPos, maxscr)
-		};
-
-		isyvisible = TRUE;
-	} else {
-		/*
-		 * If the scrollbar needs to be hidden, we set the position of the
-		 * scrollbar to 0. We can safely do that as the scrollbars will only
-		 * be hidden if the entire bitmap axis the scrollbar is dedicated to
-		 * can be displayed in the current tileset view window.
-		 * If we do not set the value to 0 in such a case, the view will be stuck
-		 * in the view that it was scrolled to previously, possibly leaving
-		 * a portion of the tileset bitmap still hidden even though we have enough
-		 * space inside the window to display it.
-		 */
-		ps_tpage->ms_scrinfo.ms_yscr.fMask = SIF_POS;
-		ps_tpage->ms_scrinfo.ms_yscr.nPos  = 0;
-
-		isyvisible = FALSE;
-	}
-	/* Submit new scrollbar info. */
-	SetScrollInfo(
-		ps_tpage->ps_parent->mp_hwndpage,
-		SB_VERT,
-		&ps_tpage->ms_scrinfo.ms_yscr,
-		TRUE
-	);
-
-	/* Update horizontal scrollbar. */
-	if (ps_lvl->m_pwidth > nwidth) {
-		maxscr = max(ps_lvl->m_pwidth - nwidth, 0);
-
-		ps_tpage->ms_scrinfo.ms_xscr = (SCROLLINFO){
-			.cbSize = sizeof ps_tpage->ms_scrinfo.ms_xscr,
-			.fMask  = SIF_RANGE | SIF_PAGE | SIF_POS,
-			.nMin   = 0,
-			.nMax   = ps_lvl->m_pwidth - 1,
-			.nPage  = nwidth,
-			.nPos   = min(ps_tpage->ms_scrinfo.ms_xscr.nPos, maxscr)
-		};
-
-		isxvisible = TRUE;
-	} else {
-		ps_tpage->ms_scrinfo.ms_xscr.fMask = SIF_POS;
-		ps_tpage->ms_scrinfo.ms_xscr.nPos  = 0;
-
-		isxvisible = FALSE;
-	}
-	/* Submit new scrollbar info. */
-	SetScrollInfo(
-		ps_tpage->ps_parent->mp_hwndpage,
-		SB_HORZ,
-		&ps_tpage->ms_scrinfo.ms_xscr,
-		TRUE
-	);
-
-	/* Update visible states of scrollbars. */
-	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_HORZ, ps_tpage->ms_scrinfo.m_xscrv = isxvisible);
-	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_VERT, ps_tpage->ms_scrinfo.m_yscrv = isyvisible);
-
-	return TRUE;
+	return
+		mbe_tabpage_inl_onresize_common(
+			ps_tpage,
+			nwidth,
+			nheight,
+			ps_udata->m_pwidth,
+			ps_udata->m_pheight
+		);
 }
 
 /*
@@ -525,19 +395,75 @@ static BOOL MB_CALLBACK mbe_levelview_newlvldlg_onok(
 	return TRUE;
 }
 
+/* dialog control information */
 static struct mbe_dlg_ctrlinfo const glsa_newlvlctrlinfo[] = {
-	{ NewLvlDlg_EDIT_Name,    MBE_DLGCTRLTYPE_EDIT,    offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_name),  0,           MBE_DLGCTRLFLAG_INITIALFOCUS, ._edit   = TEXT("unnamed")                                         },
-	{ NewLvlDlg_EDIT_Comment, MBE_DLGCTRLTYPE_EDIT,    offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_cmt)                                                                                                                  },
-	{ NewLvlDlg_SPIN_Width,   MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct mbe_levelview_dlgnewlvl_udata, m_width),  sizeof(int), 0,                            ._spin   = { NewLvlDlg_EDIT_Width,  64, 1, 1 << 16               } },
-	{ NewLvlDlg_SPIN_Height,  MBE_DLGCTRLTYPE_SPINBOX, offsetof(struct mbe_levelview_dlgnewlvl_udata, m_height), sizeof(int), 0,                            ._spin   = { NewLvlDlg_EDIT_Height, 64, 1, 1 << 16               } },
-	{ NewLvlDlg_BTN_Ok,       MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           0,                            ._button = { 0, MBE_DLGBTNFLAG_OK, &mbe_levelview_newlvldlg_onok } },
-	{ NewLvlDlg_BTN_Cancel,   MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           0,                            ._button = { 0, MBE_DLGBTNFLAG_CANCEL                            } },
-	{ NewLvlDlg_BTN_Reset,    MBE_DLGCTRLTYPE_BUTTON,  0,                                                        0,           0,                            ._button = { 0, MBE_DLGBTNFLAG_RESET                             } }
+	{ NewLvlDlg_EDIT_Name,
+		MBE_DLGCTRLTYPE_EDIT,
+		offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_name),
+		0,
+		MBE_DLGCTRLFLAG_INITIALFOCUS,
+		._edit = TEXT("unnamed")
+	},
+	{ NewLvlDlg_EDIT_Comment,
+		MBE_DLGCTRLTYPE_EDIT,
+		offsetof(struct mbe_levelview_dlgnewlvl_udata, pz_cmt)
+	},
+	{ NewLvlDlg_SPIN_Width,
+		MBE_DLGCTRLTYPE_SPINBOX,
+		offsetof(struct mbe_levelview_dlgnewlvl_udata, m_width),
+		sizeof(int),
+		._spin = { 
+			NewLvlDlg_EDIT_Width,
+			64,
+			1,
+			0xFFFF
+		}
+	},
+	{ NewLvlDlg_SPIN_Height,
+		MBE_DLGCTRLTYPE_SPINBOX,
+		offsetof(struct mbe_levelview_dlgnewlvl_udata, m_height),
+		sizeof(int),
+		._spin = {
+			NewLvlDlg_EDIT_Height,
+			64,
+			1,
+			0xFFFF
+		} 
+	},
+	{ NewLvlDlg_BTN_Ok,
+		MBE_DLGCTRLTYPE_BUTTON,
+		._button = { 
+			0,
+			MBE_DLGBTNFLAG_OK,
+			&mbe_levelview_newlvldlg_onok 
+		} 
+	},
+	{ NewLvlDlg_BTN_Cancel,
+		MBE_DLGCTRLTYPE_BUTTON,
+		._button = {
+			0,
+			MBE_DLGBTNFLAG_CANCEL
+		}
+	},
+	{ NewLvlDlg_BTN_Reset,
+		MBE_DLGCTRLTYPE_BUTTON,
+		._button = {
+			0,
+			MBE_DLGBTNFLAG_RESET
+		} 
+	}
 };
 
 
+/*
+ * Shows a dialog that allows the user to enter
+ * metrics for a new level.
+ * 
+ * Returns TRUE if the dialog ended successfully,
+ * FALSE if not.
+ */
 BOOL mbe_levelview_newlvlbydlg(
-	_In_ struct mbe_tabview *ps_tview
+	_In_ struct mbe_tabview *ps_tview /* level-view */
 ) {
 	if (ps_tview == NULL || ps_tview->m_isinit == FALSE)
 		return FALSE;

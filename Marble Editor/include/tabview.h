@@ -8,6 +8,7 @@
  */
 struct mbe_tabview_callbacks {
 	BOOL (MB_CALLBACK *mpfn_oncreate)(_Inout_ struct mbe_tabview *, _In_opt_ void *); /* executed when the tab-view userdata must be initialized */
+	BOOL (MB_CALLBACK *mpfn_onresize)(_Inout_ struct mbe_tabview *, int, int);        /* executed after the tab-view window was resized */
 	BOOL (MB_CALLBACK *mpfn_ondestroy)(_Inout_ struct mbe_tabview *);                 /* executed when the tab-view userdata must be destroyed */
 };
 
@@ -154,7 +155,7 @@ inline marble_ecode_t mbe_tabview_inl_regwndclass(void) {
 	/* Setup new class attributes. */
 	s_class.cbSize        = sizeof s_class;
 	s_class.lpszClassName = glpz_tabviewwndcl;
-	s_class.lpfnWndProc   = (WNDPROC)&mbe_tabview_int_wndproc;
+	s_class.lpfnWndProc   = &mbe_tabview_int_wndproc;
 
 	/* Register modified window class. */
 	if (RegisterClassEx(&s_class) == FALSE)
@@ -166,7 +167,8 @@ inline marble_ecode_t mbe_tabview_inl_regwndclass(void) {
 		.cbSize        = sizeof s_class,
 		.lpszClassName = glpz_pagewndcl,
 		.hCursor       = LoadCursor(NULL, IDC_ARROW),
-		.lpfnWndProc   = (WNDPROC)&mbe_tabpage_int_wndproc
+		.lpfnWndProc   = &mbe_tabpage_int_wndproc,
+		.style         = CS_OWNDC
 	};
 
 	if (RegisterClassEx(&s_class) == FALSE)

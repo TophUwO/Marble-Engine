@@ -176,12 +176,9 @@
     <ClInclude Include="..\include\base.h" />
     <ClInclude Include="..\include\dialog.h" />
     <ClInclude Include="..\include\editor.h" />
+    <ClInclude Include="..\include\internal\shared.h" />
     <ClInclude Include="..\include\levelview.h" />
-    <ClInclude Include="..\include\tsetview.h" />
     <ClCompile Include="..\src\tabview.c" />
-    <ClCompile Include="..\src\tsetview.c">
-      <FileType>CppHeader</FileType>
-    </ClCompile>
     <ClInclude Include="..\include\tabview.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

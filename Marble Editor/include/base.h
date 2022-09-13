@@ -1,9 +1,12 @@
 #pragma once
 
+#pragma warning (disable: 5105) /* macro expansion UB */
+
 #include <windows.h>
 #include <commctrl.h>
 
-#include <def.h>
+#include <system.h>
+#include <util.h>
 #include <log.h>
 #include <d2dwr.h> 
 
@@ -30,10 +33,10 @@
  * All of the following "length" definitions denote
  * lengths in characters.
  */
-#define MBE_MAXIDLEN  (32)   /* max. tileset name length */
-#define MBE_MAXCMT    (256)  /* max. comment length */
-#define MBE_MAXTSC    (16)   /* max. number of tilesets per view */
-#define MBE_MAXPATH   (1024) /* max. number of characters in a path */
+#define MBE_MAXIDLEN (32)   /* max. tileset name length */
+#define MBE_MAXCMT   (256)  /* max. comment length */
+#define MBE_MAXTSC   (16)   /* max. number of tilesets per view */
+#define MBE_MAXPATH  (1024) /* max. number of characters in a path */
 
 /*
  * Macros to shorten the code needed to set the window/dialog

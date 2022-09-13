@@ -2,8 +2,6 @@
 
 #include <..\vcpp\resource.h>
 
-#include <tsetview.h>
-
 #include <tabview.h>
 #include <dialog.h>
 #include <levelview.h>
@@ -27,7 +25,7 @@ extern struct mbe_application {
 		HPEN   mp_hpgrid;   /* grid pen */
 
 		/* Direct2D resources */
-		ID2D1Factory     *mps_d2dfac;  /* for Direct2D rendering */
+		ID2D1Factory     *mp_d2dfac;   /* for Direct2D rendering */
 		ID2D1StrokeStyle *mp_grstroke; /* grid-line stroke style */
 	} ms_res;
 
@@ -37,7 +35,7 @@ extern struct mbe_application {
 		BOOL mf_isdest;  /* destroy flag */
 	} ms_flags;
 
-	struct mbe_tsetview ms_tsview;   /* tileset view */
+	struct mbe_tabview *mps_tsview;  /* tileset view */
 	struct mbe_tabview *mps_lvlview; /* level view */
 } gls_editorapp;
 
