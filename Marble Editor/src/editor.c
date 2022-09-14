@@ -5,12 +5,36 @@ struct mbe_application gls_editorapp = { NULL };
 
 
 /*
+ * Frees any resources that are kept by the application instance itself,
+ * such as system resources.
+ * 
+ * Returns nothing.
+ */
+static void mbe_editor_int_freeresources(void) {
+	/*
+	 * Delete system resources such as predefined brushes, pens,
+	 * bitmaps, fonts etc.
+	 */
+	DeleteFont(gls_editorapp.ms_res.mp_hguifont);
+	DestroyMenu(gls_editorapp.ms_res.mp_hmainmenu);
+
+	/* Release global Direct2D resources. */
+	D2DWR_SAFERELEASE(D2DWr_StrokeStyle_Release, gls_editorapp.ms_res.mp_grstroke);
+	D2DWR_SAFERELEASE(D2DWr_Factory_Release, gls_editorapp.ms_res.mp_d2dfac);
+}
+
+/*
  * Loads system resources. These resources may be used by other
  * windows of the editor application.
  * 
  * Returns nothing.
  */
-static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
+static marble_ecode_t mbe_editor_int_loadresources(
+	_In_ HWND p_hparent /* parent window handle */
+) { MB_ERRNO
+	if (p_hparent == NULL)
+		return MARBLE_EC_INTERNALPARAM;
+
 	HRESULT hres;
 
 	gls_editorapp.ms_res.mp_hguifont = CreateFont(
@@ -29,11 +53,11 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 		FF_DONTCARE,
 		TEXT("MS Shell Dlg")
 	);
+	if (gls_editorapp.ms_res.mp_hguifont == NULL) {
+		ecode = MARBLE_EC_LOADRESOURCE;
 
-	gls_editorapp.ms_res.mp_hbrwhite = CreateSolidBrush(RGB(255, 255, 255));
-	gls_editorapp.ms_res.mp_hbrblack = CreateSolidBrush(RGB(0, 0, 0));
-	gls_editorapp.ms_res.mp_hpsel    = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
-	gls_editorapp.ms_res.mp_hpgrid   = CreatePen(PS_DOT, 1, RGB(0, 0, 0));
+		goto lbl_END;
+	}
 
 	/* Create Direct2D and WIC resources. */
 #if (defined _DEBUG) || (defined MB_DEVBUILD)
@@ -49,8 +73,11 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 		ps_opts,
 		&gls_editorapp.ms_res.mp_d2dfac
 	);
-	if (hres != S_OK)
+	if (hres != S_OK) {
 		ecode = MARBLE_EC_CREATED2DFAC;
+
+		goto lbl_END;
+	}
 
 	/* Grid-line stroke properties */
 	D2D1_STROKE_STYLE_PROPERTIES const s_strprops = {
@@ -68,11 +95,17 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
 		2,
 		&gls_editorapp.ms_res.mp_grstroke
 	);
-	if (hres != S_OK)
+	if (hres != S_OK) {
 		ecode = MARBLE_EC_CREATED2DSTROKESTYLE;
 
-	// TODO: BUG: currently, if any of these resources fail to create, the already created resources are not released.
-	return ecode;
+		goto lbl_END;
+	}
+
+lbl_END:
+	if (ecode != MARBLE_EC_OK)
+		mbe_editor_int_freeresources();
+
+	return MARBLE_EC_OK;
 }
 
 /*
@@ -80,20 +113,22 @@ static marble_ecode_t mbe_editor_internal_loadresources(void) { MB_ERRNO
  * 
  * Returns nothing.
  */
-static void mbe_editor_internal_loadmenu(HWND p_hwnd) {
+static marble_ecode_t mbe_editor_int_loadmenu(HWND p_hwnd) {
 	/* Load menu. */
-	HMENU p_hmenubar = LoadMenu(gls_editorapp.mp_hinst, MAKEINTRESOURCE(MBE_MainWnd_Menubar));
-	if (p_hmenubar == NULL)
-		return;
+	gls_editorapp.ms_res.mp_hmainmenu = LoadMenu(gls_editorapp.mp_hinst, MAKEINTRESOURCE(MBE_MainWnd_Menubar));
+	if (gls_editorapp.ms_res.mp_hmainmenu == NULL)
+		return MARBLE_EC_LOADRESOURCE;
 
 	/* Associate menu with main window. */
-	SetMenu(p_hwnd, p_hmenubar);
+	SetMenu(p_hwnd, gls_editorapp.ms_res.mp_hmainmenu);
+
+	return MARBLE_EC_OK;
 }
 
 /*
  * Window procedure for main editor window.
  */
-static LRESULT CALLBACK mbe_editor_internal_wndproc(
+static LRESULT CALLBACK mbe_editor_int_wndproc(
 	HWND p_hwnd,
 	UINT msg,
 	WPARAM wparam,
@@ -106,14 +141,22 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 
 	switch (msg) {
 		case WM_CREATE:
-			mbe_editor_internal_loadmenu(p_hwnd);
-			mbe_editor_internal_loadresources();
+			/*
+			 * If resource creation fails, return -1 which will cause
+			 * "CreateWindow[Ex]()" to fail, destroying the window
+			 * beforehand.
+			 */
+			if (mbe_editor_int_loadmenu(p_hwnd) + mbe_editor_int_loadresources(p_hwnd) != MARBLE_EC_OK) {
+				MB_LOG_FATAL("Could not load one or more critical application resources.", 0);
+
+				return -1;
+			}
 			
-			return FALSE;
+			return 0;
 		case WM_SIZE:
 			/* Resize tileset view. */
 			if (gls_editorapp.mps_tsview == NULL)
-				return FALSE;
+				return 0;
 
 			mbe_base_getwindowpos(gls_editorapp.mps_tsview->mp_hwndtab, &s_pt);
 
@@ -127,7 +170,7 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 
 			/* Resize level view. */
 			if (gls_editorapp.mps_lvlview == NULL)
-				return FALSE;
+				return 0;
 
 			mbe_base_getwindowpos(gls_editorapp.mps_lvlview->mp_hwndtab, &s_pt);
 
@@ -139,7 +182,7 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 			};
 			mbe_tabview_resize(gls_editorapp.mps_lvlview, &s_wndsize);
 
-			return FALSE;
+			return 0;
 		case WM_COMMAND:
 			switch (wparam) {
 				case MBE_FileNew_Level:
@@ -152,7 +195,7 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 					break;
 			}
 
-			return FALSE;
+			return 0;
 		case WM_NOTIFY:
 			ps_nmhdr = (NMHDR *)lparam;
 
@@ -170,19 +213,23 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 					break;
 			}
 
-			return FALSE;
+			return 0;
 		case WM_CLOSE:
 			gls_editorapp.ms_flags.mf_isdest = TRUE;
 
 			DestroyWindow(p_hwnd);
-			return FALSE;
-		case WM_DESTROY: PostQuitMessage(0); return FALSE;
+			return 0;
+		case WM_DESTROY:
+			mbe_editor_int_freeresources();
+
+			PostQuitMessage(0);
+			return 0;
 	}
 
 	return DefWindowProc(p_hwnd, msg, wparam, lparam);
 }
 
-static marble_ecode_t mbe_editor_internal_createmainwnd(HINSTANCE p_hinst) {
+static marble_ecode_t mbe_editor_int_createmainwnd(HINSTANCE p_hinst) {
 	static TCHAR const *const glpz_wndclassname = TEXT("mbe_mainwnd");
 
 	/* Register editor window class. */
@@ -194,7 +241,7 @@ static marble_ecode_t mbe_editor_internal_createmainwnd(HINSTANCE p_hinst) {
 		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1),
 		.hIcon         = LoadIcon(NULL, IDI_APPLICATION),
 		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
-		.lpfnWndProc   = (WNDPROC)&mbe_editor_internal_wndproc
+		.lpfnWndProc   = (WNDPROC)&mbe_editor_int_wndproc
 	};
 	if (RegisterClassEx(&s_class) == false)
 		return MARBLE_EC_REGWNDCLASS;
@@ -219,28 +266,6 @@ static marble_ecode_t mbe_editor_internal_createmainwnd(HINSTANCE p_hinst) {
 		return MARBLE_EC_CREATEWND;
 
 	return MARBLE_EC_OK;
-}
-
-/*
- * Frees any resources that are kept by the application instance itself,
- * such as system resources.
- * 
- * Returns nothing.
- */
-static void mbe_editor_internal_freeresources(void) {
-	/*
-	 * Delete system resources such as predefined brushes, pens,
-	 * bitmaps, fonts etc.
-	 */
-	DeleteObject(gls_editorapp.ms_res.mp_hbrwhite);
-	DeleteObject(gls_editorapp.ms_res.mp_hbrblack);
-	DeleteObject(gls_editorapp.ms_res.mp_hpsel);
-	DeleteObject(gls_editorapp.ms_res.mp_hpgrid);
-	DeleteObject(gls_editorapp.ms_res.mp_hguifont);
-
-	/* Release global Direct2D resources. */
-	D2DWR_SAFERELEASE(D2DWr_Factory_Release, gls_editorapp.ms_res.mp_d2dfac);
-	D2DWR_SAFERELEASE(D2DWr_StrokeStyle_Release, gls_editorapp.ms_res.mp_grstroke);
 }
 
 
@@ -270,7 +295,7 @@ marble_ecode_t mbe_editor_init(
 	mbe_tabview_inl_regwndclass();
 
 	/* Create main window. */
-	marble_ecode_t res = mbe_editor_internal_createmainwnd(p_hinst);
+	marble_ecode_t res = mbe_editor_int_createmainwnd(p_hinst);
 	if (res != MARBLE_EC_OK)
 		return res;
 
@@ -370,7 +395,6 @@ marble_ecode_t mbe_editor_run(void) {
 	mbe_tabview_destroy(&gls_editorapp.mps_lvlview);
 	marble_log_uninit();
 
-	mbe_editor_internal_freeresources();
 #if (defined _DEBUG)
 	_CrtDumpMemoryLeaks();
 #endif

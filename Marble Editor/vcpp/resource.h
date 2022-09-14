@@ -58,7 +58,6 @@
 #define RenameTSDLG_EDIT_NewName        1047
 #define ImgTSDlg_SPIN_Right             1047
 #define RenameTSDLG_CB_RenameFile       1048
-#define ImgTSDlg_SPIN_Height2           1048
 #define ImgTSDlg_SPIN_Bottom            1048
 #define RenameTSDLG_BTN_Apply           1049
 #define RenameTSDLG_BTN_Cancel          1050
@@ -100,7 +99,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        117
+#define _APS_NEXT_RESOURCE_VALUE        121
 #define _APS_NEXT_COMMAND_VALUE         40027
 #define _APS_NEXT_CONTROL_VALUE         1065
 #define _APS_NEXT_SYMED_VALUE           101

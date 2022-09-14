@@ -18,11 +18,8 @@ extern struct mbe_application {
 
 	/* system resources */
 	struct {
-		HFONT  mp_hguifont; /* GUI font */
-		HBRUSH mp_hbrwhite; /* white brush */
-		HBRUSH mp_hbrblack; /* black brush */
-		HPEN   mp_hpsel;    /* selection outline pen */
-		HPEN   mp_hpgrid;   /* grid pen */
+		HFONT mp_hguifont;  /* GUI font */
+		HMENU mp_hmainmenu; /* main window menu bar */
 
 		/* Direct2D resources */
 		ID2D1Factory     *mp_d2dfac;   /* for Direct2D rendering */
