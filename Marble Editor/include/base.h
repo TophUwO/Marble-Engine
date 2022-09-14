@@ -73,6 +73,12 @@
  */
 #define MBE_SB_CTRL (1000)
 
+/*
+ * Component IDs 
+ */
+#define MBE_COMPID_LVLVIEW  (10)
+#define MBE_COMPID_TSETVIEW (11)
+
 
 /*
  * Structure representing scrollbar information for

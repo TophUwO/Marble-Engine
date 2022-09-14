@@ -340,6 +340,28 @@ static void mbe_tabview_int_resizepagewnd(
 	);
 }
 
+/*
+ * Updates the page-window scrollbars to reflect the
+ * scrollbar state of the currently (possibly newly)
+ * selected page.
+ * 
+ * Returns nothing.
+ */
+static void mbe_tabpage_int_updscrbars(
+	_In_ struct mbe_tabview *ps_tview
+) {
+	RECT s_clrect;
+	GetClientRect(ps_tview->mp_hwndpage, &s_clrect);
+
+	/* Call resize handler with current client size. */
+	(*ps_tview->mps_cursel->ms_cbs.mpfn_onresize)(
+		ps_tview->mps_cursel,
+		s_clrect.right,
+		s_clrect.bottom
+	);
+}
+
+
 LRESULT CALLBACK mbe_tabpage_int_wndproc(
 	HWND p_hwnd,
 	UINT msg,
@@ -481,7 +503,6 @@ static void mbe_tabview_int_setcbs(
 }
 
 
-
 /*
  * Window procedure for modified tabview control. This function overrides
  * some of the default behavior of the standard tabview control in order
@@ -510,6 +531,7 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 	_In_              struct mbe_wndsize const *ps_size,
 	_In_opt_          struct mbe_tabview_callbacks const *ps_cbs,
 	_In_opt_          void *p_crparams,
+	                  int compid,
 	_Init_(pps_tview) struct mbe_tabview **pps_tview
 ) { MB_ERRNO
 	if (p_hparent == NULL || pps_tview == NULL || ps_size == NULL) {
@@ -543,7 +565,7 @@ _Critical_ marble_ecode_t mbe_tabview_create(
 		ps_size->m_width,
 		ps_size->m_height,
 		p_hparent,
-		NULL,
+		(HMENU)(LONG_PTR)(compid),
 		gls_editorapp.mp_hinst,
 		NULL
 	);
@@ -739,9 +761,6 @@ marble_ecode_t mbe_tabview_addpage(
 		.pszText = ps_tpage->mpz_name
 	};
 	TabCtrl_InsertItem(ps_tview->mp_hwndtab, last, &s_item);
-
-	/* Update selection of tab-view. */
-	ps_tview->mps_cursel = ps_tpage;
 	TabCtrl_SetCurSel(ps_tview->mp_hwndtab, last);
 
 	/*
@@ -759,10 +778,32 @@ marble_ecode_t mbe_tabview_addpage(
 		ShowWindow(ps_tview->mp_hwndpage, SW_SHOW);
 	}
 
-	/* Force update of page window. */
-	InvalidateRect(ps_tview->mp_hwndpage, NULL, FALSE);
+	/* Update selection of tab-view. */
+	mbe_tabview_changepage(ps_tview, last);
 
 	return MARBLE_EC_OK;
+}
+
+void mbe_tabview_changepage(
+	_In_ struct mbe_tabview *ps_tview,
+	     int npage
+) {
+	if (ps_tview == NULL || ps_tview->m_isinit == FALSE)
+		return;
+
+	/* Get page entry based on index. */
+	struct mbe_tabpage *ps_tpage = marble_util_vec_get(ps_tview->mps_pages, npage);
+	if (ps_tpage == NULL)
+		return;
+
+	/* Update selection. */
+	ps_tview->mps_cursel = ps_tpage;
+
+	/* Update page scrollbars. */
+	mbe_tabpage_int_updscrbars(ps_tview);
+
+	/* Force repaint. */
+	InvalidateRect(ps_tview->mp_hwndpage, NULL, FALSE);
 }
 #pragma endregion
 

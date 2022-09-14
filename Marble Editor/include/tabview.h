@@ -75,6 +75,7 @@ _Critical_ extern marble_ecode_t mbe_tabview_create(
 	_In_              struct mbe_wndsize const *ps_size,          /* size parameters */
 	_In_opt_          struct mbe_tabview_callbacks const *ps_cbs, /* optional callbacks */
 	_In_opt_          void *p_crparams,                           /* optional create-params for "oncreate" handler */
+	                  int compid,                                 /* component ID */
 	_Init_(pps_tview) struct mbe_tabview **pps_tview              /* tabview to init */
 );
 
@@ -125,6 +126,16 @@ _Critical_ extern marble_ecode_t mbe_tabview_newpage(
 extern marble_ecode_t mbe_tabview_addpage(
 	_In_ struct mbe_tabview *ps_tview, /* tabview to resize */
 	_In_ struct mbe_tabpage *ps_tpage  /* page to add */
+);
+
+/*
+ * Changes the currently visible page of the tab-view.
+ * 
+ * Returns nothing.
+ */
+extern void mbe_tabview_changepage(
+	_In_ struct mbe_tabview *ps_tview, /* tab-view */
+	     int npage                     /* new page index */
 );
 
 

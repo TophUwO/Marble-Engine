@@ -260,22 +260,30 @@ inline BOOL MB_CALLBACK mbe_tabpage_inl_onresize_common(
 
 		isxvisible = FALSE;
 	}
-	/* Submit new scrollbar info. */
-	SetScrollInfo(
-		ps_tpage->ps_parent->mp_hwndpage,
-		SB_HORZ,
-		&ps_tpage->ms_scrinfo.ms_xscr,
-		TRUE
-	);
-	/* Update visible states of scrollbars. */
-	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_HORZ, isxvisible);
 
 	/*
-	 * As showing or hiding the scrollbar causes the client area to
-	 * shrink/extend, we have to recalculate the client height.
+	 * Submit new scrollbar info if the page we are currently
+	 * updating the scrollbars of is the currently selected
+	 * page of the tab-view.
 	 */
-	GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_newclrect);
-	nheight = s_newclrect.bottom;
+	if (ps_tpage == ps_tpage->ps_parent->mps_cursel) {
+		SetScrollInfo(
+			ps_tpage->ps_parent->mp_hwndpage,
+			SB_HORZ,
+			&ps_tpage->ms_scrinfo.ms_xscr,
+			TRUE
+		);
+
+		/* Update visible states of scrollbars. */
+		ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_HORZ, isxvisible);
+
+		/*
+		 * As showing or hiding the scrollbar causes the client area to
+		 * shrink/extend, we have to recalculate the client height.
+		 */
+		GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_newclrect);
+		nheight = s_newclrect.bottom;
+	}
 
 	/* Update vertical scrollbar. */
 	if (cheight > nheight) {
@@ -297,13 +305,17 @@ inline BOOL MB_CALLBACK mbe_tabpage_inl_onresize_common(
 
 		isyvisible = FALSE;
 	}
-	SetScrollInfo(
-		ps_tpage->ps_parent->mp_hwndpage,
-		SB_VERT,
-		&ps_tpage->ms_scrinfo.ms_yscr,
-		TRUE
-	);
-	ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_VERT, isyvisible);
+
+	if (ps_tpage == ps_tpage->ps_parent->mps_cursel) {
+		SetScrollInfo(
+			ps_tpage->ps_parent->mp_hwndpage,
+			SB_VERT,
+			&ps_tpage->ms_scrinfo.ms_yscr,
+			TRUE
+		);
+
+		ShowScrollBar(ps_tpage->ps_parent->mp_hwndpage, SB_VERT, isyvisible);
+	}
 
 	/* Update scrollbar visible state. */
 	ps_tpage->ms_scrinfo.m_xscrv = isxvisible;

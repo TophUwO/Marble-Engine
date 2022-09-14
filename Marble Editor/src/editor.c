@@ -101,7 +101,6 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 ) {
 	NMHDR *ps_nmhdr;
 	int cursel;
-	struct mbe_tsetview *ps_tsview;
 	struct mbe_wndsize s_wndsize;
 	POINT s_pt;
 
@@ -159,10 +158,15 @@ static LRESULT CALLBACK mbe_editor_internal_wndproc(
 
 			switch (ps_nmhdr->code) {
 				case TCN_SELCHANGE:
-					cursel    = TabCtrl_GetCurSel(ps_nmhdr->hwndFrom);
-					ps_tsview = (struct mbe_tsetview *)GetWindowLongPtr(ps_nmhdr->hwndFrom, GWLP_USERDATA);
+					cursel = TabCtrl_GetCurSel(ps_nmhdr->hwndFrom);
+					
+					switch (ps_nmhdr->idFrom) {
+						case MBE_COMPID_LVLVIEW:
+							mbe_tabview_changepage(gls_editorapp.mps_lvlview, cursel);
 
-					// TODO: change page
+							break;
+					}
+
 					break;
 			}
 
@@ -290,6 +294,7 @@ marble_ecode_t mbe_editor_init(
 		&s_size,
 		&s_cbs,
 		NULL,
+		MBE_COMPID_TSETVIEW,
 		&gls_editorapp.mps_tsview
 	);
 	if (res != MARBLE_EC_OK)
@@ -311,6 +316,7 @@ marble_ecode_t mbe_editor_init(
 		gls_editorapp.mp_hwnd,
 		&s_size, &s_cbs,
 		NULL,
+		MBE_COMPID_LVLVIEW,
 		&gls_editorapp.mps_lvlview
 	);
 	if (res != MARBLE_EC_OK)

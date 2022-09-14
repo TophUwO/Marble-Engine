@@ -30,7 +30,7 @@
     <ClCompile Include="..\src\Direct2D\d2dwr_devicecontext.cpp" />
     <ClCompile Include="..\src\Direct2D\d2dwr_factory.cpp" />
     <ClCompile Include="..\src\Direct2D\d2dwr_rendertarget.cpp" />
-    <ClCompile Include="..\src\Direct2D\strokestyle.cpp" />
+    <ClCompile Include="..\src\Direct2D\d2dwr_strokestyle.cpp" />
     <ClCompile Include="..\src\DirectWrite\dwr_factory.cpp" />
     <ClCompile Include="..\src\DirectWrite\dwr_textformat.cpp" />
     <ClCompile Include="..\src\main.cpp" />

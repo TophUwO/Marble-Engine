@@ -225,15 +225,17 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	if (ps_tpage == NULL || ps_tpage->m_isinit == FALSE)
 		return FALSE;
 
-	int xori, yori, tx, ty, oldty;
+	int xori, yori, tx, ty;
+	struct mbe_level *ps_udata;
 	struct mbe_levelview *ps_res;
 	D2D1_ANTIALIAS_MODE oldaamode;
 
 	/*
-	 * Get the pointer to the structure holding
-	 * the required Direct2D resources.
+	 * Get the pointers to the structures holding
+	 * the required resources.
 	 */
-	ps_res = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
+	ps_udata = (struct mbe_level *)ps_tpage->mp_udata;
+	ps_res   = (struct mbe_levelview *)ps_tpage->ps_parent->mp_udata;
 
 	/* Calculate scaled view-tilesize. */
 	int const vtsize = (int)ceilf(gl_defviewtsize * ps_res->_base.m_zoom);
@@ -253,16 +255,15 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 	 * **tx** and **ty** form the origin of the
 	 * current view, in tile coordinates.
 	 */
-	tx = ps_tpage->ms_scrinfo.ms_xscr.nPos / vtsize;
-	ty = ps_tpage->ms_scrinfo.ms_yscr.nPos / vtsize;
-	oldty = ty;
+	tx   = ps_tpage->ms_scrinfo.ms_xscr.nPos / vtsize;
+	ty   = ps_tpage->ms_scrinfo.ms_yscr.nPos / vtsize;
 	xori = -ps_tpage->ms_scrinfo.ms_xscr.nPos % vtsize;
 	yori = -ps_tpage->ms_scrinfo.ms_yscr.nPos % vtsize;
 
-	// Render tiles.
-	for (int x = xori; x < ps_res->_base.ms_clrect.right; x += vtsize) {
+	/* Render currently visible view of the level. */
+	/*for (int x = xori; x < ps_res->_base.ms_clrect.right; x += vtsize) {
 		for (int y = yori; y < ps_res->_base.ms_clrect.bottom; y += vtsize) {
-			/*if (tx == 0 && ty == 0 || tx == 0 && ty == 63 || tx == 63 && ty == 0 || tx == 63 && ty == 63) {
+			if (tx == 0 && ty == 0 || tx == 0 && ty == ps_udata->m_theight-1 || tx == ps_udata->m_twidth-1 && ty == 0 || tx == ps_udata->m_twidth-1 && ty == ps_udata->m_theight-1) {
 				D2D1_RECT_F const s_drect = {
 					(float)x,
 					(float)y,
@@ -275,14 +276,14 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagepaint(
 					&s_drect,
 					ps_res->_base.mp_brsolid
 				);
-			}*/
+			}
 
 			++ty;
 		}
 
-		ty = ps_tpage->ms_scrinfo.ms_yscr.nPos / vtsize;;
+		ty = ps_tpage->ms_scrinfo.ms_yscr.nPos / vtsize;
 		++tx;
-	}
+	}*/
 
 	/*
 	 * Disable antialiasing for straight lines.
@@ -375,9 +376,6 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagezoom(
 	ps_lvludata->m_pwidth  = ps_lvludata->m_twidth * (int)ceilf(gl_defviewtsize * ps_udata->_base.m_zoom);
 	ps_lvludata->m_pheight = ps_lvludata->m_theight * (int)ceilf(gl_defviewtsize * ps_udata->_base.m_zoom);
 
-	RECT s_rect;
-	GetClientRect(ps_tpage->ps_parent->mp_hwndpage, &s_rect);
-
 	/*
 	 * Call the "onresize" handler with the current client area
 	 * dimensions and the new content dimensions, causing the
@@ -424,7 +422,7 @@ static BOOL MB_CALLBACK mbe_levelview_int_onpagedestroy(
  * the user to review their input.
  */
 static BOOL MB_CALLBACK mbe_levelview_newlvldlg_onok(
-	_In_     HWND p_hwnd,  /* dialog window*/
+	_In_     HWND p_hwnd,  /* dialog window */
 	_In_opt_ void *p_udata /* dialog userdata */
 ) {
 	if (p_hwnd == NULL || p_udata == NULL)
