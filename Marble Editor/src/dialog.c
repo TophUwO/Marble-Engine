@@ -12,15 +12,6 @@ enum mbe_dlg_btncallback {
 	MBE_DLGBTNCALLBACK_ONSTATECHANGE
 };
 
-/*
- * Control callback userdata 
- */
-union mbe_dlg_ctrlcbudata {
-	struct {
-		int newstate;
-	} _onbtnstatechange;
-};
-
 #define MBE_DLG_CALLBACK(cb, ...) ((BOOL)(cb != NULL ? (cb(__VA_ARGS__)) : TRUE)) 
 
 
@@ -103,47 +94,6 @@ static struct mbe_dlg_ctrlinfo const *mbe_dialog_int_getctrlinfo(
 }
 
 /*
- * Executes a button callback function.
- * If the button has no callback associated with it,
- * the function does nothing.
- * 
- * Returns TRUE if there is no callback, or the result
- * of the callback function which can be either TRUE or
- * FALSE.
- */
-static BOOL mbe_dialog_int_btncallback(
-	_In_     HWND p_hwnd,                                /* dialog window */
-	_In_     struct mbe_dlg_ctrlinfo const *ps_ctrlinfo, /* button control info */
-	         enum mbe_dlg_btncallback type,              /* callback type */
-	_In_opt_ void *p_udata,                              /* dialog userdata */
-	_In_opt_ union mbe_dlg_ctrlcbudata const *pu_udata   /* callback userdata */
-) {
-	switch (type) {
-		case MBE_DLGBTNCALLBACK_ONSELECT:
-			return 
-				(ps_ctrlinfo->_button.mpfn_onselect != NULL
-					? (*ps_ctrlinfo->_button.mpfn_onselect)(p_hwnd, p_udata)
-					: TRUE
-				);
-		case MBE_DLGBTNCALLBACK_ONSTATECHANGE:
-			if (pu_udata == NULL)
-				return FALSE;
-
-			return
-				(ps_ctrlinfo->_button.mpfn_onstatechange != NULL
-					? (*ps_ctrlinfo->_button.mpfn_onstatechange)(
-						p_hwnd,
-						pu_udata->_onbtnstatechange.newstate,
-						p_udata
-					  )
-					: TRUE
-				);
-	}
-
-	return TRUE;
-}
-
-/*
  * Resets the controls in the dialog to the values specified
  * by the control info entries of the dialog info structure.
  * 
@@ -158,7 +108,6 @@ static void mbe_dialog_int_resetctrls(
 
 	HWND p_hctrl;
 	struct mbe_dlg_ctrlinfo const *ps_tmp;
-	union mbe_dlg_ctrlcbudata u_cbudata;
 	
 	for (size_t index = 0; index < ps_dlginfo->m_nctrlinfo; index++) {
 		ps_tmp  = &ps_dlginfo->map_ctrlinfo[index];
@@ -170,17 +119,14 @@ static void mbe_dialog_int_resetctrls(
 			case MBE_DLGCTRLTYPE_CHECKBOX:
 				Button_SetCheck(p_hctrl, ps_tmp->_button.m_defstate);
 
-				/* Prepare callback userdata. */
-				u_cbudata._onbtnstatechange.newstate = ps_tmp->_button.m_defstate;
-
 				/* Run the "onstatechange" button callback. */
-				mbe_dialog_int_btncallback(
+				MBE_DLG_CALLBACK(
+					ps_tmp->_button.mpfn_onstatechange,
 					p_hwnd,
-					ps_tmp,
-					MBE_DLGBTNCALLBACK_ONSTATECHANGE,
-					ps_dlginfo->mp_udata,
-					&u_cbudata
+					ps_tmp->_button.m_defstate,
+					ps_dlginfo->mp_udata
 				);
+
 				break;
 			case MBE_DLGCTRLTYPE_SPINBOX:
 				if (ps_tmp->_spin.m_buddy != 0)
@@ -338,7 +284,6 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 	int inttmp;
 	struct mbe_dlg_ctrlinfo const *ps_ctrlinfo;
 	TCHAR droptmp[MBE_MAXPATH];
-	union mbe_dlg_ctrlcbudata u_cbudata;
 
 	switch (msg) {
 		case WM_INITDIALOG:
@@ -366,12 +311,10 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 					 * execute its handler function and return.
 					 */
 					if (ps_ctrlinfo->_button.m_flags == MBE_DLGBTNFLAG_MISC) {
-						mbe_dialog_int_btncallback(
+						MBE_DLG_CALLBACK(
+							ps_ctrlinfo->_button.mpfn_onselect,
 							p_hwnd,
-							ps_ctrlinfo,
-							MBE_DLGBTNCALLBACK_ONSELECT,
-							ps_udata->mp_udata,
-							NULL
+							ps_udata->mp_udata
 						);
 
 						break;
@@ -407,12 +350,10 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 					 * This can be used to validate the dialog result by checking all fields
 					 * or invalid values, etc.
 					 */
-					if (mbe_dialog_int_btncallback(
+					if (MBE_DLG_CALLBACK(
+						ps_ctrlinfo->_button.mpfn_onselect,
 						p_hwnd,
-						ps_ctrlinfo,
-						MBE_DLGBTNCALLBACK_ONSELECT,
-						ps_udata->mp_udata,
-						NULL
+						ps_udata->mp_udata
 					) == FALSE) break;
 
 					/* Return the dialog result. */
@@ -421,14 +362,11 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 				case MBE_DLGCTRLTYPE_CHECKBOX:
 					switch (HIWORD(wparam)) {
 						case BN_CLICKED:
-							u_cbudata._onbtnstatechange.newstate = (int)SendMessage((HWND)lparam, BM_GETCHECK, 0, 0);
-
-							mbe_dialog_int_btncallback(
+							MBE_DLG_CALLBACK(
+								ps_ctrlinfo->_button.mpfn_onstatechange,
 								p_hwnd,
-								ps_ctrlinfo,
-								MBE_DLGBTNCALLBACK_ONSTATECHANGE,
-								ps_udata->mp_udata,
-								&u_cbudata
+								(int)SendMessage((HWND)lparam, BM_GETCHECK, 0, 0),
+								ps_udata->mp_udata
 							);
 
 							break;
