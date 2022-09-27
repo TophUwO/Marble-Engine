@@ -4,7 +4,6 @@
 
 #include <tabview.h>
 #include <dialog.h>
-#include <levelview.h>
 
 
 /*
@@ -53,5 +52,26 @@ extern marble_ecode_t mbe_editor_init(
  * Returns error code to return back to the host environment.
  */
 extern marble_ecode_t mbe_editor_run(void);
+
+
+/*
+ * Creates a new, empty level by the means of using
+ * a dialog to query level metrics.
+ * 
+ * Returns nothing.
+ */
+extern BOOL mbe_levelview_newlvlbydlg(
+	_In_ struct mbe_tabview *ps_tview /* level view */
+);
+
+
+/*
+ * Imports a tileset from an existing image file.
+ * 
+ * Returns nothing.
+ */
+extern BOOL mbe_tsetview_imptsfromimg(
+	_In_ struct mbe_tabview *ps_tview /* tileset view */
+);
 
 

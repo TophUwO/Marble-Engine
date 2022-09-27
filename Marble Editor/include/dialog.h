@@ -16,11 +16,11 @@ enum mbe_dlg_ctrltype {
 	 * Button types: 
 	 *  - pushbutton
 	 *  - radiobutton
-	 *  - checkbox
 	 */
 	MBE_DLGCTRLTYPE_BUTTON,
-	MBE_DLGCTRLTYPE_SPINBOX, /* spinbox control */
-	MBE_DLGCTRLTYPE_EDIT     /* edit control */
+	MBE_DLGCTRLTYPE_CHECKBOX, /* checkbox control */
+	MBE_DLGCTRLTYPE_SPINBOX,  /* spinbox control */
+	MBE_DLGCTRLTYPE_EDIT      /* edit control */
 };
 
 /*
@@ -43,7 +43,13 @@ enum mbe_dlg_ctrlflags {
 	MBE_DLGCTRLFLAG_UNKNOWN = 0,           /* unknown/unspecified */
 
 	MBE_DLGCTRLFLAG_DISABLED     = 1 << 0, /* disabled by default */
-	MBE_DLGCTRLFLAG_INITIALFOCUS = 1 << 1  /* has initial focus */
+	MBE_DLGCTRLFLAG_INITIALFOCUS = 1 << 1, /* has initial focus */
+	/*
+	 * specifies that the control will have its window text
+	 * set to the drop result (i.e. file paths) after a
+	 * drag-n-drop operation was carried out by the user
+	 */
+	MBE_DLGCTRLFLAG_DROPTARGET   = 1 << 2
 };
 
 
@@ -88,6 +94,11 @@ struct mbe_dlg_ctrlinfo {
 			 * callbacks.
 			 */
 			BOOL (MB_CALLBACK *mpfn_onselect)(_In_ HWND, _In_opt_ void *);
+			/*
+			 * Handler function executed after the (check-)
+			 * state of the button changed.
+			 */
+			BOOL (MB_CALLBACK *mpfn_onstatechange)(_In_ HWND, int, _In_opt_ void *);
 		} _button;
 
 		/*

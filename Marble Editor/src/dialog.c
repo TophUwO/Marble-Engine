@@ -2,6 +2,29 @@
 
 
 /*
+ * Internal values used to execute specific handler
+ * functions of a control.
+ */
+enum mbe_dlg_btncallback {
+	MBE_DLGBTNCALLBACK_UNKNOWN = 0,
+
+	MBE_DLGBTNCALLBACK_ONSELECT,
+	MBE_DLGBTNCALLBACK_ONSTATECHANGE
+};
+
+/*
+ * Control callback userdata 
+ */
+union mbe_dlg_ctrlcbudata {
+	struct {
+		int newstate;
+	} _onbtnstatechange;
+};
+
+#define MBE_DLG_CALLBACK(cb, ...) ((BOOL)(cb != NULL ? (cb(__VA_ARGS__)) : TRUE)) 
+
+
+/*
  * Gets the button control ID of the button
  * that has the role denoted by **role**.
  * 
@@ -25,6 +48,30 @@ static int mbe_dialog_int_getbtnbyrole(
 		if (ps_tmp->m_type == MBE_DLGCTRLTYPE_BUTTON)
 			if ((ps_tmp->_button.m_flags & 0xFF) == role)
 				return ps_tmp->m_item;
+	}
+
+	return -1;
+}
+
+/*
+ * Gets the first control in the control list that has the given
+ * flag set.
+ * 
+ * Returns control identifier or -1 if no control with the
+ * given flag could be found.
+ */
+static int mbe_dialog_int_getctrlbyflag(
+	_In_ struct mbe_dlginfo *ps_dlginfo, /* dialog info */
+	     int flag                        /* flag to search for */
+) {
+	if (ps_dlginfo == NULL)
+		return -1;
+
+	for (size_t index = 0; index < ps_dlginfo->m_nctrlinfo; index++) {
+		struct mbe_dlg_ctrlinfo const *ps_tmp = &ps_dlginfo->map_ctrlinfo[index];
+
+		if (ps_tmp->m_flags & flag)
+			return ps_tmp->m_item;
 	}
 
 	return -1;
@@ -56,6 +103,47 @@ static struct mbe_dlg_ctrlinfo const *mbe_dialog_int_getctrlinfo(
 }
 
 /*
+ * Executes a button callback function.
+ * If the button has no callback associated with it,
+ * the function does nothing.
+ * 
+ * Returns TRUE if there is no callback, or the result
+ * of the callback function which can be either TRUE or
+ * FALSE.
+ */
+static BOOL mbe_dialog_int_btncallback(
+	_In_     HWND p_hwnd,                                /* dialog window */
+	_In_     struct mbe_dlg_ctrlinfo const *ps_ctrlinfo, /* button control info */
+	         enum mbe_dlg_btncallback type,              /* callback type */
+	_In_opt_ void *p_udata,                              /* dialog userdata */
+	_In_opt_ union mbe_dlg_ctrlcbudata const *pu_udata   /* callback userdata */
+) {
+	switch (type) {
+		case MBE_DLGBTNCALLBACK_ONSELECT:
+			return 
+				(ps_ctrlinfo->_button.mpfn_onselect != NULL
+					? (*ps_ctrlinfo->_button.mpfn_onselect)(p_hwnd, p_udata)
+					: TRUE
+				);
+		case MBE_DLGBTNCALLBACK_ONSTATECHANGE:
+			if (pu_udata == NULL)
+				return FALSE;
+
+			return
+				(ps_ctrlinfo->_button.mpfn_onstatechange != NULL
+					? (*ps_ctrlinfo->_button.mpfn_onstatechange)(
+						p_hwnd,
+						pu_udata->_onbtnstatechange.newstate,
+						p_udata
+					  )
+					: TRUE
+				);
+	}
+
+	return TRUE;
+}
+
+/*
  * Resets the controls in the dialog to the values specified
  * by the control info entries of the dialog info structure.
  * 
@@ -70,6 +158,7 @@ static void mbe_dialog_int_resetctrls(
 
 	HWND p_hctrl;
 	struct mbe_dlg_ctrlinfo const *ps_tmp;
+	union mbe_dlg_ctrlcbudata u_cbudata;
 	
 	for (size_t index = 0; index < ps_dlginfo->m_nctrlinfo; index++) {
 		ps_tmp  = &ps_dlginfo->map_ctrlinfo[index];
@@ -78,9 +167,20 @@ static void mbe_dialog_int_resetctrls(
 			continue;
 
 		switch (ps_tmp->m_type) {
-			case MBE_DLGCTRLTYPE_BUTTON:
+			case MBE_DLGCTRLTYPE_CHECKBOX:
 				Button_SetCheck(p_hctrl, ps_tmp->_button.m_defstate);
 
+				/* Prepare callback userdata. */
+				u_cbudata._onbtnstatechange.newstate = ps_tmp->_button.m_defstate;
+
+				/* Run the "onstatechange" button callback. */
+				mbe_dialog_int_btncallback(
+					p_hwnd,
+					ps_tmp,
+					MBE_DLGBTNCALLBACK_ONSTATECHANGE,
+					ps_dlginfo->mp_udata,
+					&u_cbudata
+				);
 				break;
 			case MBE_DLGCTRLTYPE_SPINBOX:
 				if (ps_tmp->_spin.m_buddy != 0)
@@ -102,32 +202,14 @@ static void mbe_dialog_int_resetctrls(
 		if (ps_tmp->m_flags & MBE_DLGCTRLFLAG_INITIALFOCUS)
 			SendMessage(p_hwnd, WM_NEXTDLGCTL, (WPARAM)p_hctrl, TRUE);
 
-		EnableWindow(p_hctrl, !(ps_tmp->m_flags & MBE_DLGCTRLFLAG_DISABLED));
+		/*
+		 * Only change the window state if the flags parameter
+		 * explicitly state that the window state upon creation
+		 * shall be disabled, etc.
+		 */
+		if (ps_tmp->m_flags & MBE_DLGCTRLFLAG_DISABLED)
+			EnableWindow(p_hctrl, FALSE);
 	}
-}
-
-/*
- * Executes a button callback function.
- * If the button has no callback associated with it,
- * the function does nothing.
- * 
- * Returns TRUE if there is no callback, or the result
- * of the callback function which can be either TRUE or
- * FALSE.
- */
-static BOOL mbe_dialog_int_btncallback(
-	_In_     HWND p_hwnd,                                /* dialog window */
-	_In_     struct mbe_dlg_ctrlinfo const *ps_ctrlinfo, /* button control info */
-	_In_opt_ void *p_udata                               /* dialog userdata */
-) {
-	/*
-	 * The default behavior is to return TRUE if no callback is
-	 * associated with the button.
-	 */
-	if (ps_ctrlinfo->_button.mpfn_onselect == NULL)
-		return TRUE;
-
-	return (*ps_ctrlinfo->_button.mpfn_onselect)(p_hwnd, p_udata);
 }
 
 /*
@@ -255,6 +337,8 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 	BOOL ret;
 	int inttmp;
 	struct mbe_dlg_ctrlinfo const *ps_ctrlinfo;
+	TCHAR droptmp[MBE_MAXPATH];
+	union mbe_dlg_ctrlcbudata u_cbudata;
 
 	switch (msg) {
 		case WM_INITDIALOG:
@@ -275,52 +359,82 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 			if (ps_ctrlinfo == NULL)
 				break;
 
-			if (ps_ctrlinfo->m_type == MBE_DLGCTRLTYPE_BUTTON) {
-				/*
-				 * If it's just a miscellaneous button control with no special role,
-				 * execute its handler function and return.
-				 */
-				if (ps_ctrlinfo->_button.m_flags & MBE_DLGBTNFLAG_MISC) {
-					mbe_dialog_int_btncallback(p_hwnd, ps_ctrlinfo, ps_udata->mp_udata);
+			switch (ps_ctrlinfo->m_type) {
+				case MBE_DLGCTRLTYPE_BUTTON:
+					/*
+					 * If it's just a miscellaneous button control with no special role,
+					 * execute its handler function and return.
+					 */
+					if (ps_ctrlinfo->_button.m_flags == MBE_DLGBTNFLAG_MISC) {
+						mbe_dialog_int_btncallback(
+							p_hwnd,
+							ps_ctrlinfo,
+							MBE_DLGBTNCALLBACK_ONSELECT,
+							ps_udata->mp_udata,
+							NULL
+						);
 
-					break;
-				}
-
-				/*
-				 * Some buttons may have special roles associated with them. Currently,
-				 * these roles are:
-				 *	- OK button, signifying a successful dialog result
-				 *  - Cancel button, signifying a negative dialog result
-				 *  - Reset button, the only non-dialog-ending button that
-				 *    reverts all control states the the default values provided
-				 *    by the **map_ctrlinfo** member.
-				 */
-				switch (ps_ctrlinfo->_button.m_flags & 0xFF) {
-					case MBE_DLGBTNFLAG_OK:
-						/* Update userdata structure. */
-						mbe_dialog_int_writeback(p_hwnd, ps_udata);
-
-						ret = TRUE;
 						break;
-					case MBE_DLGBTNFLAG_CANCEL: ret = FALSE; break;
-					case MBE_DLGBTNFLAG_RESET:
-						mbe_dialog_int_resetctrls(p_hwnd, ps_udata);
+					}
 
-						/* fallthru */
-					default: goto lbl_RET;
-				}
+					/*
+					 * Some buttons may have special roles associated with them. Currently,
+					 * these roles are:
+					 *	- OK button, signifying a successful dialog result
+					 *  - Cancel button, signifying a negative dialog result
+					 *  - Reset button, the only non-dialog-ending button that
+					 *    reverts all control states the the default values provided
+					 *    by the **map_ctrlinfo** member.
+					 */
+					switch (ps_ctrlinfo->_button.m_flags & 0xFF) {
+						case MBE_DLGBTNFLAG_OK:
+							/* Update userdata structure. */
+							mbe_dialog_int_writeback(p_hwnd, ps_udata);
 
-				/*
-				 * If the callback of the role button returns FALSE, set the dialog
-				 * result to FALSE.
-				 * This can be used to validate the dialog result by checking all fields
-				 * or invalid values, etc.
-				 */
-				if (mbe_dialog_int_btncallback(p_hwnd, ps_ctrlinfo, ps_udata->mp_udata) == FALSE)
+							ret = TRUE;
+							break;
+						case MBE_DLGBTNFLAG_CANCEL: ret = FALSE; break;
+						case MBE_DLGBTNFLAG_RESET:
+							mbe_dialog_int_resetctrls(p_hwnd, ps_udata);
+
+							/* fallthru */
+						default: goto lbl_RET;
+					}
+
+					/*
+					 * If the callback of the role button returns FALSE, set the dialog
+					 * result to FALSE.
+					 * This can be used to validate the dialog result by checking all fields
+					 * or invalid values, etc.
+					 */
+					if (mbe_dialog_int_btncallback(
+						p_hwnd,
+						ps_ctrlinfo,
+						MBE_DLGBTNCALLBACK_ONSELECT,
+						ps_udata->mp_udata,
+						NULL
+					) == FALSE) break;
+
+					/* Return the dialog result. */
+					EndDialog(p_hwnd, ret);
 					break;
+				case MBE_DLGCTRLTYPE_CHECKBOX:
+					switch (HIWORD(wparam)) {
+						case BN_CLICKED:
+							u_cbudata._onbtnstatechange.newstate = (int)SendMessage((HWND)lparam, BM_GETCHECK, 0, 0);
 
-				/* Return the dialog result. */
-				EndDialog(p_hwnd, ret);
+							mbe_dialog_int_btncallback(
+								p_hwnd,
+								ps_ctrlinfo,
+								MBE_DLGBTNCALLBACK_ONSTATECHANGE,
+								ps_udata->mp_udata,
+								&u_cbudata
+							);
+
+							break;
+					}
+
+					break;
 			}
 		
 			break;
@@ -339,6 +453,25 @@ static INT_PTR CALLBACK mbe_dialog_int_wndproc(
 				0
 			);
 
+			break;
+		case WM_DROPFILES:
+			/*
+			 * Get the dialog's drop target.
+			 * If there is none, ignore the drop
+			 * operation.
+			 */
+			inttmp = mbe_dialog_int_getctrlbyflag(ps_udata, MBE_DLGCTRLFLAG_DROPTARGET);
+			if (inttmp == -1)
+				break;
+
+			/*
+			 * This message only supports one file. If multiple files are dropped,
+			 * only the path of the first file in the list is saved.
+			 */
+			DragQueryFile((HDROP)wparam, 0, droptmp, MBE_MAXPATH);
+
+			/* Update the window text. */
+			SetWindowText(MBE_DLGWND(inttmp), droptmp);
 			break;
 	}
 

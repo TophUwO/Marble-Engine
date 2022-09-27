@@ -189,6 +189,10 @@ static LRESULT CALLBACK mbe_editor_int_wndproc(
 					mbe_levelview_newlvlbydlg(gls_editorapp.mps_lvlview);
 
 					break;
+				case MBE_Menubar_File_Import_BmpTS:
+					mbe_tsetview_imptsfromimg(gls_editorapp.mps_tsview);
+
+					break;
 				case MBE_MainMenu_File_Close:
 					PostMessage(p_hwnd, WM_CLOSE, 0, 0);
 
@@ -274,7 +278,7 @@ marble_ecode_t mbe_editor_init(
 	LPSTR pz_cmdline
 ) { MB_ERRNO
 	extern BOOL MB_CALLBACK mbe_levelview_int_ontviewcreate(_Inout_ struct mbe_tabview *, _In_opt_ void *);
-	extern BOOL MB_CALLBACK mbe_levelview_int_ontviewresize(_Inout_ struct mbe_tabview *, int nwidth, int nheight);
+	extern BOOL MB_CALLBACK mbe_levelview_int_ontviewresize(_Inout_ struct mbe_tabview *, int, int);
 	extern BOOL MB_CALLBACK mbe_levelview_int_ontviewdestroy(_Inout_ struct mbe_tabview *);
 
 	/* Init HPC. */
@@ -289,7 +293,7 @@ marble_ecode_t mbe_editor_init(
 		.dwSize = sizeof s_ctrls,
 		.dwICC  = ICC_TAB_CLASSES | ICC_WIN95_CLASSES
 	};
-	if (InitCommonControlsEx(&s_ctrls) == false)
+	if (InitCommonControlsEx(&s_ctrls) == FALSE)
 		return MARBLE_EC_REGWNDCLASS;
 
 	mbe_tabview_inl_regwndclass();

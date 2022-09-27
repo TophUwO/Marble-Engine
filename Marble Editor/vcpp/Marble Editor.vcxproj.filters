@@ -33,6 +33,9 @@
     <ClCompile Include="..\src\levelview.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\tsetview.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\editor.h">
@@ -48,9 +51,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\dialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\levelview.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\internal\shared.h">

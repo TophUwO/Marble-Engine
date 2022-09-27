@@ -61,21 +61,10 @@ BEGIN
         END
         POPUP "Import",                         65535,MFT_STRING,MFS_ENABLED
         BEGIN
-            MENUITEM "Tileset from Bitmap",         MBE_Menubar_File_Import_BmpTS,MFT_STRING,MFS_ENABLED
+            MENUITEM "Tileset from Image",          MBE_Menubar_File_Import_BmpTS,MFT_STRING,MFS_ENABLED
         END
         MENUITEM MFT_SEPARATOR
-        MENUITEM "Close",                       MBE_MainMenu_File_Close,MFT_STRING,MFS_ENABLED
-    END
-END
-
-MBE_TSetView_ContextMenu MENU
-BEGIN
-    POPUP "CTXT_MENU"
-    BEGIN
-        MENUITEM "Reload",                      MBE_TSetMenu_Reload
-        MENUITEM "Rename",                      MBE_TSetMenu_Rename
-        MENUITEM SEPARATOR
-        MENUITEM "Close",                       MBE_TSetMenu_Close
+        MENUITEM "Close",                       MBE_MainMenu_File_Close,MFT_STRING | MFT_BITMAP,MFS_ENABLED
     END
 END
 
@@ -85,45 +74,9 @@ END
 // Dialog
 //
 
-MBE_DLG_EmptyTS DIALOGEX 0, 0, 313, 175
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CLIPSIBLINGS | WS_CAPTION | WS_SYSMENU
-CAPTION "Create empty tileset"
-FONT 8, "Segoe UI", 400, 0, 0x0
-BEGIN
-    EDITTEXT        EmptyTSDlg_EDIT_Name,54,6,132,14,ES_AUTOHSCROLL
-    EDITTEXT        EmptyTSDlg_EDIT_Comment,54,24,246,30,ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL
-    EDITTEXT        EmptyTSDlg_EDIT_Width,54,78,30,14,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        EmptyTSDlg_EDIT_Height,54,96,30,14,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        EmptyTSDlg_EDIT_TSize,54,114,30,14,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Lock",EmptyTSDlg_CB_LockAspect,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,100,89,31,10
-    EDITTEXT        EmptyTSDlg_EDIT_Red,174,78,24,14,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        EmptyTSDlg_EDIT_Green,174,96,24,14,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        EmptyTSDlg_EDIT_Blue,174,114,24,14,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "Transparent",EmptyTSDlg_CB_Transparent,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,234,108,55,10
-    PUSHBUTTON      "Choose >>",EmptyTSDlg_BTN_ChooseCol,233,123,50,14
-    DEFPUSHBUTTON   "OK",EmptyTSDlg_BTN_Ok,198,155,50,14
-    PUSHBUTTON      "Cancel",EmptyTSDlg_BTN_Cancel,252,155,50,14
-    PUSHBUTTON      "Reset",EmptyTSDlg_BTN_Reset,5,155,50,14
-    GROUPBOX        "Options",IDC_STATIC,6,60,294,90
-    LTEXT           "Name",IDC_STATIC,12,9,19,8
-    LTEXT           "Comment",IDC_STATIC,12,24,36,8
-    LTEXT           "Width",IDC_STATIC,18,81,24,8
-    CONTROL         "",EmptyTSDlg_SPIN_Width,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,78,10,14
-    LTEXT           "Height",IDC_STATIC,18,99,24,8
-    LTEXT           "Tile Size",IDC_STATIC,18,117,36,8
-    CONTROL         "",EmptyTSDlg_SPIN_Height,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,96,11,14
-    CONTROL         "",EmptyTSDlg_SPIN_TSize,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,84,114,10,14
-    LTEXT           "Red",IDC_STATIC,146,81,14,8
-    LTEXT           "Green",IDC_STATIC,146,99,28,8
-    LTEXT           "Blue",IDC_STATIC,146,117,16,8
-    GROUPBOX        "Background Color",IDC_STATIC,138,66,156,78
-    CONTROL         "",EmptyTSDlg_SPIN_Red,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,198,78,11,14
-    CONTROL         "",EmptyTSDlg_SPIN_Green,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,198,96,11,14
-    CONTROL         "",EmptyTSDlg_SPIN_Blue,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,198,114,11,14
-END
-
 MBE_DLG_ImgTS DIALOGEX 0, 0, 239, 137
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_ACCEPTFILES
 CAPTION " Import tileset from image"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -137,7 +90,6 @@ BEGIN
     DEFPUSHBUTTON   "OK",ImgTSDlg_BTN_Ok,126,116,50,14
     PUSHBUTTON      "Cancel",ImgTSDlg_BTN_Cancel,180,116,50,14
     PUSHBUTTON      "Reset",ImgTSDlg_BTN_Reset,11,116,50,14
-    CONTROL         "Load entire bitmap",ImgTSDlg_CB_LoadAll,"Button",BS_AUTOCHECKBOX,153,98,75,10
     LTEXT           "File Path",IDC_STATIC,12,15,28,8
     GROUPBOX        "Tileset Properties",IDC_STATIC,12,30,216,82
     CONTROL         "",ImgTSDlg_SPIN_Left,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,99,42,10,14
@@ -150,18 +102,7 @@ BEGIN
     CONTROL         "",ImgTSDlg_SPIN_Bottom,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,193,60,10,14
     LTEXT           "Right",IDC_STATIC,128,46,18,8
     LTEXT           "Bottom",IDC_STATIC,128,63,24,8
-END
-
-MBE_DLG_RenameTS DIALOGEX 0, 0, 285, 56
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Rename tileset view"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    EDITTEXT        RenameTSDLG_EDIT_NewName,54,12,222,14,ES_AUTOHSCROLL
-    CONTROL         "Rename file on disk",RenameTSDLG_CB_RenameFile,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,38,77,10
-    DEFPUSHBUTTON   "Apply",RenameTSDLG_BTN_Apply,173,35,50,14
-    PUSHBUTTON      "Cancel",RenameTSDLG_BTN_Cancel,227,35,50,14
-    LTEXT           "New Name",IDC_STATIC,10,15,35,8
+    CONTROL         "Use entire image",ImgTSDlg_CB_LoadAll,"Button",BS_AUTOCHECKBOX,158,98,66,10
 END
 
 MBE_DLG_NewLvl DIALOGEX 0, 0, 309, 151
@@ -195,28 +136,12 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
 BEGIN
-    MBE_DLG_EmptyTS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 306
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 168
-    END
-
     MBE_DLG_ImgTS, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 232
         TOPMARGIN, 7
         BOTTOMMARGIN, 130
-    END
-
-    MBE_DLG_RenameTS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 278
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 49
     END
 
     MBE_DLG_NewLvl, DIALOG
@@ -235,17 +160,7 @@ END
 // AFX_DIALOG_LAYOUT
 //
 
-MBE_DLG_EmptyTS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
 MBE_DLG_ImgTS AFX_DIALOG_LAYOUT
-BEGIN
-    0
-END
-
-MBE_DLG_RenameTS AFX_DIALOG_LAYOUT
 BEGIN
     0
 END
