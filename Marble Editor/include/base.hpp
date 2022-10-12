@@ -5,5 +5,7 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QMenuBar>
+#include <QDockWidget>
+#include <QToolBar>
 
 

@@ -13,10 +13,12 @@
   <ItemGroup>
     <ClInclude Include="..\include\base.hpp" />
     <QtMoc Include="..\include\tab.hpp" />
+    <QtMoc Include="..\include\dockwnd.hpp" />
     <ClInclude Include="..\res\platforms\windows\resource.h" />
     <QtMoc Include="..\include\mainwnd.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\dockwnd.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\mainwnd.cpp" />
     <ClCompile Include="..\src\tab.cpp" />
