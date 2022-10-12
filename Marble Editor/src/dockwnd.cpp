@@ -21,6 +21,7 @@ namespace mbe {
          * Associate widget with content area of
          * the underlying QDockWidget.
          */
+        mw_main->setWindowFlags(Qt::Widget);
         setWidget(mw_main);
     }
 }

@@ -16,9 +16,9 @@ namespace mbe {
     public:
         dockwindow() = delete;
         explicit dockwindow(
-            QMainWindow *cp_refmainwnd,  /* pointer to the main window */
-            QString const &cr_title,     /* titlebar string */
-            QWidget *cp_parent = nullptr /* parent window */
+            QMainWindow *cp_refmainwnd, /* pointer to main window */
+            QString const &cr_title,    /* titlebar string */
+            QWidget *cp_parent = nullptr
         );
         virtual ~dockwindow();
 

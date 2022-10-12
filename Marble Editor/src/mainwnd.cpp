@@ -37,7 +37,14 @@ namespace mbe {
     }
     
     void mainwindow::int_createwidgets() {
+        /* Create child widgets. */
+        mw_sourcewnd = new sourcewindow(this);
 
+        /*
+         * Add widgets to their respective docking
+         * positions.
+         */
+        addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, mw_sourcewnd);
     }
 }
 

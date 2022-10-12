@@ -1,6 +1,7 @@
 #pragma once
 
 #include <base.hpp>
+#include <sourcewnd.hpp>
 
 
 /*
@@ -34,7 +35,8 @@ namespace mbe {
          */
         void int_createwidgets();
 
-        QMenuBar *mw_menubar;
+        QMenuBar     *mw_menubar;
+        sourcewindow *mw_sourcewnd;
     };
 }
 

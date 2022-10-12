@@ -7,5 +7,6 @@
 #include <QMenuBar>
 #include <QDockWidget>
 #include <QToolBar>
+#include <QTabWidget>
 
 
