@@ -66,7 +66,6 @@ static struct {
 };
 
 
-
 /*
  * Attempts to enable ANSI escape sequences (Virtual Terminal)
  * in the current console. Note that almost all current terminal
@@ -118,7 +117,12 @@ static void marble_log_internal_setupconsole(void) {
 	RTL_OSVERSIONINFOW s_version = { 0 };
 	(*pfn_getver)(&s_version);
 
-	/* If build number is 15063 or later, enable ANSI colors. */
+	/*
+	 * If build number is 15063 or later, enable
+	 * ANSI colors. This is the build number when
+	 * the standard windows terminal got offial
+	 * full support for ANSI colors.
+	 */
 	if (s_version.dwBuildNumber >= 15063) {
 		gls_logctxt.mp_hdout = GetStdHandle(STD_OUTPUT_HANDLE);
 		if (gls_logctxt.mp_hdout == NULL)
