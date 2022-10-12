@@ -17,6 +17,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Sandbox", "Marble Sa
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Marble Editor", "Marble Editor\vcpp\Marble Editor.vcxproj", "{ED342154-E57C-48CF-8105-DB444E9FCA65}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0850A123-F3FC-40A5-8D72-2BB55503CA04} = {0850A123-F3FC-40A5-8D72-2BB55503CA04}
+		{F1F9AC48-8E74-4205-8299-D879DE082744} = {F1F9AC48-8E74-4205-8299-D879DE082744}
+		{1701EB73-8865-4653-8EC2-9D565E5905B6} = {1701EB73-8865-4653-8EC2-9D565E5905B6}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -10,10 +10,19 @@
     <Filter Include="Resource Files">
       <UniqueIdentifier>{55672354-2dfe-4b77-9e34-f566c2c5a3a3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\platform">
+      <UniqueIdentifier>{dc5da77e-1a61-4f3c-8f0a-4e2286dfd668}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\platform\windows">
+      <UniqueIdentifier>{bfed3601-fb0f-4fbd-b457-ada8ea8e9bcb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\base.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\res\platforms\windows\resource.h">
+      <Filter>Resource Files\platform\windows</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -33,5 +42,15 @@
     <QtRcc Include="..\res\resource.qrc">
       <Filter>Resource Files</Filter>
     </QtRcc>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\res\icons\ico_appmain.ico">
+      <Filter>Resource Files\platform</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\res\platforms\windows\Marble Editor.rc">
+      <Filter>Resource Files\platform\windows</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
