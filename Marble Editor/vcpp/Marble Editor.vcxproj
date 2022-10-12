@@ -18,6 +18,9 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\mainwnd.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="..\res\resource.qrc" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{ED342154-E57C-48CF-8105-DB444E9FCA65}</ProjectGuid>
     <Keyword>QtVS_v304</Keyword>
