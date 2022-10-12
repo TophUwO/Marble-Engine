@@ -17,7 +17,7 @@ namespace mbe {
     }
     
     mainwindow::~mainwindow() {
-
+    
     }
     
     void mainwindow::int_createmenubar() {
