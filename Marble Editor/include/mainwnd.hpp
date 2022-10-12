@@ -2,8 +2,6 @@
 
 #include <base.hpp>
 
-#include <QMainWindow>
-
 
 namespace mbe {
 	class mainwindow : public QMainWindow {
@@ -12,6 +10,12 @@ namespace mbe {
 	public:
 		mainwindow(QSize const &cr_dims, QWidget *cp_parent = nullptr);
 		~mainwindow();
+
+	private:
+		void int_createmenubar();
+		void int_createwidgets();
+
+		QMenuBar *mw_menubar;
 	};
 }
 

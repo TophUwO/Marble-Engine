@@ -4,5 +4,6 @@
 
 #include <QApplication>
 #include <QMainWindow>
+#include <QMenuBar>
 
 
