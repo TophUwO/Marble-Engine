@@ -67,11 +67,11 @@
     <ClCompile Include="..\src\sourcewnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\imgfromts.cpp">
-      <Filter>Source Files\dialogs</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\tsview.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\dialogs\imgfromts.cpp">
+      <Filter>Source Files\dialogs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

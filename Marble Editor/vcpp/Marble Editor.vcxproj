@@ -21,8 +21,8 @@
     <QtMoc Include="..\include\mainwnd.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\dialogs\imgfromts.cpp" />
     <ClCompile Include="..\src\dockwnd.cpp" />
-    <ClCompile Include="..\src\imgfromts.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\mainwnd.cpp" />
     <ClCompile Include="..\src\sourcewnd.cpp" />
