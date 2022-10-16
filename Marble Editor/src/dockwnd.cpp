@@ -2,11 +2,14 @@
 
 
 namespace mbe {
-    dockwindow::dockwindow(QMainWindow *cp_refmainwnd, QString const &cr_title, QWidget *cp_parent) 
-        : QDockWidget(cr_title, cp_parent)
+    dockwindow::dockwindow(QMainWindow *cp_refmainwnd, QString const &cr_title, Qt::DockWidgetArea defarea, bool isvisible, QWidget *cp_parent) 
+        : QDockWidget(cr_title, cp_parent), m_defarea(defarea)
     {
         /* Create and initialize child widgets. */
         int_createwidgets();
+
+        /* Set properties. */
+        setVisible(isvisible);
     }
 
     dockwindow::~dockwindow() {
@@ -16,14 +19,14 @@ namespace mbe {
     void dockwindow::int_createwidgets() {
         /* Create child widgets. */
         mw_main = new QMainWindow(this);
-        
+        mw_main->setWindowFlags(Qt::Widget);
+
         /*
          * Associate widget with content area of
          * the underlying QDockWidget.
          */
-        mw_main->setWindowFlags(Qt::Widget);
         setWidget(mw_main);
     }
-}
+} /* namespace mbe */
 
 

@@ -5,7 +5,7 @@
 
 namespace mbe {
     /*
-     * Class representing a basis for a tab-page, that is
+     * Class representing the basis for a tab-page, that is
      * the widget that is added to a QTabWidget. This allows
      * for custom operations depending on the exact content
      * that is displayed in the widget.
@@ -13,13 +13,17 @@ namespace mbe {
      * This class should not be used directly, but subclassed
      * to specify more complex behavior.
      */
-    class tabpage : public QWidget {
+    class tabpage : virtual public QWidget {
         Q_OBJECT
 
     public:
-        tabpage() = delete;
-        explicit tabpage(QString const &cr_title, QWidget *cp_parent = nullptr);
-        virtual ~tabpage();
+        explicit tabpage(QString const &cr_title = QString(), QWidget *cp_parent = nullptr)
+            : QWidget(cp_parent), mc_title(cr_title)
+        { }
+        virtual ~tabpage() { }
+
+        QString const &gettitle() const { return mc_title; }
+        void settitle(QString const &cr_title) { mc_title = cr_title; }
 
     protected:
         /*
@@ -29,7 +33,7 @@ namespace mbe {
          * 
          * Returns nothing.
          */
-        virtual void refreshcontents();
+        virtual void refreshcontents() { }
         /*
          * Reimplement this function if you wish to invoke
          * custom behavior right before the tab-page is closed.
@@ -38,11 +42,16 @@ namespace mbe {
          * 
          * Returns nothing.
          */
-        virtual bool closepage();
+        virtual bool closepage() {
+            /*
+             * By default, tab-pages can always
+             * be closed.
+             */
+            return true;
+        }
 
-    private:
-        QString c_title;
+        QString mc_title;
     };
-}
+} /* namespace mbe */
 
 

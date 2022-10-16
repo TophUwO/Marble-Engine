@@ -18,9 +18,13 @@ namespace mbe {
         explicit dockwindow(
             QMainWindow *cp_refmainwnd, /* pointer to main window */
             QString const &cr_title,    /* titlebar string */
+            Qt::DockWidgetArea defarea, /* default docking area */
+            bool isvisible = false,     /* initially visible flag */
             QWidget *cp_parent = nullptr
         );
         virtual ~dockwindow();
+
+        Qt::DockWidgetArea getdefarea() const { return m_defarea; }
 
     protected:
         QMainWindow *mw_refmainwnd;
@@ -37,7 +41,7 @@ namespace mbe {
          * Handle to the toolbar; this member is nullptr
          * if there is no toolbar.
          */
-        QToolBar    *mw_tbar;
+        QToolBar *mw_tbar;
 
     private:
         /*
@@ -46,7 +50,9 @@ namespace mbe {
          * Returns nothing.
          */
         void int_createwidgets();
+
+        Qt::DockWidgetArea m_defarea;
     };
-}
+} /* namespace mbe */
 
 

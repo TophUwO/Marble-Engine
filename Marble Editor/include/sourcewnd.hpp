@@ -2,6 +2,7 @@
 
 #include <base.hpp>
 #include <dockwnd.hpp>
+#include <tsview.hpp>
 
 
 namespace mbe {
@@ -18,9 +19,22 @@ namespace mbe {
         sourcewindow() = delete;
         explicit sourcewindow(
             QMainWindow *cp_refmainwnd, /* pointer to main window */
+            bool isvisible = false,     /* initially visible flag */
             QWidget *cp_parent = nullptr
         );
         ~sourcewindow();
+
+        /*
+         * Adds a tab-page to the underlying QTabWidget at
+         * position **index**. By default, the pages are
+         * appended, i.e. added at the end of the page-list.
+         * 
+         * Returns nothing.
+         */
+        void addpage(
+            tabpage *cp_tpage, /* tab-page to add */
+            int index = -1     /* insertion index */
+        );
 
     private:
         /* 
@@ -37,6 +51,6 @@ namespace mbe {
          */
         QTabWidget *mw_tabctrl;
     };
-}
+} /* namespace mbe */
 
 

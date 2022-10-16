@@ -3,6 +3,8 @@
 #include <base.hpp>
 #include <sourcewnd.hpp>
 
+#include <dialogs/imgfromts.hpp>
+
 
 /*
  * Everything defined and used by Marble Editor will be inside
@@ -34,10 +36,20 @@ namespace mbe {
          * Returns nothing.
          */
         void int_createwidgets();
+        /*
+         * Shows the dock window docked in its default
+         * docking position.
+         * 
+         * Returns nothing.
+         */
+        void int_resetdockwnd(dockwindow *cp_wnd);
 
         QMenuBar     *mw_menubar;
         sourcewindow *mw_sourcewnd;
+
+    private slots:
+        void int_onfileimpts();
     };
-}
+} /* namespace mbe */
 
 
