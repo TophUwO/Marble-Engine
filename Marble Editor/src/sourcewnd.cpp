@@ -45,15 +45,7 @@ namespace mbe {
     }
 
     void sourcewindow::int_closepage(int index) {
-        tabpage *cp_page = dynamic_cast<tabpage *>(mw_tabctrl->widget(index));
-        if (cp_page == nullptr)
-            return;
-
-        if (cp_page->closepage()) {
-            mw_tabctrl->removeTab(index);
-
-            delete cp_page;
-        }
+        base::closetpage(mw_tabctrl, index);
     }
 } /* namespace mbe */
 

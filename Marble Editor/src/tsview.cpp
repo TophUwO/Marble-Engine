@@ -21,7 +21,7 @@ namespace mbe {
     }
 
     void tilesetview::paintEvent(QPaintEvent *cp_event) {
-        //QAbstractScrollArea::paintEvent(cp_event); /* base class event handler */
+        QAbstractScrollArea::paintEvent(cp_event); /* base class event handler */
 
 #pragma region PAINT-PREPARE
         QPainter c_painter(viewport());

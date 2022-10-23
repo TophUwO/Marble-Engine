@@ -2,6 +2,7 @@
 
 #include <base.hpp>
 #include <sourcewnd.hpp>
+#include <editwnd.hpp>
 
 #include <dialogs/imgfromts.hpp>
 
@@ -46,6 +47,7 @@ namespace mbe {
 
         QMenuBar     *mw_menubar;
         sourcewindow *mw_sourcewnd;
+        editwindow   *mw_editwnd;
 
     private slots:
         void int_onfileimpts();

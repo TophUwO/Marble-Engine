@@ -46,11 +46,23 @@ namespace mbe {
     void mainwindow::int_createwidgets() {
         /* Create child widgets. */
         mw_sourcewnd = new sourcewindow(this);
+        mw_editwnd   = new editwindow(true, this);
 
         /*
-         * Add widgets to their respective docking
+         * Maintain the widget's size, so that dock windows
+         * cannot occupy the entire parent window in case
+         * they become visible before the Object View
+         * (= central) widget.
+         */
+        QSizePolicy c_sp = mw_editwnd->sizePolicy();
+        c_sp.setRetainSizeWhenHidden(true);
+        mw_editwnd->setSizePolicy(c_sp);
+
+        /*
+         * Add widgets to their respective (docking)
          * positions.
          */
+        setCentralWidget(mw_editwnd);
         addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, mw_sourcewnd);
     }
 

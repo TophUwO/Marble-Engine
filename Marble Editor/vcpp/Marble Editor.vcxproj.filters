@@ -53,6 +53,9 @@
     <QtMoc Include="..\include\dialogs\imgfromts.hpp">
       <Filter>Header Files\dialogs</Filter>
     </QtMoc>
+    <QtMoc Include="..\include\editwnd.hpp">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -72,6 +75,9 @@
     </ClCompile>
     <ClCompile Include="..\src\dialogs\imgfromts.cpp">
       <Filter>Source Files\dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\editwnd.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

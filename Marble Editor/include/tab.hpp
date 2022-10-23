@@ -54,6 +54,34 @@ namespace mbe {
     private:
         QWidget *mw_refwidget;
     };
+
+
+    namespace base {
+        /*
+         * Attempts to close a tab-page by executing its
+         * "closepage" function. If the function returns
+         * true, the page will be removed from **cp_twidget**,
+         * and subsequently destroyed.
+         *
+         * Returns nothing.
+         */ 
+        inline void closetpage(QTabWidget *cp_twidget, int index) {
+            mbe::tabpage *cp_tpage = dynamic_cast<tabpage *>(cp_twidget->widget(index));
+            if (cp_tpage == nullptr)
+                return;
+
+            /*
+            * The "closepage" function allows the user to block
+            * this function from closing the page, i.e. by
+            * returning false. 
+            */
+            if (cp_tpage->closepage()) {
+                cp_twidget->removeTab(index);
+
+                delete cp_tpage;
+            }
+        }
+    } /* namespace base */
 } /* namespace mbe */
 
 

@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\base.hpp" />
+    <QtMoc Include="..\include\editwnd.hpp" />
     <ClInclude Include="..\include\tab.hpp" />
     <QtMoc Include="..\include\dockwnd.hpp" />
     <QtMoc Include="..\include\sourcewnd.hpp" />
@@ -23,6 +24,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\dialogs\imgfromts.cpp" />
     <ClCompile Include="..\src\dockwnd.cpp" />
+    <ClCompile Include="..\src\editwnd.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\mainwnd.cpp" />
     <ClCompile Include="..\src\sourcewnd.cpp" />
