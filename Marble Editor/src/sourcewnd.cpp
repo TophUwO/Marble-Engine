@@ -27,6 +27,9 @@ namespace mbe {
         mw_tabctrl->setMovable(true);
         mw_tabctrl->setTabsClosable(true);
 
+        /* Connect signal handlers. */
+        connect(mw_tabctrl, SIGNAL(tabCloseRequested(int)), this, SLOT(int_closepage(int)));
+
         /*
          * Associate tab-widget with the QMainWindow of the
          * underlying mbe::dockwindow.
@@ -38,7 +41,19 @@ namespace mbe {
         if (index == -1)
             index = mw_tabctrl->count();
 
-        mw_tabctrl->insertTab(index, cp_tpage, cp_tpage->gettitle());
+        mw_tabctrl->insertTab(index, cp_tpage->getwidget(), cp_tpage->gettitle());
+    }
+
+    void sourcewindow::int_closepage(int index) {
+        tabpage *cp_page = dynamic_cast<tabpage *>(mw_tabctrl->widget(index));
+        if (cp_page == nullptr)
+            return;
+
+        if (cp_page->closepage()) {
+            mw_tabctrl->removeTab(index);
+
+            delete cp_page;
+        }
     }
 } /* namespace mbe */
 

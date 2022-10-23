@@ -13,19 +13,18 @@ namespace mbe {
      * This class should not be used directly, but subclassed
      * to specify more complex behavior.
      */
-    class tabpage : virtual public QWidget {
-        Q_OBJECT
-
+    class tabpage {
     public:
-        explicit tabpage(QString const &cr_title = QString(), QWidget *cp_parent = nullptr)
-            : QWidget(cp_parent), mc_title(cr_title)
+        explicit tabpage(QWidget *cp_widget, QString const &cr_title = QString())
+            : mc_title(cr_title), mw_refwidget(cp_widget)
         { }
         virtual ~tabpage() { }
 
         QString const &gettitle() const { return mc_title; }
+        QWidget *getwidget() const { return mw_refwidget; }
         void settitle(QString const &cr_title) { mc_title = cr_title; }
+        void setwidget(QWidget *cp_widget) { mw_refwidget = cp_widget; }
 
-    protected:
         /*
          * Reimplement this function if you wish to invoke
          * custom behavior when the parent receives the
@@ -51,6 +50,9 @@ namespace mbe {
         }
 
         QString mc_title;
+
+    private:
+        QWidget *mw_refwidget;
     };
 } /* namespace mbe */
 

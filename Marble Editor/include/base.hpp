@@ -14,6 +14,9 @@
 #include <QLayout>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QImageReader>
+#include <QScrollBar>
+#include <QPainter>
 
 
 namespace mbe {
@@ -101,6 +104,22 @@ namespace mbe {
                         break;
                 }
             }
+        }
+
+        /*
+         * Extracts the file name (without extension) from a
+         * file path.
+         * 
+         * Returns file name or "unknown" on error.
+         */
+        inline QString getfname(QString const &cr_path) {
+            if (cr_path.isNull())
+                return "unnamed";
+
+            QFileInfo c_info(cr_path);
+            QString   c_ret = c_info.baseName();
+
+            return c_ret;
         }
     } /* namespace base */
 } /* namespace mbe */

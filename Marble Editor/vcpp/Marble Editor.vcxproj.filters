@@ -33,12 +33,12 @@
     <ClInclude Include="..\res\platforms\windows\resource.h">
       <Filter>Resource Files\platform\windows</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\tab.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="..\include\mainwnd.hpp">
-      <Filter>Header Files</Filter>
-    </QtMoc>
-    <QtMoc Include="..\include\tab.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
     <QtMoc Include="..\include\dockwnd.hpp">

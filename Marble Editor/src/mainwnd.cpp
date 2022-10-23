@@ -61,6 +61,10 @@ namespace mbe {
         if (c_dlg.exec() == QDialog::Accepted) {
             tilesetview *cp_view = new tilesetview(this);
 
+            /*
+             * If the image fails to load, delete the view and
+             * do not update the source-window.
+             */
             if (!cp_view->loadfromfile(c_dlg.ms_props)) {
                 delete cp_view;
 

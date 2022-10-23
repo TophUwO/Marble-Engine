@@ -50,6 +50,16 @@ namespace mbe {
          * mbe::tabpage.
          */
         QTabWidget *mw_tabctrl;
+
+    private slots:
+        /*
+         * Attempts to close a tabpage by calling its "closepage" function.
+         * If the call succeeds, the page gets removed from the tab-widget
+         * and subsequently deleted.
+         * 
+         * Returns nothing.
+         */
+        void int_closepage(int index);
     };
 } /* namespace mbe */
 

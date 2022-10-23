@@ -39,26 +39,62 @@ namespace mbe {
      * Class representing a tileset view; can be added
      * to any QTabWidget.
      */
-    class tilesetview : public tabpage, virtual public QAbstractScrollArea {
+    class tilesetview : public QAbstractScrollArea, public tabpage {
         Q_OBJECT
 
     public:
         tilesetview(QWidget *cp_parent = nullptr);
-        ~tilesetview() { }
+        ~tilesetview();
 
         /*
          * Instructs the object to load an image file as a
          * tileset, from disk.
          * All properties are provided by the **sr_props**
          * parameter.
+         * If there is already an image loaded, it will be
+         * replaced with the new image if the new image
+         * does not fail to load.
          * 
          * Returns true if the image could be loaded successfully,
          * false if there was an error.
          */
         bool loadfromfile(tilesetprops const &sr_props);
+        /*
+         * Unloads the image and deallocates all resources
+         * used by it.
+         * 
+         * Returns nothing.
+         */
+        void unloadimage();
+
+    protected:
+        virtual void paintEvent(QPaintEvent *cp_event) override;
+        virtual void mousePressEvent(QMouseEvent *cp_event) override;
+        virtual void resizeEvent(QResizeEvent *cp_event) override;
 
     private:
-        QPixmap mc_image;
+        /*
+         * Sets scrollbar values so that they reflect the
+         * size of the viewport contents.
+         * 
+         * Returns nothing.
+         */
+        void int_updatescrollbars();
+        /*
+         * Returns whether the size of the contents is smaller than
+         * the size of the viewport in any dimension.
+         * 
+         * Returns true if the contents are smaller than the viewport,
+         * false if not.
+         */
+        bool int_iscontentssmaller();
+
+        QPixmap *mcp_image;
+        QString  mc_path;
+
+        int m_usablewidth;
+        int m_usableheight;
+        int m_tsize;
     };
 } /* namespace mbe */
 
