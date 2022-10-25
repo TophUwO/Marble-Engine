@@ -31,6 +31,7 @@ namespace mbe {
 
         /* Connect action signals. */
         connect(cp_afileimpts, &QAction::triggered, this, &mainwindow::int_onfileimpts);
+        connect(cp_afileexit, &QAction::triggered, this, &mainwindow::int_onfileexit);
         
         /* Associate actions with menus. */
         cp_mfile->addAction(cp_afileimpts);
@@ -46,7 +47,7 @@ namespace mbe {
     void mainwindow::int_createwidgets() {
         /* Create child widgets. */
         mw_sourcewnd = new sourcewindow(this);
-        mw_editwnd   = new editwindow(true, this);
+        mw_editwnd   = new editwindow(false, this);
 
         /*
          * Maintain the widget's size, so that dock windows
@@ -64,6 +65,18 @@ namespace mbe {
          */
         setCentralWidget(mw_editwnd);
         addDockWidget(Qt::DockWidgetArea::LeftDockWidgetArea, mw_sourcewnd);
+    }
+
+    void mainwindow::int_resetdockwnd(dockwindow *cp_wnd) {
+        if (cp_wnd == nullptr)
+            return;
+
+        if (!cp_wnd->isVisible()) {
+            cp_wnd->setVisible(true);
+            cp_wnd->setFloating(false);
+
+            addDockWidget(cp_wnd->getdefarea(), cp_wnd);
+        }
     }
 
     void mainwindow::int_onfileimpts() {
@@ -96,16 +109,8 @@ namespace mbe {
         }
     }
 
-    void mainwindow::int_resetdockwnd(dockwindow *cp_wnd) {
-        if (cp_wnd == nullptr)
-            return;
-
-        if (!cp_wnd->isVisible()) {
-            cp_wnd->setVisible(true);
-            cp_wnd->setFloating(false);
-
-            addDockWidget(cp_wnd->getdefarea(), cp_wnd);
-        }
+    void mainwindow::int_onfileexit() {
+        QApplication::exit();
     }
 } /* namespace mbe */
 

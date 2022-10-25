@@ -66,7 +66,7 @@ namespace mbe {
          * Returns nothing.
          */ 
         inline void closetpage(QTabWidget *cp_twidget, int index) {
-            mbe::tabpage *cp_tpage = dynamic_cast<tabpage *>(cp_twidget->widget(index));
+            tabpage *cp_tpage = dynamic_cast<tabpage *>(cp_twidget->widget(index));
             if (cp_tpage == nullptr)
                 return;
 

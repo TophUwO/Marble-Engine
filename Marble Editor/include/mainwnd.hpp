@@ -51,6 +51,7 @@ namespace mbe {
 
     private slots:
         void int_onfileimpts();
+        void int_onfileexit();
     };
 } /* namespace mbe */
 
