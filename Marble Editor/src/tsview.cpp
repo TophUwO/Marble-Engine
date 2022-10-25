@@ -128,7 +128,7 @@ namespace mbe {
         int_updatescrollbars();
     }
 
-    bool tilesetview::loadfromfile(tilesetprops const &sr_props) {
+    bool tilesetview::loadfromfile(dialog::tilesetprops const &sr_props) {
         QImageReader c_reader(sr_props.mc_path);
 
         /*

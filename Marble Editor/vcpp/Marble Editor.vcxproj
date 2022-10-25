@@ -13,18 +13,16 @@
   <ItemGroup>
     <ClInclude Include="..\include\base.hpp" />
     <QtMoc Include="..\include\editwnd.hpp" />
-    <QtMoc Include="..\include\dialogs\newlvl.hpp" />
+    <QtMoc Include="..\include\dialog.hpp" />
     <ClInclude Include="..\include\tab.hpp" />
     <QtMoc Include="..\include\dockwnd.hpp" />
     <QtMoc Include="..\include\sourcewnd.hpp" />
     <QtMoc Include="..\include\tsview.hpp" />
-    <QtMoc Include="..\include\dialogs\imgfromts.hpp" />
     <ClInclude Include="..\res\platforms\windows\resource.h" />
     <QtMoc Include="..\include\mainwnd.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\dialogs\imgfromts.cpp" />
-    <ClCompile Include="..\src\dialogs\newlvl.cpp" />
+    <ClCompile Include="..\src\dialog.cpp" />
     <ClCompile Include="..\src\dockwnd.cpp" />
     <ClCompile Include="..\src\editwnd.cpp" />
     <ClCompile Include="..\src\main.cpp" />

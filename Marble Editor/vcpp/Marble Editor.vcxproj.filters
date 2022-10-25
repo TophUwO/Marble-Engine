@@ -19,12 +19,6 @@
     <Filter Include="Resource Files\dialogs">
       <UniqueIdentifier>{0c05bbe9-c28d-477b-a0c6-4a5cc08a97a2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\dialogs">
-      <UniqueIdentifier>{319ce220-ac84-4eda-95b3-394419094af1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\dialogs">
-      <UniqueIdentifier>{22bc8b56-9b49-4377-af6e-6bcf86c386f5}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\base.hpp">
@@ -50,14 +44,11 @@
     <QtMoc Include="..\include\tsview.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
-    <QtMoc Include="..\include\dialogs\imgfromts.hpp">
-      <Filter>Header Files\dialogs</Filter>
-    </QtMoc>
     <QtMoc Include="..\include\editwnd.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
-    <QtMoc Include="..\include\dialogs\newlvl.hpp">
-      <Filter>Header Files\dialogs</Filter>
+    <QtMoc Include="..\include\dialog.hpp">
+      <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -76,14 +67,11 @@
     <ClCompile Include="..\src\tsview.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dialogs\imgfromts.cpp">
-      <Filter>Source Files\dialogs</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\editwnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\dialogs\newlvl.cpp">
-      <Filter>Source Files\dialogs</Filter>
+    <ClCompile Include="..\src\dialog.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

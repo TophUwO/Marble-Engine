@@ -86,7 +86,7 @@ namespace mbe {
 
     void mainwindow::int_onfileimpts() {
         bool res;
-        tsfromimgdialog c_dlg(this);
+        dialog::tsfromimg c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
             tilesetview *cp_view = new tilesetview(this);
@@ -120,7 +120,7 @@ namespace mbe {
 
     void mainwindow::int_onfilenewlvl() {
         bool res;
-        newlvldlg c_dlg(this);
+        dialog::newlevel c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
             
