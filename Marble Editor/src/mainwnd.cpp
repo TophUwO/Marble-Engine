@@ -25,18 +25,23 @@ namespace mbe {
         mw_menubar = new QMenuBar(this);
         
         /* Create and setup sub-menus. */
-        QMenu   *cp_mfile      = new QMenu("File", mw_menubar);
-        QAction *cp_afileexit  = new QAction("Exit", cp_mfile);
-        QAction *cp_afileimpts = new QAction("Import image as tileset", cp_mfile);
+        QMenu   *cp_mfile       = new QMenu("File", mw_menubar);
+        QMenu   *cp_mfilenew    = new QMenu("New", cp_mfile);
+        QAction *cp_afileexit   = new QAction("Exit", cp_mfile);
+        QAction *cp_afileimpts  = new QAction("Import image as tileset", cp_mfile);
+        QAction *cp_afilenewlvl = new QAction("Level", cp_mfilenew);
 
         /* Connect action signals. */
+        connect(cp_afilenewlvl, &QAction::triggered, this, &mainwindow::int_onfilenewlvl);
         connect(cp_afileimpts, &QAction::triggered, this, &mainwindow::int_onfileimpts);
         connect(cp_afileexit, &QAction::triggered, this, &mainwindow::int_onfileexit);
         
         /* Associate actions with menus. */
+        cp_mfile->addAction(cp_mfilenew->menuAction());
         cp_mfile->addAction(cp_afileimpts);
         cp_mfile->addSeparator();
         cp_mfile->addAction(cp_afileexit);
+        cp_mfilenew->addAction(cp_afilenewlvl);
         
         /* Associate menubar with main-window. */
         mw_menubar->addAction(cp_mfile->menuAction());
@@ -81,7 +86,7 @@ namespace mbe {
 
     void mainwindow::int_onfileimpts() {
         bool res;
-        tsfromimgdialog c_dlg;
+        tsfromimgdialog c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
             tilesetview *cp_view = new tilesetview(this);
@@ -111,6 +116,15 @@ namespace mbe {
 
     void mainwindow::int_onfileexit() {
         QApplication::exit();
+    }
+
+    void mainwindow::int_onfilenewlvl() {
+        bool res;
+        newlvldlg c_dlg(this);
+
+        if (c_dlg.exec() == QDialog::Accepted) {
+            
+        }
     }
 } /* namespace mbe */
 

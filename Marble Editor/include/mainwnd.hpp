@@ -5,6 +5,7 @@
 #include <editwnd.hpp>
 
 #include <dialogs/imgfromts.hpp>
+#include <dialogs/newlvl.hpp>
 
 
 /*
@@ -50,6 +51,7 @@ namespace mbe {
         editwindow   *mw_editwnd;
 
     private slots:
+        void int_onfilenewlvl();
         void int_onfileimpts();
         void int_onfileexit();
     };

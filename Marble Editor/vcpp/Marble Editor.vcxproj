@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="..\include\base.hpp" />
     <QtMoc Include="..\include\editwnd.hpp" />
+    <QtMoc Include="..\include\dialogs\newlvl.hpp" />
     <ClInclude Include="..\include\tab.hpp" />
     <QtMoc Include="..\include\dockwnd.hpp" />
     <QtMoc Include="..\include\sourcewnd.hpp" />
@@ -23,6 +24,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\dialogs\imgfromts.cpp" />
+    <ClCompile Include="..\src\dialogs\newlvl.cpp" />
     <ClCompile Include="..\src\dockwnd.cpp" />
     <ClCompile Include="..\src\editwnd.cpp" />
     <ClCompile Include="..\src\main.cpp" />
@@ -40,6 +42,7 @@
     <ResourceCompile Include="..\res\platforms\windows\Marble Editor.rc" />
   </ItemGroup>
   <ItemGroup>
+    <QtUic Include="..\res\dialogs\dlg_newlvl.ui" />
     <QtUic Include="..\res\dialogs\dlg_tsfromimg.ui" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

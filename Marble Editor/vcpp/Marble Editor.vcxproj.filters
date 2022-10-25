@@ -56,6 +56,9 @@
     <QtMoc Include="..\include\editwnd.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="..\include\dialogs\newlvl.hpp">
+      <Filter>Header Files\dialogs</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -79,6 +82,9 @@
     <ClCompile Include="..\src\editwnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\dialogs\newlvl.cpp">
+      <Filter>Source Files\dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="..\res\resource.qrc">
@@ -97,6 +103,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="..\res\dialogs\dlg_tsfromimg.ui">
+      <Filter>Resource Files\dialogs</Filter>
+    </QtUic>
+    <QtUic Include="..\res\dialogs\dlg_newlvl.ui">
       <Filter>Resource Files\dialogs</Filter>
     </QtUic>
   </ItemGroup>

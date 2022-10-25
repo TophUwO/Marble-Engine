@@ -66,19 +66,25 @@ namespace mbe {
          * Returns nothing.
          */ 
         inline void closetpage(QTabWidget *cp_twidget, int index) {
-            tabpage *cp_tpage = dynamic_cast<tabpage *>(cp_twidget->widget(index));
+            QWidget *cp_widget = cp_twidget->widget(index);
+
+            /*
+             * Convert to "tabpage" so we can its "closepage()"
+             * handler function.
+             */
+            tabpage *cp_tpage = dynamic_cast<tabpage *>(cp_widget);
             if (cp_tpage == nullptr)
                 return;
 
             /*
-            * The "closepage" function allows the user to block
-            * this function from closing the page, i.e. by
-            * returning false. 
-            */
+             * The "closepage" function allows the user to block
+             * this function from closing the page, i.e. by
+             * returning false. 
+             */
             if (cp_tpage->closepage()) {
                 cp_twidget->removeTab(index);
 
-                delete cp_tpage;
+                cp_widget->deleteLater();
             }
         }
     } /* namespace base */
