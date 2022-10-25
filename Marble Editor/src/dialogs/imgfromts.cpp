@@ -62,6 +62,7 @@ namespace mbe {
                 mc_ui.spn_alpha->value()
             );
 
+        /* End the dialog. */
         QDialog::accept();
     }
 

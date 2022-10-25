@@ -17,6 +17,7 @@
 #include <QImageReader>
 #include <QScrollBar>
 #include <QPainter>
+#include <QMessageBox>
 
 
 namespace mbe {
