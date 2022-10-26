@@ -29,12 +29,7 @@ namespace mbe {
              * information and return.
              */
             if (mc_ui.ledit_name->text() == "" || mc_ui.ledit_location->text() == "") {
-                QMessageBox::warning(
-                    this,
-                    "Insufficient information",
-                    "Fields marked with '*' may not be empty upon accepting the dialog.",
-                    QMessageBox::StandardButton::Ok
-                );
+                base::dispmbinsuffinfo(this);
 
                 return;
             }
@@ -67,8 +62,8 @@ namespace mbe {
         }
 #pragma endregion (DLG-NEWLEVEL)
 
-#pragma region DLG-TSFROMIMG
-        tsfromimg::tsfromimg(QWidget *cp_parent)
+#pragma region DLG-IMPTS
+        importts::importts(QWidget *cp_parent)
             : QDialog(cp_parent)
         {
             mc_ui.setupUi(this);
@@ -88,8 +83,8 @@ namespace mbe {
             connect(mc_ui.cb_usemask, SIGNAL(clicked()), SLOT(int_onmaskClicked()));
             connect(mc_ui.tbtn_browse, SIGNAL(clicked()), SLOT(int_onbrowseClicked()));
             connect(mc_ui.tbtn_dialog, SIGNAL(clicked()), SLOT(int_onclrdlgClicked()));
-            connect(mc_ui.w_btnbox, &QDialogButtonBox::accepted, this, &tsfromimg::accept);
-            connect(mc_ui.w_btnbox, &QDialogButtonBox::rejected, this, &tsfromimg::reject);
+            connect(mc_ui.w_btnbox, &QDialogButtonBox::accepted, this, &importts::accept);
+            connect(mc_ui.w_btnbox, &QDialogButtonBox::rejected, this, &importts::reject);
         }
 
         /*
@@ -100,7 +95,14 @@ namespace mbe {
          * 
          * Returns nothing.
          */
-        void tsfromimg::accept() {
+        void importts::accept() {
+            /* Display "insufficient info" message box. */
+            if (mc_ui.ledit_path->text() == "") {
+                base::dispmbinsuffinfo(this);
+
+                return;
+            }
+
             ms_props.m_tsize = mc_ui.spn_tsize->value();
             ms_props.mc_path = mc_ui.ledit_path->text();
 
@@ -132,7 +134,7 @@ namespace mbe {
             QDialog::accept();
         }
 
-        void tsfromimg::int_onclrdlgClicked() {
+        void importts::int_onclrdlgClicked() {
             /*
              * Open the dialog and let the user choose
              * a color.
@@ -160,7 +162,7 @@ namespace mbe {
             }
         }
 
-        void tsfromimg::int_onbrowseClicked() {
+        void importts::int_onbrowseClicked() {
             /* Execute the "Open file ..." dialog. */
             QString c_result = QFileDialog::getOpenFileName(
                 this,
@@ -182,7 +184,7 @@ namespace mbe {
                 mc_ui.ledit_path->setText(c_result);
         }
 
-        void tsfromimg::int_onpartialClicked() {
+        void importts::int_onpartialClicked() {
             base::setlayoutstate(
                 mc_ui.lo_rect,
                 base::iscbchecked(mc_ui.cb_usepartial),
@@ -190,14 +192,14 @@ namespace mbe {
             );
         }
 
-        void tsfromimg::int_onmaskClicked() {
+        void importts::int_onmaskClicked() {
             base::setlayoutstate(
                 mc_ui.lo_mask,
                 base::iscbchecked(mc_ui.cb_usemask),
                 true
             );
         }
-#pragma endregion (DLG-TSROMIMG)
+#pragma endregion (DLG-IMPTS)
     } /* namespace dialog */
 } /* namespace mbe */
 

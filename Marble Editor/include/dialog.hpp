@@ -2,8 +2,8 @@
 
 #include <base.hpp>
 
-#include <ui_dlg_newlvl.h>
-#include <ui_dlg_tsfromimg.h>
+#include <ui_dlg_newlevel.h>
+#include <ui_dlg_importts.h>
 
 
 namespace mbe {
@@ -57,11 +57,11 @@ namespace mbe {
             void int_onbrowseclicked();
 
         private:
-            Ui::mbe_newlvldlg mc_ui;
+            Ui::mbe_newlevel mc_ui;
         };
 #pragma endregion (DLG-NEWLEVEL)
 
-#pragma region DLG-TSFROMIMG
+#pragma region DLG-IMPTS
         /*
          * Properties of a tileset represented by an
          * ordinary image file.
@@ -97,11 +97,11 @@ namespace mbe {
          * Implements dialog used for opening a tileset
          * from an ordinary image file.
          */
-        class tsfromimg : public QDialog {
+        class importts : public QDialog {
             Q_OBJECT
 
         public:
-            tsfromimg(QWidget *cp_parent = nullptr);
+            importts(QWidget *cp_parent = nullptr);
 
             tilesetprops ms_props;
 
@@ -140,8 +140,8 @@ namespace mbe {
             void int_onmaskClicked();
 
         private:
-            Ui::mbe_tsfromimgdlg mc_ui;
+            Ui::mbe_importts mc_ui;
         };
-#pragma endregion (DLG-TSFROMIMG)
+#pragma endregion (DLG-IMPTS)
     } /* namespace dialogs */
 } /* namespace mbe */

@@ -122,6 +122,21 @@ namespace mbe {
 
             return c_ret;
         }
+
+        /*
+         * Displays a message box promting the user to fill
+         * in required fields of an input mask.
+         * 
+         * Returns nothing.
+         */
+        inline void dispmbinsuffinfo(QWidget *cp_parent) {
+            QMessageBox::warning(
+                cp_parent,
+                "Insufficient information",
+                "Fields marked with '*' may not be empty upon accepting the dialog.",
+                QMessageBox::StandardButton::Ok
+            );
+        }
     } /* namespace base */
 } /* namespace mbe */
 

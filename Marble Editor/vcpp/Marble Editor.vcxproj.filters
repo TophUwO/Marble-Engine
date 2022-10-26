@@ -90,10 +90,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <QtUic Include="..\res\dialogs\dlg_tsfromimg.ui">
+    <QtUic Include="..\res\dialogs\dlg_importts.ui">
       <Filter>Resource Files\dialogs</Filter>
     </QtUic>
-    <QtUic Include="..\res\dialogs\dlg_newlvl.ui">
+    <QtUic Include="..\res\dialogs\dlg_newlevel.ui">
       <Filter>Resource Files\dialogs</Filter>
     </QtUic>
   </ItemGroup>
