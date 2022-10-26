@@ -3,6 +3,9 @@
 #include <error.h>
 
 
+MB_BEGIN_HEADER
+
+
 /*
  * Various flags (macros) that control and override the logging library's
  * default behavior if one wishes to do so. They can be either defined to
@@ -158,5 +161,8 @@ MB_API void __cdecl marble_log_fatal(
 #define MB_LOG_WARN(fmt, ...)  marble_log_warn(__func__, fmt, __VA_ARGS__)
 #define MB_LOG_ERROR(fmt, ...) marble_log_error(__func__, fmt, __VA_ARGS__)
 #define MB_LOG_FATAL(fmt, ...) marble_log_fatal(__func__, fmt, __VA_ARGS__)
+
+
+MB_END_HEADER
 
 

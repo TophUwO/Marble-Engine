@@ -45,8 +45,8 @@ namespace mbe {
          * by the contents. This area can be either
          * smaller or as large as the viewport.
          */
-        int const xdim = std::min(int(m_usablewidth * scale), viewport()->width());
-        int const ydim = std::min(int(m_usableheight * scale), viewport()->height());
+        int const xdim = min(int(m_usablewidth * scale), viewport()->width());
+        int const ydim = min(int(m_usableheight * scale), viewport()->height());
 #pragma endregion (PAINT-PREPARE)
 
 #pragma region PAINT-RENDER

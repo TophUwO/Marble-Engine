@@ -3,6 +3,9 @@
 #include <api.h>
 
 
+MB_BEGIN_HEADER
+
+
 /* 
  * Event Categories 
  *
@@ -144,5 +147,8 @@ extern enum marble_evtype marble_event_getmouseevent(
 	uint32_t msgid /* message id to convert */
 );
 #endif
+
+
+MB_END_HEADER
 
 

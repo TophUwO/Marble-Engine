@@ -1,7 +1,9 @@
 #pragma once
 
+/* STDLIB includes */
 #include <iostream>
 
+/* Qt includes */
 #include <QApplication>
 #include <QMainWindow>
 #include <QMenuBar>
@@ -18,6 +20,9 @@
 #include <QScrollBar>
 #include <QPainter>
 #include <QMessageBox>
+
+/* Marble Engine includes */
+#include <error.h>
 
 
 namespace mbe {

@@ -13,6 +13,9 @@
 #include <log.h>
 
 
+MB_BEGIN_HEADER
+
+
 /*
  * Macro used to initialize COM error code variable.
  * Will always be put on the line as the function head.
@@ -153,5 +156,8 @@ void inline marble_application_raisefatalerror(
 	/* Ask our main thread to quit. */
 	PostThreadMessage(GetThreadId(gls_app.mp_mainthrd), MB_WM_FATAL, 0, 0);
 }
+
+
+MB_END_HEADER
 
 

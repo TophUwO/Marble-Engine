@@ -123,7 +123,7 @@ namespace mbe {
         dialog::newlevel c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
-            
+
         }
     }
 } /* namespace mbe */

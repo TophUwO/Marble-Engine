@@ -3,8 +3,7 @@
 #include <marble.h>
 
 
-INT APIENTRY
-WinMain(
+INT APIENTRY WinMain(
 	_In_ HINSTANCE p_inst,
 	_In_opt_ HINSTANCE p_previnst,
 	_In_ PSTR pz_cmdline,

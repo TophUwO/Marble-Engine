@@ -32,6 +32,17 @@
 	#define MB_ERRNO marble_ecode_t ecode = MARBLE_EC_OK;
 #endif
 
+/*
+ * Calling C functions from C++ 
+ */
+#if (defined __cplusplus)
+    #define MB_BEGIN_HEADER extern "C" {
+    #define MB_END_HEADER   }
+#else
+    #define MB_BEGIN_HEADER
+    #define MB_END_HEADER
+#endif
+
 
 /*
  * Structure representing an integer point

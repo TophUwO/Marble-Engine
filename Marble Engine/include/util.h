@@ -4,6 +4,9 @@
 #include <system.h>
 
 
+MB_BEGIN_HEADER
+
+
 /*
  * Structure representing an std::vector-like
  * container.
@@ -976,5 +979,8 @@ void inline *marble_util_htable_find(
 	;
 }
 #pragma endregion
+
+
+MB_END_HEADER
 
 

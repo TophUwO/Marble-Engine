@@ -3,6 +3,9 @@
 #include <asset.h>
 
 
+MB_BEGIN_HEADER
+
+
 /*
  * layer types
  * 
@@ -128,5 +131,8 @@ MB_API marble_ecode_t marble_levelasset_addlayer(
 	     enum marble_levelasset_layertype type
 );
 #endif
+
+
+MB_END_HEADER
 
 

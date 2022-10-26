@@ -7,6 +7,9 @@
 #include <api.h>
 
 
+MB_BEGIN_HEADER
+
+
 /* 
  * Renderer API IDs 
  * 
@@ -147,5 +150,8 @@ extern void marble_renderer_clear(
 	     float blue,                          /* blue component (0.0 ... 1.0) */
 	     float alpha                          /* alpha component (0.0 ... 1.0) */
 );
+
+
+MB_END_HEADER
 
 

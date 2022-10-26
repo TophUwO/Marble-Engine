@@ -5,6 +5,9 @@
 #include <marble.h>
 
 
+MB_BEGIN_HEADER
+
+
 /*
  * Structure holding all information
  * about a window.
@@ -129,5 +132,8 @@ _Critical_ extern marble_ecode_t marble_windowsys_init(
 extern void marble_windowsys_uninit(
 	void
 );
+
+
+MB_END_HEADER
 
 

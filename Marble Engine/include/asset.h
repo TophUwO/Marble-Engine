@@ -3,6 +3,9 @@
 #include <api.h>
 
 
+MB_BEGIN_HEADER
+
+
 /* asset type IDs */
 enum marble_asset_type {
 	MARBLE_ASSETTYPE_UNKNOWN    = 0, /* reserved */
@@ -85,5 +88,8 @@ struct marble_asset {
 
 	struct marble_util_vec *mps_deps; /* dependencies loaded by the asset */ 
 };
+
+
+MB_END_HEADER
 
 

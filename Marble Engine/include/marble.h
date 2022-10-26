@@ -5,6 +5,9 @@
 #include <log.h>
 
 
+MB_BEGIN_HEADER
+
+
 /*
  * app settings
  * 
@@ -140,5 +143,8 @@ MB_API void *marble_layer_submituserdata(
 	void const *p_newuserdata /* new userdata to submit */
 );
 #pragma endregion
+
+
+MB_END_HEADER
 
 

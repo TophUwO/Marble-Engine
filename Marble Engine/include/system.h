@@ -4,6 +4,10 @@
 #include <error.h>
 #include <log.h>
 
+
+MB_BEGIN_HEADER
+
+
 #define _Maybe_out_z_ _When_(return == MARBLE_EC_OK, _Out_writes_z_(size))
 
 
@@ -98,5 +102,8 @@ _Success_ok_ marble_ecode_t inline marble_system_cpystr(
 
 	return MARBLE_EC_OK;
 }
+
+
+MB_END_HEADER
 
 

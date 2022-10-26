@@ -3,6 +3,9 @@
 #include <api.h>
 
 
+MB_BEGIN_HEADER
+
+
 /*
  * Error codes
  * 
@@ -106,5 +109,8 @@ MB_API char const *const marble_error_getdesc(
 	_In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
 	marble_ecode_t ecode
 );
+
+
+MB_END_HEADER
 
 
