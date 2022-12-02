@@ -5,6 +5,10 @@
 
 MB_BEGIN_HEADER
 
+#if (defined __cplusplus)
+    #pragma warning (disable: 26812) /* unscoped "enum"; prefer enum class */
+#endif
+
 
 /*
  * Error codes
@@ -72,6 +76,10 @@ typedef enum marble_ecode {
 	MARBLE_EC_GETDC,
 	MARBLE_EC_GETWNDCLASSATTRIBS,
 	MARBLE_EC_USERINIT,
+    MARBLE_EC_FILESIZE,
+    MARBLE_EC_CREATEPARAMS,
+    MARBLE_EC_REGTMPASSET,
+    MARBLE_EC_LEVELSIZE,
 
 	__MARBLE_NUMERRORCODES__ /* for internal use */
 } marble_ecode_t;

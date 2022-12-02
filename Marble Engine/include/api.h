@@ -3,15 +3,13 @@
 #pragma warning (disable: 5105) /* macro expansion producing UB */
 
 
-#include <def.h>
-#include <platform.h>
+#include <uuid.h>
 
 #include <windows.h>
 #include <windowsx.h>
 #include <wincodec.h>
 #include <tchar.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #include <sys/stat.h>
@@ -32,16 +30,22 @@
 	#define MB_ERRNO marble_ecode_t ecode = MARBLE_EC_OK;
 #endif
 
-/*
- * Calling C functions from C++ 
- */
-#if (defined __cplusplus)
-    #define MB_BEGIN_HEADER extern "C" {
-    #define MB_END_HEADER   }
-#else
-    #define MB_BEGIN_HEADER
-    #define MB_END_HEADER
-#endif
+/* Implement virtual inheritance using unions. */
+#define MB_DEFSUBTYPE(id, base, def) union id { base _base; struct { base __##id##_metaobj__; struct def; }; };
+
+/* Invalid pointer value; used as ret-val. */
+#define MB_INVPTR ((void *)(-1))
+
+/* Define common subtype functions. */
+#define __MB_SUBTYPEFN__(subtype, fn) marble_##subtype##_##fn
+#define MB_CREATEFN(subtype)          __MB_SUBTYPEFN__(subtype, create)
+#define MB_DESTROYFN(subtype)         __MB_SUBTYPEFN__(subtype, destroy)
+#define MB_VALIDATECRPSFN(subtype)    __MB_SUBTYPEFN__(subtype, validatecrps)
+#define MB_LOADFN(subtype)            __MB_SUBTYPEFN__(subtype, load)
+
+/* Cast a void* to any pointer type. */
+#define MB_VOIDCAST(id, source, type)     type *id = (type *)source;
+#define MB_FNCAST(id, source, ret, proto) ret (*id)proto = (ret (*)proto)source;
 
 
 /*

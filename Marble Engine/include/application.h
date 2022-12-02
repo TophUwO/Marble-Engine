@@ -92,24 +92,24 @@ extern struct marble_application {
 	 * in which order the application updates.
 	 */
 	struct marble_layerstack {
-		bool m_isinit; /* Is the layer stack present? */
-		/* vector structure holding the layer pointers */
+		bool   m_isinit;    /* Is the layer stack present? */
+        size_t m_lastlayer; /* greatest non-overlay layer index */
+
+		/*
+         * vector structure holding the
+         * layer pointers
+         */
 		struct marble_util_vec *mps_vec;
-
-		size_t m_lastlayer; /* greatest non-overlay layer index */
 	} ms_layerstack;
-	/*
-	 * Asset manager
-	 * 
-	 * Responsible for keeping and cleaning-up all assets that
-	 * has been submitted to or created by Marble throughout
-	 * its life-time.
-	 */
-	struct marble_app_assetman {
-		bool m_isinit; /* Is the asset manager present? */
-
-		struct marble_util_htable *mps_table; /* asset storage */
-	} ms_assets;
+    
+    /*
+     * Asset manager
+     * 
+     * Responsible for keeping and cleaning-up all assets that
+     * has been submitted to or created by Marble throughout
+     * its life-time.
+     */
+    struct marble_assetman *mps_assets;
 } gls_app;
 
 
@@ -139,6 +139,7 @@ extern void marble_application_setstate(
 void inline marble_application_raisefatalerror(
 	marble_ecode_t ecode /* error code that will be returned to host environment */
 ) {
+#if (defined MB_DYNAMIC_LIBRARY)
 	marble_log_fatal(
 		NULL,
 		"Fatal error occurred: (%i)\n    %s\n    %s",
@@ -153,8 +154,8 @@ void inline marble_application_raisefatalerror(
 		MARBLE_APPSTATE_FORCEDSHUTDOWN
 	);
 
-	/* Ask our main thread to quit. */
 	PostThreadMessage(GetThreadId(gls_app.mp_mainthrd), MB_WM_FATAL, 0, 0);
+#endif
 }
 
 

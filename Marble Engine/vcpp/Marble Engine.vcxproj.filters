@@ -89,9 +89,6 @@
     <ClInclude Include="..\include\renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\asset.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -107,9 +104,21 @@
     <ClInclude Include="..\include\level.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\uuid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\..\Notes\measure_time.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
+    <Text Include="..\..\Notes\TODO.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
+    <Text Include="..\..\Notes\deps.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
   </ItemGroup>

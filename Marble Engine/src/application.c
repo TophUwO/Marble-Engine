@@ -7,60 +7,24 @@ struct marble_application gls_app = { NULL };
 
 
 #pragma region ASSETMAN
-extern void marble_asset_destroy(
-	_Uninit_(pps_asset) struct marble_asset **pps_asset
-);
-
-
-/* 
- * Uninitializes asset manager component.
- *
- * Returns nothing.
- */
-static void marble_application_internal_uninitassetman(void) {
-	if (gls_app.ms_assets.m_isinit == false)
-		return;
-
-	gls_app.ms_assets.m_isinit = false;
-
-	/*
-	 * Destroy asset registry.
-	 * Destroying the registry automatically calls
-	 * "marble_asset_internal_destroy()" on the 
-	 * contents.
-	 */
-	marble_util_htable_destroy(&gls_app.ms_assets.mps_table);
-}
-
 /*
  * Initializes asset manager component.
  * 
  * Returns 0 on success, non-zero on error.
  */
 _Critical_ static marble_ecode_t marble_application_internal_initassetman(void) { MB_ERRNO
-	/* 
-	* If asset manager is already initialized, block further
-	* attempts to (re-)initialize. 
-	*/
-	if (gls_app.ms_assets.m_isinit == true)
-		return MARBLE_EC_COMPSTATE;
-	
+    /* 
+     * If asset manager is already initialized, block further
+     * attempts to (re-)initialize. 
+     */
+    if (marble_assetman_isok(gls_app.mps_assets) == true)
+        return MARBLE_EC_COMPSTATE;
+
 	/* Create asset registry. */
-	ecode = marble_util_htable_create(
-		128,
-		(void (*)(void **))&marble_asset_destroy,
-		&gls_app.ms_assets.mps_table
-	);
-	if (ecode != MARBLE_EC_OK)
-		goto lbl_CLEANUP;
-	
-	/* Change component state to "initialized" (= active). */
-	gls_app.ms_assets.m_isinit = true;
-	
-lbl_CLEANUP:
-	if (ecode != MARBLE_EC_OK)
-		marble_application_internal_uninitassetman();
-	
+    ecode = marble_assetman_create(
+        &gls_app.mps_assets
+    );
+
 	return ecode;
 }
 #pragma endregion
@@ -171,8 +135,8 @@ static void marble_application_internal_inithpc(
 	 * Check whether an HPC is present in the system; should
 	 * not fail on computers that are still relevant nowadays.
 	 */
-	if (!QueryPerformanceFrequency((LARGE_INTEGER *)&gl_pfreq))
-		marble_application_raisefatalerror(*p_ecode = MARBLE_EC_INITHPC);
+    if (!marble_util_clock_init())
+        marble_application_raisefatalerror(*p_ecode = MARBLE_EC_INITHPC);
 }
 
 static void marble_application_internal_initcom(
@@ -349,7 +313,7 @@ _Success_ok_ static marble_ecode_t marble_application_internal_cleanup(
 	marble_window_destroy(&gls_app.ps_wnd);
 
 	marble_application_internal_uninitlayerstack();
-	marble_application_internal_uninitassetman();
+    marble_assetman_destroy(&gls_app.mps_assets);
 	marble_log_uninit();
 	marble_windowsys_uninit();
 	CoUninitialize();
@@ -403,10 +367,13 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 	marble_application_internal_initlayerstack(&ecode);
 	marble_application_internal_initassetmanager(&ecode);
 
-	/* Rrun user initialization. */
+    /* User-init. */
 	marble_application_internal_douserinit(&ecode, pz_cmdline, cb_userinit);
 
-	/* At last, present the window. */
+	/*
+     * At last, present the window for the
+     * first time.
+     */
 	if (!ecode) {
 		UpdateWindow(gls_app.ps_wnd->mp_handle);
 
@@ -424,7 +391,6 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 	if (gls_app.ms_state.m_isfatal == true)
 		goto lbl_CLEANUP;
 
-	/* update application state now that the main loop is about to start */
 	marble_application_setstate(
 		false,
 		MARBLE_EC_OK,

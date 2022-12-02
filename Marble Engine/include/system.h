@@ -96,8 +96,7 @@ _Success_ok_ marble_ecode_t inline marble_system_cpystr(
 	if (pz_dest == NULL || pz_src == NULL)
 		return MARBLE_EC_INTERNALPARAM;
 
-	errno_t ret = strcpy_s(pz_dest, size, pz_src);
-	if (ret != 0)
+	if (strcpy_s(pz_dest, size, pz_src) != 0)
 		return MARBLE_EC_MEMCPY;
 
 	return MARBLE_EC_OK;

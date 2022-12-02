@@ -2,6 +2,7 @@
 
 #include <base.hpp>
 #include <sourcewnd.hpp>
+#include <lvlview.hpp>
 #include <editwnd.hpp>
 #include <dialog.hpp>
 
@@ -47,6 +48,8 @@ namespace mbe {
         QMenuBar     *mw_menubar;
         sourcewindow *mw_sourcewnd;
         editwindow   *mw_editwnd;
+        editoraman   *mps_assetman;
+        
 
     private slots:
         void int_onfilenewlvl();

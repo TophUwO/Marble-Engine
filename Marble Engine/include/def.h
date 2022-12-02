@@ -6,7 +6,7 @@
 #else
 	#define MB_API extern __declspec(dllimport)
 #endif
-#define MB_CALLBACK  __cdecl
+#define MB_CALLBACK __cdecl
 
 /*
  * Shorten some very long SAL annotations, improving
@@ -35,6 +35,10 @@
 	 * annotation is used with a function.
 	 */
 	#define _Success_ok_    _Success_(return == MARBLE_EC_OK)
+    /*
+     *  
+     */
+    #define _Success_ptr_   _Success_(return != NULL)
 	/*
 	 * A combination of '_Success_ok_' and an annotation
 	 * throwing a warning if the caller does not inspect
@@ -89,14 +93,14 @@
  * Used by the logging library.
  */
 #if (defined _DEBUG)
-	#define MB_BUILDCONFIG "Release"
+	#define MB_BUILDCONFIG "Debug"
 #elif (defined MB_DEVBUILD)
 	#define MB_BUILDCONFIG "Development Build"
 #else
-	#define MB_BUILDCONFIG "Debug"
+	#define MB_BUILDCONFIG "Release"
 #endif
 /*
- * String representation of target architecture (n bits).
+ * String representation of target architecture.
  */
 #if (defined _WIN64)
 	#define MB_ARCHSTR "x86-64"
@@ -117,13 +121,26 @@
 	 */
 	#define MB_INRANGE_INCL(n, lo, hi) ((bool)(n >= lo && n <= hi))
 	/*
-	 * Shorten __func__, __LINE__ parameters. 
+	 * Shorten __func__, __LINE__ parameters. Used
+     * for the integrated memory allocation wrapper
+     * function.
 	 */
 	#define MB_CALLER_INFO __func__, (size_t)(__LINE__)
 	/*
 	 * Shorten char const * pointer validation.
 	 */
 	#define MB_ISINVSTR(str) str == NULL || *str == '\0'
+#endif
+
+/*
+ * Calling C functions from C++ 
+ */
+#if (defined __cplusplus)
+    #define MB_BEGIN_HEADER extern "C" {
+    #define MB_END_HEADER   }
+#else
+    #define MB_BEGIN_HEADER
+    #define MB_END_HEADER
 #endif
 
 

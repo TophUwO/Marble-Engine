@@ -7,7 +7,7 @@ int main(int argc, char *argv[]) {
     /* Create main window. */
     mbe::mainwindow c_mainwnd({ 1200, 800 });
     c_mainwnd.show();
-    
+
     return c_app.exec();
 }
 

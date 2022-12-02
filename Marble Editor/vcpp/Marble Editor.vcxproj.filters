@@ -50,6 +50,9 @@
     <QtMoc Include="..\include\dialog.hpp">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="..\include\lvlview.hpp">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -71,6 +74,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\dialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\lvlview.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -55,7 +55,11 @@ static char const *const glapz_ecodestrs[] = {
 	"MARBLE_EC_CREATEMEMBITMAP",
 	"MARBLE_EC_GETDC",
 	"MARBLE_EC_GETWNDCLASSATTRIBS",
-	"MARBLE_EC_USERINIT"
+	"MARBLE_EC_USERINIT",
+    "MARBLE_EC_FILESIZE",
+    "MARBLE_EC_CREATEPARAMS",
+    "MARBLE_EC_REGTMPASSET",
+    "MARBLE_EC_LEVELSIZE"
 };
 
 /* Error code descriptions */
@@ -113,7 +117,11 @@ static char const *const glapz_ecodedescs[] = {
 	"Could not obtain GDI device context.",
 	"Could not obtain window class attributes.",
 	"Failed to create region.",
-	"User-init callback failed."
+	"User-init callback failed.",
+    "File size does not equal to the expected size",
+    "Create-parameters are invalid.",
+    "Failed to register temporary asset.",
+    "Invalid (<= 0) level dimensions."
 };
 
 

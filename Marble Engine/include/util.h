@@ -104,7 +104,7 @@ _Critical_ marble_ecode_t inline marble_util_vec_create(
 		startcap * sizeof *pps_vector,
 		true,
 		false,
-		(void **)&(*pps_vector)->mpp_data
+        (void **)&(*pps_vector)->mpp_data
 	);
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
@@ -375,17 +375,14 @@ struct marble_util_clock {
 };
 
 
-#if (defined MB_ECOSYSTEM)
 /*
- * Initializes the performance frequency. This function must be called
- * by all modules outside of the Marble main DLL.
+ * Initializes the performance frequency.
  * 
  * Returns nothing.
  */
-void inline marble_util_clock_init(void) {
-	QueryPerformanceFrequency((LARGE_INTEGER *)&gl_pfreq);
+bool inline marble_util_clock_init(void) {
+	return QueryPerformanceFrequency((LARGE_INTEGER *)&gl_pfreq);
 }
-#endif
 
 /*
  * Starts/Restarts a clock.
@@ -480,7 +477,7 @@ enum marble_util_file_perms {
 struct marble_util_file {
 	FILE *mp_handle; /* file handle */
 
-	struct stat                 ms_info; /* file info */
+	struct _stat64              ms_info; /* file info */
 	enum marble_util_file_perms m_perms; /* permissions */
 };
 
@@ -534,8 +531,17 @@ _Critical_ marble_ecode_t inline marble_util_file_open(
 
 	/* Open the file. */
 	(*pps_file)->mp_handle = NULL;
-	if (fopen_s(&(*pps_file)->mp_handle, pz_path, "rb" /* TODO: change later */) != 0)
-		ecode = MARBLE_EC_OPENFILE;
+	if (fopen_s(&(*pps_file)->mp_handle, pz_path, "rb" /* TODO: change later */) != 0) {
+        ecode = MARBLE_EC_OPENFILE;
+
+        goto lbl_END;
+    }
+
+    /* Read file info. */
+    _fstat64(
+        _fileno((*pps_file)->mp_handle),
+        &(*pps_file)->ms_info
+    );
 
 lbl_END:
 	/*
@@ -554,13 +560,29 @@ lbl_END:
  * Returns 0 on success, non-zero on failure.
  */
 _Success_ok_ marble_ecode_t inline marble_util_file_goto(
-	_In_ struct marble_util_file *ps_file,
-	     size_t newpos
+	_In_ struct marble_util_file *ps_file, /* file descriptor */
+	     int64_t newpos                    /* new position */
 ) {
 	if (ps_file == NULL)
 		return MARBLE_EC_PARAM;
 
-	return _fseeki64(ps_file->mp_handle, (long long)newpos, SEEK_SET) ? MARBLE_EC_FSEEK : MARBLE_EC_OK;	
+	return _fseeki64(ps_file->mp_handle, newpos, SEEK_SET) ? MARBLE_EC_FSEEK : MARBLE_EC_OK;	
+}
+
+/*
+ * Retrieves the current internal file position
+ * indicator.
+ * 
+ * Returns current position indicator, or -1 on
+ * error.
+ */
+inline int64_t marble_util_file_tell(
+    _In_ struct marble_util_file *ps_file /* file descriptor */
+) {
+    if (ps_file == NULL)
+        return -1;
+
+    return _ftelli64(ps_file->mp_handle);
 }
 
 /*
@@ -571,7 +593,7 @@ _Success_ok_ marble_ecode_t inline marble_util_file_goto(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_file_read(
+_Success_ok_ inline marble_ecode_t marble_util_file_read(
 	_In_         struct marble_util_file *ps_file, /* file object */
 	             size_t size,                      /* number of bytes to read */
 	_Size_(size) void *p_dest                      /* buffer to write read bytes to */
@@ -672,7 +694,8 @@ extern uint32_t gl_hashseed;
  * SOFTWARE.
  */
 uint32_t inline __marble_util_htable_hash(
-	_In_z_ char const *pz_key
+	_In_ void const *p_key,
+    _In_ size_t const keysize
 ) {
 	uint32_t c1 = 0xcc9e2d51;
 	uint32_t c2 = 0x1b873593;
@@ -682,12 +705,12 @@ uint32_t inline __marble_util_htable_hash(
 	uint32_t n  = 0xe6546b64;
 	uint32_t h  = 0;
 	uint32_t k  = 0;
-	uint8_t *d  = (uint8_t *)pz_key;
+	uint8_t *d  = (uint8_t *)p_key;
 
 	const uint32_t *chunks = NULL;
 	const uint8_t  *tail   = NULL;
 	int i = 0;
-	int const len = (int)strlen(pz_key);
+	int const len = (int)keysize;
 	int l = len / 4;
 
 	h = gl_hashseed;
@@ -741,25 +764,26 @@ uint32_t inline __marble_util_htable_hash(
  * Returns 0 on success, non-zero on failure.
  */
 marble_ecode_t inline __marble_util_htable_locate(
-	_In_   struct marble_util_htable *ps_htable, /* hashtable to search */
-	_In_z_ char const *pz_key,                   /* key to search for */
-	/* callback function */
+	_In_ struct marble_util_htable *ps_htable, /* hashtable to search */
+	_In_ void *p_key,                          /* key to search for */
+    _In_ size_t const keysize,                 /* key size, in bytes */
+    /* callback function */
 	_In_   bool (*fn_find)(
-		_In_z_ char const *,
+		_In_ void *,
 		_In_ void *
 	),
-	_Out_  size_t *p_bucketindex,                /* index of bucket */
-	_Out_  size_t *p_vecindex                    /* index of element in bucket */
+	_Out_  size_t *p_bucketindex, /* index of bucket */
+	_Out_  size_t *p_vecindex     /* index of element in bucket */
 ) {
 	/* Get index of key in bucket array. */
-	*p_bucketindex = __marble_util_htable_hash(pz_key) % ps_htable->m_cbucket;
+	*p_bucketindex = __marble_util_htable_hash(p_key, keysize) % ps_htable->m_cbucket;
 
 	struct marble_util_vec *ps_bucket = ps_htable->pps_storage[*p_bucketindex];
 	if (ps_bucket == NULL)
 		goto lbl_END;
 
 	for (size_t i = 0; i < ps_bucket->m_size; i++)
-		if (fn_find(pz_key, marble_util_vec_get(ps_bucket, i)) != false) {
+		if (fn_find(p_key, marble_util_vec_get(ps_bucket, i)) != false) {
 			*p_vecindex = i;
 
 			return MARBLE_EC_OK;
@@ -861,15 +885,16 @@ lbl_END:
  * Returns 0 on success, non-zero on failure.
  */
 _Success_ok_ marble_ecode_t inline marble_util_htable_insert(
-	_In_   struct marble_util_htable *ps_htable, /* hashtable */
-	_In_z_ char const *pz_key,                   /* **p_obj**'s key */
-	_In_   void *p_obj                           /* object to insert */
+	_In_ struct marble_util_htable *ps_htable, /* hashtable */
+	_In_ void *p_key,                          /* **p_obj**'s key */
+    _In_ size_t const keysize,                 /* key size, in bytes */
+	_In_ void *p_obj                           /* object to insert */
 ) { MB_ERRNO
-	if (ps_htable == NULL || pz_key == NULL || *pz_key == '\0' || p_obj == NULL)
+	if (ps_htable == NULL || p_key == NULL  || p_obj == NULL)
 		return MARBLE_EC_PARAM;
 
 	/* Get index of key in bucket array. */
-	uint32_t const index = __marble_util_htable_hash(pz_key) % ps_htable->m_cbucket;
+	uint32_t const index = __marble_util_htable_hash(p_key, keysize) % ps_htable->m_cbucket;
 
 	/*
 	 * If the bucket at position **index** does not already exist,
@@ -909,25 +934,27 @@ lbl_END:
  * the element's pointer on success.
  */
 void inline *marble_util_htable_erase(
-	_In_   struct marble_util_htable *ps_htable, /* hashtable */
-	_In_z_ char const *pz_key,                   /* key */
+	_In_ struct marble_util_htable *ps_htable, /* hashtable */
+	_In_ void *p_key,                          /* key */
+    _In_ size_t const keysize,                 /* key size, in bytes */
 	/*
 	 * The callback function shall return non-zero if
 	 * the element was found, and 'false' if not.
 	 * If this parameter is NULL, the function fails
 	 * and returns NULL.
 	 */
-	_In_   bool (*fn_find)(char const *, void *),
-	       bool rundest                          /* destroy (found) object? */
+	_In_ bool (*fn_find)(void *, void *),
+	     bool rundest                          /* destroy (found) object? */
 ) { MB_ERRNO
-	if (ps_htable == NULL || pz_key == NULL || *pz_key == '\0' || fn_find == NULL)
+	if (ps_htable == NULL || p_key == NULL || fn_find == NULL)
 		return NULL;
 
 	/* Get location of element. */
 	size_t bucketindex, vecindex;
 	ecode = __marble_util_htable_locate(
 		ps_htable,
-		pz_key,
+		p_key,
+        keysize,
 		fn_find,
 		&bucketindex,
 		&vecindex
@@ -950,24 +977,26 @@ void inline *marble_util_htable_erase(
  * on error or if the object cannot be found.
  */
 void inline *marble_util_htable_find(
-	_In_   struct marble_util_htable *ps_htable, /* hashtable */
-	_In_z_ char const *pz_key,                   /* key to find */
+	_In_ struct marble_util_htable *ps_htable, /* hashtable */
+	_In_ void *p_key,                          /* key to find */
+    _In_ size_t const keysize,                 /* key size, in bytes */
 	/*
 	 * The callback function shall return non-zero if
 	 * the element was found, and 'false' if not.
 	 * If this parameter is NULL, the function fails
 	 * and returns NULL.
 	 */
-	_In_   bool (*fn_find)(char const *, void *)
+	_In_ bool (*fn_find)(void *, void *)
 ) { MB_ERRNO
-	if (ps_htable == NULL || pz_key == NULL || *pz_key == '\0' || fn_find == NULL)
+	if (ps_htable == NULL || p_key == NULL || fn_find == NULL)
 		return NULL;
 
 	/* Get indices. */
 	size_t bucketindex, vecindex;
 	ecode = __marble_util_htable_locate(
 		ps_htable,
-		pz_key,
+		p_key,
+        keysize,
 		fn_find,
 		&bucketindex,
 		&vecindex

@@ -8,7 +8,6 @@ namespace mbe {
      */
     static constexpr int gl_viewtsize = 32;
 
-
     tilesetview::tilesetview(QWidget *cp_parent)
         : QAbstractScrollArea(cp_parent), tabpage(this, ""),
           mcp_image(nullptr), mc_path("")

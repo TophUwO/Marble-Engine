@@ -14,6 +14,7 @@
     <ClInclude Include="..\include\base.hpp" />
     <QtMoc Include="..\include\editwnd.hpp" />
     <QtMoc Include="..\include\dialog.hpp" />
+    <QtMoc Include="..\include\lvlview.hpp" />
     <ClInclude Include="..\include\tab.hpp" />
     <QtMoc Include="..\include\dockwnd.hpp" />
     <QtMoc Include="..\include\sourcewnd.hpp" />
@@ -25,6 +26,7 @@
     <ClCompile Include="..\src\dialog.cpp" />
     <ClCompile Include="..\src\dockwnd.cpp" />
     <ClCompile Include="..\src\editwnd.cpp" />
+    <ClCompile Include="..\src\lvlview.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\mainwnd.cpp" />
     <ClCompile Include="..\src\sourcewnd.cpp" />
@@ -95,6 +97,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <IncludePath>$(SolutionDir)Marble Editor\include;$(SolutionDir)Marble Engine\include;$(IncludePath)</IncludePath>
     <OutDir>..\..\Marble Sandbox\bin\</OutDir>
+    <LibraryPath>C:\Users\Mainb\source\repos\Marble-Engine\Marble Sandbox\bin;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

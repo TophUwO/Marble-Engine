@@ -23,9 +23,13 @@
 
 /* Marble Engine includes */
 #include <error.h>
+#include <asset.h>
+#include <level.h>
 
 
 namespace mbe {
+    typedef marble_assetman editoraman;
+
     /*
      * This namespace contains some global functions shared by all modules
      * of this application.

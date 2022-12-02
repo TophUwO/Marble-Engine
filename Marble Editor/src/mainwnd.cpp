@@ -14,10 +14,25 @@ namespace mbe {
         /* Create child widgets. */
         int_createmenubar();
         int_createwidgets();
+
+        /*
+         * Create assetman.
+         * If this fails, show a messagebox and exit
+         * the app.
+         */
+        if (marble_assetman_create(&mps_assetman) != MARBLE_EC_OK) {
+            QMessageBox::critical(
+                this,
+                "Fatal Error",
+                "Could not initialize internal asset-manager."
+            );
+
+            throw std::bad_alloc();
+        }
     }
     
     mainwindow::~mainwindow() {
-    
+        marble_assetman_destroy(&mps_assetman);
     }
     
     void mainwindow::int_createmenubar() {
@@ -90,20 +105,20 @@ namespace mbe {
         dialog::importts c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
-            tilesetview *cp_view = new tilesetview(this);
+            tilesetview *cp_tsview = new tilesetview(this);
 
             /*
              * If the image fails to load, delete the view and
              * do not update the source-window.
              */
-            if (!cp_view->loadfromfile(c_dlg.ms_props)) {
-                delete cp_view;
+            if (!cp_tsview->loadfromfile(c_dlg.ms_props)) {
+                cp_tsview->deleteLater();
 
                 return;
             }
 
             /* Add the page to the source-view. */
-            mw_sourcewnd->addpage(cp_view);
+            mw_sourcewnd->addpage(cp_tsview);
 
             /*
              * This will show the docked window if it is
@@ -123,7 +138,24 @@ namespace mbe {
         dialog::newlevel c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
+            levelview *cp_lvlview = new levelview(mps_assetman, mw_editwnd);
 
+            /*
+             * Attempt to create a new level from scratch; if this
+             * fails, do not proceed and destroy the page.
+             */
+            if (!cp_lvlview->newlevel(c_dlg.ms_props)) {
+                cp_lvlview->deleteLater();
+
+                return;
+            }
+
+            /*
+             * Make Edit-Window visible if it is currently hidden
+             * and add the page to the widget.
+             */
+            mw_editwnd->setVisible(true);
+            mw_editwnd->addTab(cp_lvlview, cp_lvlview->gettitle());
         }
     }
 } /* namespace mbe */

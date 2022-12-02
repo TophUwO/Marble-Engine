@@ -37,7 +37,7 @@ namespace mbe {
          * Returns nothing.
          */
         void unloadimage();
-
+       
     protected:
         virtual void paintEvent(QPaintEvent *cp_event) override;
         virtual void mousePressEvent(QMouseEvent *cp_event) override;

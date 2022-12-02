@@ -211,10 +211,13 @@
     <ClInclude Include="..\include\renderer.h" />
     <ClInclude Include="..\include\system.h" />
     <ClInclude Include="..\include\util.h" />
+    <ClInclude Include="..\include\uuid.h" />
     <ClInclude Include="..\include\window.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\..\Notes\deps.txt" />
     <Text Include="..\..\Notes\measure_time.txt" />
+    <Text Include="..\..\Notes\TODO.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Marble Tools\baselib.py" />

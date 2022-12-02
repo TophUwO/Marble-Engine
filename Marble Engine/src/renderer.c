@@ -676,7 +676,13 @@ _Success_ok_ marble_ecode_t marble_renderer_resize(
 
 	/* Call implementations for specific render APIs. */
 	switch (ps_renderer->m_api) {
-		case MARBLE_RENDERAPI_DIRECT2D: return marble_d2drenderer_internal_resize(&ps_renderer->ms_d2drenderer, newwidth, newheight);
+		case MARBLE_RENDERAPI_DIRECT2D:
+            return
+                marble_d2drenderer_internal_resize(
+                    &ps_renderer->ms_d2drenderer,
+                    newwidth,
+                    newheight
+                );
 	}
 
 	return MARBLE_EC_RENDERAPI;
