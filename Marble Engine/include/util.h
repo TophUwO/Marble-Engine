@@ -392,6 +392,9 @@ bool inline marble_util_clock_init(void) {
 void inline marble_util_clock_start(
 	_Out_ struct marble_util_clock *ps_clock /* clock to start/reset */
 ) {
+    if (ps_clock == NULL)
+        return;
+
 #if (defined MB_PLATFORM_WINDOWS)
 	QueryPerformanceCounter((LARGE_INTEGER *)&ps_clock->m_tstart);
 #endif
@@ -406,6 +409,9 @@ void inline marble_util_clock_start(
 void inline marble_util_clock_stop(
 	_Out_ struct marble_util_clock *ps_clock /* clock to stop */
 ) {
+    if (ps_clock == NULL)
+        return;
+
 #if (defined MB_PLATFORM_WINDOWS)
 	QueryPerformanceCounter((LARGE_INTEGER *)&ps_clock->m_tend);
 #endif
@@ -415,11 +421,15 @@ void inline marble_util_clock_stop(
  * Calculates time between **m_tstart** and **m_tend**,
  * in seconds.
  * 
- * Returns elapsed time, in seconds.
+ * Returns elapsed time, in seconds. If there was
+ * an error, the function returns -1.0.
  */
 double inline marble_util_clock_assec(
 	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
+    if (ps_clock == NULL)
+        return -1.0;
+
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (double)gl_pfreq;
 }
 
@@ -427,11 +437,15 @@ double inline marble_util_clock_assec(
  * Calculates time between **m_tstart** and **m_tend**,
  * in milliseconds.
  * 
- * Returns elapsed time, in milliseconds.
+ * Returns elapsed time, in milliseconds. If there was
+ * an error, the function returns -1.0.
  */
 double inline marble_util_clock_asmsec(
 	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
+    if (ps_clock == NULL)
+        return -1.0;
+
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+3);
 }
 
@@ -439,11 +453,15 @@ double inline marble_util_clock_asmsec(
  * Calculates time between **m_tstart** and **m_tend**,
  * in microseconds.
  * 
- * Returns elapsed time, in microseconds.
+ * Returns elapsed time, in microseconds. If there was
+ * an error, the function returns -1.0.
  */
 double inline marble_util_clock_asmcsec(
 	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
+    if (ps_clock == NULL)
+        return -1.0;
+
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+6);
 }
 
@@ -451,11 +469,15 @@ double inline marble_util_clock_asmcsec(
  * Calculates time between **m_tstart** and **m_tend**,
  * in nanoseconds.
  * 
- * Returns elapsed time, in nanoseconds.
+ * Returns elapsed time, in nanoseconds. If there was
+ * an error, the function returns -1.0.
  */
 double inline marble_util_clock_asnsec(
 	_In_ struct marble_util_clock *ps_clock /* clock */
 ) {
+    if (ps_clock == NULL)
+        return -1.0;
+
 	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+9);
 }
 #pragma endregion
