@@ -57,6 +57,12 @@
     <ClCompile Include="..\src\level.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\uuid.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\error.h">
@@ -119,6 +125,9 @@
       <Filter>Resource Files\Notes</Filter>
     </Text>
     <Text Include="..\..\Notes\deps.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
+    <Text Include="..\..\Notes\app_rt.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
   </ItemGroup>

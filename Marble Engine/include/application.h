@@ -11,6 +11,7 @@
 #include <asset.h>
 #include <level.h>
 #include <log.h>
+#include <uuid.h>
 
 
 MB_BEGIN_HEADER
@@ -74,7 +75,6 @@ struct marble_layer {
 extern struct marble_application {
 	HINSTANCE mp_inst;       /* instance to the application */
 	HANDLE    mp_mainthrd;   /* handle to main thread */
-	uint64_t  m_perfcounter; /* performance counter; used for HTPs */
 	bool      m_hasmainwnd;  /* Do we already have a main window? */
 	/* structure holding state information about the application */
 	struct marble_app_state {
@@ -110,6 +110,9 @@ extern struct marble_application {
      * its life-time.
      */
     struct marble_assetman *mps_assets;
+
+    /* HPC -- used for frametime, etc. */
+    struct marble_util_clock ms_ftclock;
 } gls_app;
 
 

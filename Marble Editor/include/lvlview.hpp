@@ -23,7 +23,7 @@ namespace mbe {
         /*
          *  
          */
-        bool create(int width, int height, QString const &cr_loc, QString const &cr_ident, editoraman *ps_aman) {
+        bool create(uint16_t width, uint16_t height, QString const &cr_loc, QString const &cr_ident, editoraman *ps_aman) {
             if (ps_aman == nullptr)
                 return false;
 

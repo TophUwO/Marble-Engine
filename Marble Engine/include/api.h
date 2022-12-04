@@ -3,7 +3,8 @@
 #pragma warning (disable: 5105) /* macro expansion producing UB */
 
 
-#include <uuid.h>
+#include <def.h>
+#include <platform.h>
 
 #include <windows.h>
 #include <windowsx.h>
@@ -12,15 +13,23 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <time.h>
-#ifdef _DEBUG
+#if (defined MB_PLATFORM_WINDOWS)
+    #include <io.h>
+
+    #define access _access_s
+#else
+    #include <unistd.h>
+#endif
+#if (defined _DEBUG && defined MB_COMPILER_MSVC) 
 	#define _CRTDBG_MAP_ALLOC
+
+    #include <crtdbg.h>
+    #include <memory.h>
 #endif
 #include <stdlib.h>
-#ifdef _DEBUG
-	#include <crtdbg.h>
-#endif
 
 /*
  * Define error code variable only for

@@ -193,6 +193,8 @@
     <ClCompile Include="..\src\level.c" />
     <ClCompile Include="..\src\log.c" />
     <ClCompile Include="..\src\renderer.c" />
+    <ClCompile Include="..\src\util.c" />
+    <ClCompile Include="..\src\uuid.c" />
     <ClCompile Include="..\src\window.c" />
   </ItemGroup>
   <ItemGroup>
@@ -215,6 +217,7 @@
     <ClInclude Include="..\include\window.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\..\Notes\app_rt.txt" />
     <Text Include="..\..\Notes\deps.txt" />
     <Text Include="..\..\Notes\measure_time.txt" />
     <Text Include="..\..\Notes\TODO.txt" />

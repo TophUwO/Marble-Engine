@@ -22,7 +22,6 @@ struct marble_window {
 	struct marble_window_data {
 		bool     m_isfscreen;   /* fullscreen state */
 		bool     m_isminimized; /* window size state */
-		uint64_t m_lastupdate;  /* timestamp of last update */
 		/* window styles (system-specific) */
 		uint32_t m_style;
 
@@ -38,6 +37,9 @@ struct marble_window {
 			/* extends of window area, in pixels */
 			struct marble_sizei2d ms_window;
 		} ms_ext;
+
+        /* update timer */
+        struct marble_util_clock ms_updt;
 	} ms_data;
 };
 
@@ -120,18 +122,14 @@ extern void marble_window_resize(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ extern marble_ecode_t marble_windowsys_init(
-	void
-);
+_Critical_ extern marble_ecode_t marble_windowsys_init(void);
 
 /*
  * Uninitializes the window system.
  * 
  * Returns othing.
  */
-extern void marble_windowsys_uninit(
-	void
-);
+extern void marble_windowsys_uninit(void);
 
 
 MB_END_HEADER

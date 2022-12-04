@@ -41,17 +41,7 @@ static void marble_levelasset_internal_destroylayer(
         return;
 
     /* Destroy chunks. */
-    /*for (size_t i = 0; i < (*pps_layer)->mps_chunks->m_size; i++) {
-        struct marble_levelasset_chunk *ps_chunk = marble_util_vec_get((*pps_layer)->mps_chunks, i);
-        if (ps_chunk == NULL)
-            continue;
-
-        marble_levelasset_internal_destroychunk(
-            (*pps_layer)->m_type,
-            &ps_chunk
-        );
-    }*/
-    marble_util_vec_destroy(&(*pps_layer)->mps_chunks);
+    marble_util_htable_destroy(&(*pps_layer)->mps_chunks);
 
     /* Free struct memory. */
     free(*pps_layer);
@@ -127,11 +117,11 @@ _Success_ok_ static marble_ecode_t marble_levelasset_internal_createlayer(
     (*pps_layer)->m_flags = flags;
 
     /* Initialize chunk storage. */
-    ecode = marble_util_vec_create(
+   /* ecode = marble_util_vec_create(
         rsize,
         NULL,
         &(*pps_layer)->mps_chunks
-    );
+    );*/
     if (ecode != MARBLE_EC_OK)
         goto lbl_END;
 
@@ -149,7 +139,9 @@ _Check_return_ _Success_ptr_ static struct marble_levelasset_chunk *marble_level
     if (ps_layer == NULL)
         return MB_INVPTR;
 
+    // TODO: implement
 
+    return NULL;
 }
 
 
@@ -284,7 +276,7 @@ _Critical_ marble_ecode_t marble_levelasset_addlayer(
     ecode = marble_util_vec_insert(
         ps_lvlasset->mps_layers,
         ps_layer,
-        min(ps_lvlasset->mps_layers->m_size, index)
+        min(marble_util_vec_count(ps_lvlasset->mps_layers), index)
     );
     if (ecode != MARBLE_EC_OK)
         goto lbl_END;

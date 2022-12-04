@@ -101,6 +101,7 @@ MB_DEFSUBTYPE(marble_levelasset, struct marble_asset, {
      */
     struct marble_util_vec *mps_layers;
 });
+static_assert(_Alignof(union marble_levelasset) == _Alignof(struct marble_asset), "");
 
 
 #if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)

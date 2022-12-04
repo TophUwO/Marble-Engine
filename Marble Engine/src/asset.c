@@ -190,8 +190,8 @@ static bool marble_asset_internal_setflag(
  * Returns 0 on success, non-zero on failure.
  */
 _Critical_ static marble_ecode_t marble_asset_internal_loaddeps(
-    _In_    struct marble_util_file *ps_fdesc, /* file descriptor */
-    _In_    struct marble_asset *ps_parent     /* parent asset */
+    _In_ struct marble_util_file *ps_fdesc, /* file descriptor */
+    _In_ struct marble_asset *ps_parent     /* parent asset */
 ) { MB_ERRNO
     // TODO: read dep-info
     // locate dep
@@ -237,7 +237,10 @@ _Critical_ static marble_ecode_t marble_container_internal_open(
      * Check whether file size is congruent with the file
      * size written into the file itself.
      */
-    if ((uint64_t)(*pps_fdesc)->ms_info.st_size != ps_rhead->m_fsize) {
+    struct _stat64 s_info = { 0 };
+    marble_util_file_getinfo(*pps_fdesc, &s_info);
+
+    if ((uint64_t)s_info.st_size != ps_rhead->m_fsize) {
         ecode = MARBLE_EC_FILESIZE;
 
         goto lbl_END;

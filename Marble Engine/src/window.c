@@ -38,7 +38,9 @@ static void marble_window_internal_onevent(
 	* Traverse layer stack top to bottom, having topmost layers
 	* get the chance to handle the event first.
 	*/
-	for (size_t i = gls_app.ms_layerstack.mps_vec->m_size - 1; i && i != (size_t)(-1) && ps_event->m_ishandled == false; i--) {
+    size_t const len = marble_util_vec_count(gls_app.ms_layerstack.mps_vec);
+
+	for (size_t i = len - 1; i && i != (size_t)(-1) && ps_event->m_ishandled == false; i--) {
 		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 
 		if (ps_layer->m_isenabled)
@@ -391,6 +393,7 @@ _Critical_ marble_ecode_t marble_window_create(
 		(*pps_wnd)->mp_handle,
 		&(*pps_wnd)->mps_renderer
 	);
+    marble_util_clock_start(&(*pps_wnd)->ms_data.ms_updt);
 
 lbl_END:
 	if (ecode != MARBLE_EC_OK)
@@ -434,12 +437,9 @@ void marble_window_update(
 	_In_ struct marble_window *ps_wnd,
 	     float fFrameTime
 ) {
-	LARGE_INTEGER u_time;
-	QueryPerformanceCounter(&u_time);
-
 	/* Set window text to show current FPS. */
-	if (u_time.QuadPart - ps_wnd->ms_data.m_lastupdate > 1.0f * gl_pfreq) {
-		ps_wnd->ms_data.m_lastupdate = u_time.QuadPart;
+	if (marble_util_clock_asmsec(&ps_wnd->ms_data.ms_updt) > 1000.0) {
+		marble_util_clock_start(&ps_wnd->ms_data.ms_updt);
 
 		TCHAR az_buffer[256] = { 0 };
 		_stprintf_s(

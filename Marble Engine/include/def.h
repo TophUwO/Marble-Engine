@@ -59,7 +59,8 @@
 	 */
 	#define _Maybe_valid_   _Outptr_result_maybenull_
 	/*
-	 * Writes data if function succeeds, leaves the buffer unchanged on failure. 
+	 * Writes data if function succeeds, leaves the buffer
+     * unchanged on failure. 
 	 */
 	#define _Maybe_out_     _When_(return == MARBLE_EC_OK, _Out_)
 #endif
@@ -138,6 +139,9 @@
 #if (defined __cplusplus)
     #define MB_BEGIN_HEADER extern "C" {
     #define MB_END_HEADER   }
+
+    /* Fix identifier mismatch between C and C++ compilers. */
+    #define _Alignof alignof
 #else
     #define MB_BEGIN_HEADER
     #define MB_END_HEADER

@@ -8,31 +8,42 @@ MB_BEGIN_HEADER
 
 
 /*
- * Structure representing an std::vector-like
- * container.
+ * Destructor functions for all object types must be
+ * of this form. This is especially important for
+ * "marble_util_vec" etc. utils.
  */
+typedef void (MB_CALLBACK *marble_dtor_t)(void **);
+/*
+ * Function used to identify an object inside a
+ * hash table, etc.
+ * The first parameter is the current object that
+ * is being examined while the second argument
+ * is custom data that is used to determine if
+ * the object is the one searched for; this can be
+ * a key for instance.
+ * object. If they match, the function shall return
+ * true.
+ */
+typedef bool (MB_CALLBACK *marble_find_t)(void *, void *);
+
+
 #pragma region UTIL-VECTOR
-#define MB_UTIL_VEC_DEFSTARTCAP (32)
-#if (SIZE_MAX == UINT64_MAX)
-	#define MB_UTIL_VEC_GROWTHFAC (1.5)
-#else
-	#define MB_UTIL_VEC_GROWTHFAC (1.5f)
-#endif
+struct marble_util_vec;
 
-
-struct marble_util_vec {
-	size_t m_size;   /* Current number of elements */
-	size_t m_cap;    /* Maximum number of elements */
-	size_t m_defcap; /* Initial maximum capacity */
-	
-	void **mpp_data; /* actual data storage */
-	/*
-	 * Custom "destructor" which will be called
-	 * on every "object" inside **mpp_data**.
-	 */
-	void (MB_CALLBACK *mfn_dest)(void **);
-};
-
+/*
+ * Create and initialize a vector.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Critical_ marble_ecode_t marble_util_vec_create(
+    _In_opt_           size_t startcap,       /* initial capacity */
+    _In_opt_           marble_dtor_t fn_dtor, /* object destructor */
+    /*
+     * Pointer to a "struct marble_util_vec *" pointer that will
+     * receive the pointer to the newly-created vector.
+     */
+    _Init_(pps_vector) struct marble_util_vec **pps_vector
+);
 
 /*
  * Destroys a vector, optionally freeing all of its objects,
@@ -40,87 +51,9 @@ struct marble_util_vec {
  * 
  * Returns nothing.
  */
-void inline marble_util_vec_destroy(
-	_Uninit_(pps_vector) struct marble_util_vec **pps_vector /* vector to destroy */ 
-) {
-	if (pps_vector == NULL || *pps_vector == NULL)
-		return;
-
-	/* Call the destructors. */
-	if ((*pps_vector)->mfn_dest)
-		for (size_t i = 0; i < (*pps_vector)->m_size; i++)
-			(*(*pps_vector)->mfn_dest)(&(*pps_vector)->mpp_data[i]);
-
-	/* Free memory used by the vector itself. */
-	free((*pps_vector)->mpp_data);
-	free(*pps_vector);
-	*pps_vector = NULL;
-}
-
-/*
- * Create and initialize a vector.
- * 
- * Returns 0 on success, non-zero on failure.
- */
-_Critical_ marble_ecode_t inline marble_util_vec_create(
-	_In_opt_           size_t startcap,                      /* initial capacity */
-	_In_opt_           void (MB_CALLBACK *fn_dest)(void **), /* object destructor */
-	/*
-	 * Pointer to a "struct marble_util_vec *" pointer that will
-	 * receive the pointer to the newly-created vector.
-	 */
-	_Init_(pps_vector) struct marble_util_vec **pps_vector
-) { MB_ERRNO
-	if (pps_vector == NULL)
-		return MARBLE_EC_PARAM;
-
-	/*
-	 * Correct optional parameters in case
-	 * they are set to their standard
-	 * values. **fn_dest** can be NULL here,
-	 * meaning that no destructor will be called
-	 * on the objects.
-	 */
-	startcap = startcap == 0 ? MB_UTIL_VEC_DEFSTARTCAP : startcap;
-
-	/* Allocate memory for vector. */
-	ecode = marble_system_alloc(
-		MB_CALLER_INFO,
-		sizeof **pps_vector,
-		false,
-		false,
-		pps_vector
-	);
-	if (ecode != MARBLE_EC_OK)
-		goto lbl_END;
-
-	/*
-	 * Allocate memory for the dynamic
-	 * array, the memory that will hold the
-	 * actual data.
-	 */
-	ecode = marble_system_alloc(
-		MB_CALLER_INFO,
-		startcap * sizeof *pps_vector,
-		true,
-		false,
-        (void **)&(*pps_vector)->mpp_data
-	);
-	if (ecode != MARBLE_EC_OK)
-		goto lbl_END;
-
-	/* Initialize the info fields. */
-	(*pps_vector)->mfn_dest = fn_dest;
-	(*pps_vector)->m_cap    = startcap;
-	(*pps_vector)->m_defcap = startcap;
-	(*pps_vector)->m_size   = 0;
-
-lbl_END:
-	if (ecode != MARBLE_EC_OK)
-		marble_util_vec_destroy(pps_vector);
-
-	return ecode;
-}
+MB_API void marble_util_vec_destroy(
+    _Uninit_(pps_vector) struct marble_util_vec **pps_vector /* vector to destroy */ 
+);
 
 /*
  * Inserts **p_obj** at index **index**. If **p_obj** is
@@ -129,63 +62,11 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_vec_insert(
-	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
-	_In_ void *p_obj,                       /* object pointer to insert */
-	     size_t index                       /* position where to insert **p_obj** */
-) {
-	if (ps_vector == NULL || p_obj == NULL || index > ps_vector->m_size)
-		return MARBLE_EC_PARAM;
-
-	/*
-	 * Reallocate the vector, increasing its
-	 * capacity if there is no space left.
-	 */
-	if (ps_vector->m_size + 1 >= ps_vector->m_cap) {
-		size_t newcap = (size_t)(MB_UTIL_VEC_GROWTHFAC * ps_vector->m_cap);
-		/*
-		 * Attempt to allocate a new buffer of the given size.
-		 * If the attempt fails, the function will not modify
-		 * the vector.
-		 */
-		void *p_new = realloc(
-			ps_vector->mpp_data,
-			sizeof *ps_vector->mpp_data * newcap
-		);
-		if (p_new == NULL)
-			return MARBLE_EC_MEMREALLOC;
-
-		/* Update data. */
-		ps_vector->m_cap    = newcap;
-		ps_vector->mpp_data = (void **)p_new;
-	}
-
-	/* In case we just want to add **p_obj**
-	 * to the end, do not even attempt
-	 * to move any memory.
-	 */
-	if (index == ps_vector->m_size) {
-		ps_vector->mpp_data[ps_vector->m_size] = p_obj;
-
-		goto lbl_END;
-	}
-
-	/* If **p_obj** is to be inserted in the middle
-	 * or at the beginning, we have to move the following
-	 * block by one position to make space for the pointer.
-	 */
-	memmove(
-		&ps_vector->mpp_data[index + 1],
-		&ps_vector->mpp_data[index],
-		(ps_vector->m_size - index) * sizeof *ps_vector->mpp_data
-	);
-	/* Insert **p_obj**. */
-	ps_vector->mpp_data[index] = p_obj;
-
-lbl_END:
-	++ps_vector->m_size;
-	return MARBLE_EC_OK;
-}
+MB_API _Success_ok_ marble_ecode_t marble_util_vec_insert(
+	_Inout_ struct marble_util_vec *ps_vector, /* vector to modify */
+	_In_    void *p_obj,                       /* object pointer to insert */
+	        size_t index                       /* position where to insert **p_obj** */
+);
 
 /*
  * Inserts **p_obj** at the end. If **p_obj** is
@@ -193,12 +74,10 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_vec_pushback(
-	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
-	_In_ void *p_obj                        /* object to insert */
-) {
-	return marble_util_vec_insert(ps_vector, p_obj, ps_vector->m_size);
-}
+MB_API _Success_ok_ marble_ecode_t marble_util_vec_pushback(
+	_Inout_ struct marble_util_vec *ps_vector, /* vector to modify */
+	_In_    void *p_obj                        /* object to insert */
+);
 
 /*
  * Inserts **p_obj** at the beginning (that is, index 0).
@@ -206,12 +85,10 @@ _Success_ok_ marble_ecode_t inline marble_util_vec_pushback(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_vec_pushfront(
-	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
-	_In_ void *p_obj                        /* object to insert */
-) {
-	return marble_util_vec_insert(ps_vector, p_obj, 0);
-}
+MB_API _Success_ok_ marble_ecode_t marble_util_vec_pushfront(
+	_Inout_ struct marble_util_vec *ps_vector, /* vector to modify */
+	_In_    void *p_obj                        /* object to insert */
+);
 
 /*
  * Erases the object at index **index**. If 
@@ -223,49 +100,16 @@ _Success_ok_ marble_ecode_t inline marble_util_vec_pushfront(
  * or the pointer to the object at index **index** is the
  * object was not freed.
  */
-void inline *marble_util_vec_erase(
-	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
-	     size_t index,                      /* object to insert */
-	     /*
-	      * This member can be used to override the freeing-behavior
-	      * of this function. If this parameter is non-zero, it will
-	      * not run the destructor, even if it is set and valid.
-	      */
-	     bool rundest
-) {
-	if (ps_vector == NULL || index >= ps_vector->m_size)
-		return NULL;
-
-	/* Call object destructor if necessary. */
-	if (rundest != false && ps_vector->mfn_dest != NULL)
-		(*ps_vector->mfn_dest)(&ps_vector->mpp_data[index]);
-
-	/* Save pointer value; if it has been destructed, it is NULL. */
-	void *p_ret = ps_vector->mpp_data[index];
-
-	/*
-	 * Move memory backwards to overwrite pointer.
-	 * 
-	 * If **index** points to the last element in the vector,
-	 * we do not call "memmove()" as it is useless anyway.
-	 */
-	if (index != ps_vector->m_size - 1)
-		memmove(
-			&ps_vector->mpp_data[index],
-			&ps_vector->mpp_data[index + 1],
-			(ps_vector->m_size - index) * sizeof *ps_vector->mpp_data
-		);
-	/*
-	 * As "memmove()" does not actually "move" but copy the memory,
-	 * and we moved the rest of the vector to the left by one position,
-	 * the last element will now be duplicated.
-	 * So we have to NULL it.
-	 */
-	ps_vector->mpp_data[--ps_vector->m_size] = NULL;
-
-	/* Return pointer, may be NULL. */
-	return p_ret;
-}
+MB_API void *marble_util_vec_erase(
+	_Inout_ struct marble_util_vec *ps_vector, /* vector to modify */
+	        size_t index,                      /* object to insert */
+	        /*
+	         * This member can be used to override the freeing-behavior
+	         * of this function. If this parameter is non-zero, it will
+	         * not run the destructor, even if it is set and valid.
+	         */
+	        bool rundest
+);
 
 /*
  * Erases the last element in **ps_vector**.
@@ -275,12 +119,10 @@ void inline *marble_util_vec_erase(
  * not destroyed, the function returns the pointer to
  * it.
  */
-void inline *marble_util_vec_popback(
-	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
-	     bool rundest                       /* run object destructor? */
-) {
-	return marble_util_vec_erase(ps_vector, ps_vector->m_size - 1, rundest);
-}
+MB_API void *marble_util_vec_popback(
+	_Inout_ struct marble_util_vec *ps_vector, /* vector to modify */
+	        bool rundest                       /* run object destructor? */
+);
 
 /*
  * Erases the first element in **ps_vector**.
@@ -290,12 +132,10 @@ void inline *marble_util_vec_popback(
  * not destroyed, the function returns the pointer to
  * it.
  */
-void inline *marble_util_vec_popfront(
-	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
-	     bool rundest                       /* run object destructor? */
-) {
-	return marble_util_vec_erase(ps_vector, 0, rundest);
-}
+MB_API void *marble_util_vec_popfront(
+	_Inout_ struct marble_util_vec *ps_vector, /* vector to modify */
+	        bool rundest                       /* run object destructor? */
+);
 
 /*
  * Returns the index of the first occurrence
@@ -307,36 +147,12 @@ void inline *marble_util_vec_popfront(
  * If there are no occurrences, the function
  * returns (size_t)(-1).
  */
-size_t inline marble_util_vec_find(
+MB_API size_t marble_util_vec_find(
 	_In_ struct marble_util_vec *ps_vector, /* vector to modify */
 	_In_ void *p_obj,                       /* object to search for */
 	     size_t start,                      /* first index of searching range */
 	     size_t end                         /* last index of searching range */
-) {
-	if (ps_vector == NULL || p_obj == NULL || start > end || start >= ps_vector->m_size || end >= ps_vector->m_size)
-		return (size_t)(-1);
-
-	/*
-	 * If **start** and **end** are equal, and they are 0,
-	 * set **end** to the last index of the last element
-	 * in the vector.
-	 */
-	end = start == end && start == 0 ? ps_vector->m_size : end;
-
-	/*
-	 * Search for **p_obj** within the given searching range,
-	 * returning its index as soon as it is found.
-	 */
-	for (size_t i = start; i < end; i++)
-		if (ps_vector->mpp_data[i] == p_obj)
-			return i;
-
-	/*
-	 * Return SIZE_MAX essentially if **p_obj** cannot be
-	 * found.
-	 */
-	return (size_t)(-1);
-}
+);
 
 /*
  * Returns the object pointer at index **index**.
@@ -349,16 +165,21 @@ size_t inline marble_util_vec_find(
  * Returns object pointer at index **index**, or NULL
  * on error.
  */
-void inline *marble_util_vec_get(
+MB_API void *marble_util_vec_get(
 	_In_ struct marble_util_vec *ps_vector, /* vector to read */
 	     size_t index                       /* index */
-) {
-	if (ps_vector == NULL || index >= ps_vector->m_size)
-		return NULL;
+);
 
-	return ps_vector->mpp_data[index];
-}
-#pragma endregion
+/*
+ * Retrieves the current size, i.e. the number of objects
+ * in the given vector.
+ * 
+ * Returns size, in objects, or SIZE_MAX on error.
+ */
+MB_API size_t marble_util_vec_count(
+    _In_ struct marble_util_vec *ps_vector /* vector to get size of */
+);
+#pragma endregion (UTIL-VECTOR)
 
 
 /*
@@ -366,39 +187,33 @@ void inline *marble_util_vec_get(
  * means of measuring time with high resolution).
  */
 #pragma region UTIL-CLOCK
-MB_API uint64_t gl_pfreq; /* variable holding frequency of HPC */
-
-
 struct marble_util_clock {
-	uint64_t m_tstart; /* start time */
-	uint64_t m_tend;   /* end time */
+	int64_t m_tstart; /* start time, in counts per second */
+	int64_t m_tend;   /* end time, in counts per second */
+
+    /*
+     * specifies whether the clock is still running
+     * or has been stopped
+     */
+    bool m_isrunning;
 };
 
 
 /*
- * Initializes the performance frequency.
+ * Retrieves frequency of HPC.
  * 
- * Returns nothing.
+ * Returns frequency, in counts per second.
  */
-bool inline marble_util_clock_init(void) {
-	return QueryPerformanceFrequency((LARGE_INTEGER *)&gl_pfreq);
-}
+MB_API int64_t marble_util_clock_getfreq(void);
 
 /*
  * Starts/Restarts a clock.
  * 
  * Returns nothing.
  */
-void inline marble_util_clock_start(
+MB_API void marble_util_clock_start(
 	_Out_ struct marble_util_clock *ps_clock /* clock to start/reset */
-) {
-    if (ps_clock == NULL)
-        return;
-
-#if (defined MB_PLATFORM_WINDOWS)
-	QueryPerformanceCounter((LARGE_INTEGER *)&ps_clock->m_tstart);
-#endif
-}
+);
 
 /*
  * Stops a clock.
@@ -406,103 +221,98 @@ void inline marble_util_clock_start(
  * 
  * Returns nothing.
  */
-void inline marble_util_clock_stop(
-	_Out_ struct marble_util_clock *ps_clock /* clock to stop */
-) {
-    if (ps_clock == NULL)
-        return;
-
-#if (defined MB_PLATFORM_WINDOWS)
-	QueryPerformanceCounter((LARGE_INTEGER *)&ps_clock->m_tend);
-#endif
-}
+MB_API void marble_util_clock_stop(
+    _Inout_ struct marble_util_clock *ps_clock /* clock to stop */
+);
 
 /*
  * Calculates time between **m_tstart** and **m_tend**,
  * in seconds.
+ * If the clock is still running, the function calculates
+ * the difference between the current time and the time
+ * when the clock was last started.
  * 
  * Returns elapsed time, in seconds. If there was
  * an error, the function returns -1.0.
  */
-double inline marble_util_clock_assec(
-	_In_ struct marble_util_clock *ps_clock /* clock */
-) {
-    if (ps_clock == NULL)
-        return -1.0;
-
-	return (ps_clock->m_tend - ps_clock->m_tstart) / (double)gl_pfreq;
-}
+MB_API double marble_util_clock_assec(
+    _Inout_ struct marble_util_clock const *ps_clock /* clock */
+);
 
 /*
  * Calculates time between **m_tstart** and **m_tend**,
  * in milliseconds.
+ * If the clock is still running, the function calculates
+ * the difference between the current time and the time
+ * when the clock was last started.
  * 
  * Returns elapsed time, in milliseconds. If there was
  * an error, the function returns -1.0.
  */
-double inline marble_util_clock_asmsec(
-	_In_ struct marble_util_clock *ps_clock /* clock */
-) {
-    if (ps_clock == NULL)
-        return -1.0;
-
-	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+3);
-}
+MB_API double marble_util_clock_asmsec(
+    _Inout_ struct marble_util_clock const *ps_clock /* clock */
+);
 
 /*
  * Calculates time between **m_tstart** and **m_tend**,
  * in microseconds.
+ * If the clock is still running, the function calculates
+ * the difference between the current time and the time
+ * when the clock was last started.
  * 
  * Returns elapsed time, in microseconds. If there was
  * an error, the function returns -1.0.
  */
-double inline marble_util_clock_asmcsec(
-	_In_ struct marble_util_clock *ps_clock /* clock */
-) {
-    if (ps_clock == NULL)
-        return -1.0;
-
-	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+6);
-}
+MB_API double marble_util_clock_asmcsec(
+    _Inout_ struct marble_util_clock const *ps_clock /* clock */
+);
 
 /*
  * Calculates time between **m_tstart** and **m_tend**,
  * in nanoseconds.
+ * If the clock is still running, the function calculates
+ * the difference between the current time and the time
+ * when the clock was last started.
  * 
  * Returns elapsed time, in nanoseconds. If there was
  * an error, the function returns -1.0.
  */
-double inline marble_util_clock_asnsec(
-	_In_ struct marble_util_clock *ps_clock /* clock */
-) {
-    if (ps_clock == NULL)
-        return -1.0;
-
-	return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+9);
-}
-#pragma endregion
+MB_API double marble_util_clock_asnsec(
+    _Inout_ struct marble_util_clock const *ps_clock /* clock */
+);
+#pragma endregion (UTIL-CLOCK)
 
 
 /*
  * Interface that handles file I/O.
  */
 #pragma region UTIL-FILE
+struct marble_util_file;
+
 /*
- * These flags can be combined to allow
- * for multiple access rights.
+ * A combination of these flags can be specified as
+ * the **flags** parameter of "marble_util_file_open()".
+ * 
+ * MB_UTIL_FILE_FLAG_OVERWRITE = overwrite file if it exists
  */
-enum marble_util_file_perms {
-	MARBLE_UTIL_FILEPERM_READ  = 1 << 0, /* open file for reading */
-	MARBLE_UTIL_FILEPERM_WRITE = 1 << 1  /* open file for writing */
-};
+#define MB_UTIL_FILE_FLAG_OVERWRITE (1 << 0)
 
-struct marble_util_file {
-	FILE *mp_handle; /* file handle */
 
-	struct _stat64              ms_info; /* file info */
-	enum marble_util_file_perms m_perms; /* permissions */
-};
-
+/*
+ * Opens a file. If the file does not exist, a new one
+ * will be created at the specified path.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Critical_ marble_ecode_t marble_util_file_open(
+	_In_z_           char const *pz_path, /* file path */
+    _In_opt_         int flags,           /* optional flags */
+	                 /*
+	                  * pointer to receive the pointer
+	                  * to the file object
+	                  */
+	_Init_(pps_file) struct marble_util_file **pps_file
+);
 
 /*
  * Closes and destroys a file.
@@ -511,85 +321,19 @@ struct marble_util_file {
  * 
  * Returns nothing.
  */
-void inline marble_util_file_destroy(
-	_Uninit_(pps_file) struct marble_util_file **pps_file /* file to destroy */
-) {
-	if (pps_file == NULL || *pps_file == NULL)
-		return;
-
-	fclose((*pps_file)->mp_handle);
-
-	free(*pps_file);
-	*pps_file = NULL;
-}
-
-/*
- * Opens a file.
- * 
- * Returns 0 on success, non-zero on failure.
- */
-_Critical_ marble_ecode_t inline marble_util_file_open(
-	_In_z_           char const *pz_path,               /* file path */
-	                 enum marble_util_file_perms perms, /* permissions */
-	                 /*
-	                  * pointer to receive the pointer
-	                  * to the file object
-	                  */
-	_Init_(pps_file) struct marble_util_file **pps_file
-) { MB_ERRNO
-	if (pz_path == NULL || pps_file == NULL)
-		return MARBLE_EC_PARAM;
-
-	/* Allocate memory file object. */
-	ecode = marble_system_alloc(
-		MB_CALLER_INFO,
-		sizeof **pps_file,
-		false,
-		false,
-		pps_file
-	);
-	if (ecode != MARBLE_EC_OK)
-		goto lbl_END;
-
-	/* Open the file. */
-	(*pps_file)->mp_handle = NULL;
-	if (fopen_s(&(*pps_file)->mp_handle, pz_path, "rb" /* TODO: change later */) != 0) {
-        ecode = MARBLE_EC_OPENFILE;
-
-        goto lbl_END;
-    }
-
-    /* Read file info. */
-    _fstat64(
-        _fileno((*pps_file)->mp_handle),
-        &(*pps_file)->ms_info
-    );
-
-lbl_END:
-	/*
-	 * If an error occurs, the file object will be
-	 * destroyed, and **pps_file** will be set to NULL.
-	 */
-	if (ecode != MARBLE_EC_OK)
-		marble_util_file_destroy(pps_file);
-
-	return ecode;
-}
+MB_API void marble_util_file_destroy(
+    _Uninit_(pps_file) struct marble_util_file **pps_file /* file to destroy */
+);
 
 /*
  * Sets the position of the internal file indicator.
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_file_goto(
+MB_API _Success_ok_ marble_ecode_t marble_util_file_goto(
 	_In_ struct marble_util_file *ps_file, /* file descriptor */
 	     int64_t newpos                    /* new position */
-) {
-	if (ps_file == NULL)
-		return MARBLE_EC_PARAM;
-
-	return _fseeki64(ps_file->mp_handle, newpos, SEEK_SET) ? MARBLE_EC_FSEEK : MARBLE_EC_OK;	
-}
+);
 
 /*
  * Retrieves the current internal file position
@@ -598,14 +342,9 @@ _Success_ok_ marble_ecode_t inline marble_util_file_goto(
  * Returns current position indicator, or -1 on
  * error.
  */
-inline int64_t marble_util_file_tell(
+MB_API int64_t marble_util_file_tell(
     _In_ struct marble_util_file *ps_file /* file descriptor */
-) {
-    if (ps_file == NULL)
-        return -1;
-
-    return _ftelli64(ps_file->mp_handle);
-}
+);
 
 /*
  * Reads **size** bytes from **ps_file**.
@@ -615,17 +354,11 @@ inline int64_t marble_util_file_tell(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ inline marble_ecode_t marble_util_file_read(
+MB_API _Success_ok_ marble_ecode_t marble_util_file_read(
 	_In_         struct marble_util_file *ps_file, /* file object */
 	             size_t size,                      /* number of bytes to read */
 	_Size_(size) void *p_dest                      /* buffer to write read bytes to */
-) {
-	if (ps_file == NULL || size == 0 || p_dest == NULL)
-		return MARBLE_EC_PARAM;
-
-	/* currently not implemented. */
-	return MARBLE_EC_UNIMPLFEATURE;
-}
+);
 
 /*
  * Reads a byte from **ps_file** and stores
@@ -633,12 +366,10 @@ _Success_ok_ inline marble_ecode_t marble_util_file_read(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_file_read8(
+MB_API _Success_ok_ marble_ecode_t marble_util_file_read8(
 	_In_  struct marble_util_file *ps_file, /* file object */
 	_Out_ uint8_t *p_dest                   /* destination buffer */
-) {
-	return marble_util_file_read(ps_file, 1, p_dest);
-}
+);
 
 /*
  * Reads two bytes from **ps_file** and stores
@@ -646,12 +377,10 @@ _Success_ok_ marble_ecode_t inline marble_util_file_read8(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_file_read16(
+MB_API _Success_ok_ marble_ecode_t marble_util_file_read16(
 	_In_  struct marble_util_file *ps_file, /* file object */
 	_Out_ uint16_t *p_dest				    /* destination buffer */
-) {
-	return marble_util_file_read(ps_file, 2, p_dest);
-}
+);
 
 /*
  * Reads four bytes from **ps_file** and stores
@@ -659,170 +388,53 @@ _Success_ok_ marble_ecode_t inline marble_util_file_read16(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_file_read32(
+MB_API _Success_ok_ marble_ecode_t marble_util_file_read32(
 	_In_  struct marble_util_file *ps_file, /* file object */
 	_Out_ uint32_t *p_dest				    /* destination buffer */
-) {
-	return marble_util_file_read(ps_file, 4, p_dest);
-}
-#pragma endregion
+);
+
+/*
+ * Retrieves the file info structure from the file
+ * object.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_util_file_getinfo(
+    _In_  struct marble_util_file *ps_file, /* file object */
+    _Out_ struct _stat64 *ps_info           /* structure to receive file info */ 
+);
+#pragma endregion (UTIL-FILE)
 
 
 /*
  * Structure representing a basic hashtable. 
  */
 #pragma region UTIL-HASHTABLE
-#define MB_UTIL_HTABLE_DEFNBUCKETS (128)
-
-struct marble_util_htable {
-	size_t m_cbucket;                     /* number of buckets */
-	struct marble_util_vec **pps_storage; /* bucket array */
-
-	void (*mfn_dest)(void **);            /* object destructor */
-};
-
-
-#pragma region UTIL-HASHTABLE-INTERNAL
-extern uint32_t gl_hashseed;
+struct marble_util_htable;
 
 
 /*
- * Marble uses MurmurHash3 as its hash function.
- * 
- * Source: https://github.com/jwerle/murmurhash.c/blob/master/murmurhash.c
- * 
- * ------------------------------------------
- * 
- * The MIT License (MIT)
- * 
- * Copyright (c) 2014 Joseph Werle
- * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-uint32_t inline __marble_util_htable_hash(
-	_In_ void const *p_key,
-    _In_ size_t const keysize
-) {
-	uint32_t c1 = 0xcc9e2d51;
-	uint32_t c2 = 0x1b873593;
-	uint32_t r1 = 15;
-	uint32_t r2 = 13;
-	uint32_t m  = 5;
-	uint32_t n  = 0xe6546b64;
-	uint32_t h  = 0;
-	uint32_t k  = 0;
-	uint8_t *d  = (uint8_t *)p_key;
-
-	const uint32_t *chunks = NULL;
-	const uint8_t  *tail   = NULL;
-	int i = 0;
-	int const len = (int)keysize;
-	int l = len / 4;
-
-	h = gl_hashseed;
-
-	chunks = (const uint32_t *)(d + (size_t)l * 4);
-	tail   = (const uint8_t *)(d + (size_t)l * 4);
-
-	for (i = -l; i != 0; ++i) {
-		k = chunks[i];
-
-		k *= c1;
-		k = (k << r1) | (k >> (32 - r1));
-		k *= c2;
-
-		h ^= k;
-		h = (h << r2) | (h >> (32 - r2));
-		h = h * m + n;
-	}
-	k = 0;
-
-	switch (len & 3) {
-		case 3: k ^= (tail[2] << 16);
-		case 2: k ^= (tail[1] << 8);
-		case 1:
-			k ^= tail[0];
-			k *= c1;
-			k = (k << r1) | (k >> (32 - r1));
-			k *= c2;
-			h ^= k;
-	}
-	h ^= len;
-
-	h ^= (h >> 16);
-	h *= 0x85ebca6b;
-	h ^= (h >> 13);
-	h *= 0xc2b2ae35;
-	h ^= (h >> 16);
-
-	return h;
-}
-
-/*
- * Attempt to locate an element inside **ps_htable**.
- * If the element is found is determined by running
- * **fn_find()** over every element in the bucket the
- * hash value of **pz_key** evaluates to.
- * If the function succeeds, **p_bucketindex** and **p_vecindex**
- * will be set to the indices in both the bucket array and
- * the bucket itself. A value of (size_t)(-1) indicates failure.
+ * Creates a hash table and initializes its bucket array.
+ * Note that the buckets themselves will not be
+ * initialized until an attempt to add an element to
+ * the bucket was made.
  * 
  * Returns 0 on success, non-zero on failure.
  */
-marble_ecode_t inline __marble_util_htable_locate(
-	_In_ struct marble_util_htable *ps_htable, /* hashtable to search */
-	_In_ void *p_key,                          /* key to search for */
-    _In_ size_t const keysize,                 /* key size, in bytes */
-    /* callback function */
-	_In_   bool (*fn_find)(
-		_In_ void *,
-		_In_ void *
-	),
-	_Out_  size_t *p_bucketindex, /* index of bucket */
-	_Out_  size_t *p_vecindex     /* index of element in bucket */
-) {
-	/* Get index of key in bucket array. */
-	*p_bucketindex = __marble_util_htable_hash(p_key, keysize) % ps_htable->m_cbucket;
-
-	struct marble_util_vec *ps_bucket = ps_htable->pps_storage[*p_bucketindex];
-	if (ps_bucket == NULL)
-		goto lbl_END;
-
-	for (size_t i = 0; i < ps_bucket->m_size; i++)
-		if (fn_find(p_key, marble_util_vec_get(ps_bucket, i)) != false) {
-			*p_vecindex = i;
-
-			return MARBLE_EC_OK;
-		}
-
-lbl_END:
-	*p_vecindex = (size_t)(-1);
-
-	return MARBLE_EC_NOTFOUND;
-}
-#pragma endregion
-
+MB_API _Critical_ marble_ecode_t marble_util_htable_create(
+	_In_opt_           size_t nbuckets,          /* number of buckets */
+	_In_opt_           void (*fn_dest)(void **), /* object destructor */
+	/*
+	 * pointer to receive the pointer
+	 * to the hash table object
+	 */
+	_Init_(pps_htable) struct marble_util_htable **pps_htable
+);
 
 /*
- * Destroys a hashtable objects, all of its buckets, and,
+ * Destroys a hash table objects, all of its buckets, and,
  * if its **pps_hashtable->mfn_dest** member is not NULL,
- * all of the objects the hashtable holds using its
+ * all of the objects the hash table holds using its
  * **pps_hashtable->mfn_dest()** function.
  * 
  * When the function returns, **pps_hashtable** will
@@ -830,74 +442,9 @@ lbl_END:
  * 
  * Returns nothing.
  */
-void inline marble_util_htable_destroy(
-	_Uninit_(pps_htable) struct marble_util_htable **pps_htable /* hashtable to destroy */
-) {
-	if (pps_htable == NULL || *pps_htable == NULL)
-		return;
-
-	/*
-	 * Destroy all buckets; the destroying of the
-	 * objects will be taken care of by their
-	 * buckets.
-	 */
-	for (size_t i = 0; i < (*pps_htable)->m_cbucket; i++)
-		marble_util_vec_destroy(&(*pps_htable)->pps_storage[i]);
-
-	free((*pps_htable)->pps_storage);
-	free(*pps_htable);
-	*pps_htable = NULL;
-}
-
-/*
- * Creates a hashtable and initializes its bucket array.
- * Note that the buckets themselves will not be
- * initialized until an attempt to add an element to
- * the bucket was made.
- * 
- * Returns 0 on success, non-zero on failure.
- */
-_Critical_ marble_ecode_t inline marble_util_htable_create(
-	_In_opt_           size_t nbuckets,          /* number of buckets */
-	_In_opt_           void (*fn_dest)(void **), /* object destructor */
-	                   /*
-	                    * pointer to receive the pointer
-	                    * to the hashtable object
-	                    */
-	_Init_(pps_htable) struct marble_util_htable **pps_htable
-) { MB_ERRNO
-	if (pps_htable == NULL)
-		return MARBLE_EC_PARAM;
-
-	ecode = marble_system_alloc(
-		MB_CALLER_INFO,
-		sizeof **pps_htable,
-		false,
-		false,
-		pps_htable
-	);
-	if (ecode != MARBLE_EC_OK)
-		goto lbl_END;
-
-	(*pps_htable)->m_cbucket = nbuckets != 0 ? nbuckets : MB_UTIL_HTABLE_DEFNBUCKETS;
-	ecode = marble_system_alloc(
-		MB_CALLER_INFO,
-		sizeof *(*pps_htable)->pps_storage * (*pps_htable)->m_cbucket,
-		true,
-		false,
-		(void **)&(*pps_htable)->pps_storage
-	);
-	if (ecode != MARBLE_EC_OK)
-		goto lbl_END;
-
-	(*pps_htable)->mfn_dest = fn_dest;
-
-lbl_END:
-	if (ecode != MARBLE_EC_OK)
-		marble_util_htable_destroy(pps_htable);
-
-	return ecode;
-}
+MB_API void marble_util_htable_destroy(
+    _Uninit_(pps_htable) struct marble_util_htable **pps_htable /* hash table to destroy */
+);
 
 /*
  * Inserts **p_obj** into **ps_hashtable** using
@@ -906,45 +453,12 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ marble_ecode_t inline marble_util_htable_insert(
-	_In_ struct marble_util_htable *ps_htable, /* hashtable */
+MB_API _Success_ok_ marble_ecode_t marble_util_htable_insert(
+	_In_ struct marble_util_htable *ps_htable, /* hash table */
 	_In_ void *p_key,                          /* **p_obj**'s key */
     _In_ size_t const keysize,                 /* key size, in bytes */
 	_In_ void *p_obj                           /* object to insert */
-) { MB_ERRNO
-	if (ps_htable == NULL || p_key == NULL  || p_obj == NULL)
-		return MARBLE_EC_PARAM;
-
-	/* Get index of key in bucket array. */
-	uint32_t const index = __marble_util_htable_hash(p_key, keysize) % ps_htable->m_cbucket;
-
-	/*
-	 * If the bucket at position **index** does not already exist,
-	 * create it.
-	 */
-	if (ps_htable->pps_storage[index] == NULL) {
-		ecode = marble_util_vec_create(
-			0,
-			ps_htable->mfn_dest,
-			&ps_htable->pps_storage[index]
-		);
-
-		if (ecode != MARBLE_EC_OK)
-			goto lbl_END;
-	}
-
-	/*
-	 * Even if the push fails, we do not destroy the bucket we
-	 * may just have created.
-	 */
-	ecode = marble_util_vec_pushback(
-		ps_htable->pps_storage[index],
-		p_obj
-	);
-
-lbl_END:
-	return ecode;
-}
+);
 
 /*
  * Erases an object whose key is equal to **pz_key**
@@ -955,8 +469,8 @@ lbl_END:
  * Returns NULL on error or if the element got destroyed, or
  * the element's pointer on success.
  */
-void inline *marble_util_htable_erase(
-	_In_ struct marble_util_htable *ps_htable, /* hashtable */
+MB_API void *marble_util_htable_erase(
+	_In_ struct marble_util_htable *ps_htable, /* hash table */
 	_In_ void *p_key,                          /* key */
     _In_ size_t const keysize,                 /* key size, in bytes */
 	/*
@@ -965,31 +479,9 @@ void inline *marble_util_htable_erase(
 	 * If this parameter is NULL, the function fails
 	 * and returns NULL.
 	 */
-	_In_ bool (*fn_find)(void *, void *),
+	_In_ marble_find_t fn_find,
 	     bool rundest                          /* destroy (found) object? */
-) { MB_ERRNO
-	if (ps_htable == NULL || p_key == NULL || fn_find == NULL)
-		return NULL;
-
-	/* Get location of element. */
-	size_t bucketindex, vecindex;
-	ecode = __marble_util_htable_locate(
-		ps_htable,
-		p_key,
-        keysize,
-		fn_find,
-		&bucketindex,
-		&vecindex
-	);
-	if (ecode != MARBLE_EC_OK)
-		return NULL;
-
-	return marble_util_vec_erase(
-		ps_htable->pps_storage[bucketindex],
-		vecindex,
-		rundest
-	);
-}
+);
 
 /*
  * Finds an object that can be associated with
@@ -998,8 +490,8 @@ void inline *marble_util_htable_erase(
  * Returns the pointer to the object, or NULL
  * on error or if the object cannot be found.
  */
-void inline *marble_util_htable_find(
-	_In_ struct marble_util_htable *ps_htable, /* hashtable */
+MB_API void *marble_util_htable_find(
+	_In_ struct marble_util_htable *ps_htable, /* hash table */
 	_In_ void *p_key,                          /* key to find */
     _In_ size_t const keysize,                 /* key size, in bytes */
 	/*
@@ -1008,28 +500,20 @@ void inline *marble_util_htable_find(
 	 * If this parameter is NULL, the function fails
 	 * and returns NULL.
 	 */
-	_In_ bool (*fn_find)(void *, void *)
-) { MB_ERRNO
-	if (ps_htable == NULL || p_key == NULL || fn_find == NULL)
-		return NULL;
+	_In_ marble_find_t fn_find
+);
+#pragma endregion (UTIL-HASHTABLE)
 
-	/* Get indices. */
-	size_t bucketindex, vecindex;
-	ecode = __marble_util_htable_locate(
-		ps_htable,
-		p_key,
-        keysize,
-		fn_find,
-		&bucketindex,
-		&vecindex
-	);
-	
-	return ecode == MARBLE_EC_OK
-		? marble_util_vec_get(ps_htable->pps_storage[bucketindex], vecindex)
-		: NULL
-	;
-}
-#pragma endregion
+
+/*
+ * Initializes data used by the tools library.
+ * Has to be called once when the app starts
+ * in order for various utilities like the HPC
+ * and the hash table to work properly.
+ * 
+ * Returns true on success, false on failure.
+ */
+MB_API bool marble_util_init(void);
 
 
 MB_END_HEADER

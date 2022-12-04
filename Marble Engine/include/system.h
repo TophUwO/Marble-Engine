@@ -90,7 +90,7 @@ _Critical_ marble_ecode_t inline marble_system_alloc(
  */
 _Success_ok_ marble_ecode_t inline marble_system_cpystr(
 	_Maybe_out_z_ char *restrict pz_dest,      /* destination memory */
-	_In_opt_z_    char const *restrict pz_src, /* source memory */
+	_In_z_        char const *restrict pz_src, /* source memory */
 	_In_          size_t size				   /* destination size, in bytes */
 ) {
 	if (pz_dest == NULL || pz_src == NULL)
@@ -100,6 +100,24 @@ _Success_ok_ marble_ecode_t inline marble_system_cpystr(
 		return MARBLE_EC_MEMCPY;
 
 	return MARBLE_EC_OK;
+}
+
+/*
+ * Copies memory from one buffer into the another.
+ * Basically a wrapper for memcpy_s with only
+ * three parameters.
+ * 
+ * Returns nothing.
+ */
+inline void marble_system_cpymem(
+    _Size_(size)     void *restrict p_dest,      /* destination buffer */
+    _In_reads_(size) void const *restrict p_src, /* source buffer */
+    _In_             size_t size                 /* size of both buffers, in bytes */
+) {
+    if (p_dest == NULL || p_src == NULL || size == 0)
+        return;
+
+    memcpy_s(p_dest, size, p_src, size);
 }
 
 

@@ -1,8 +1,6 @@
 #include <application.h>
 
 
-uint32_t gl_hashseed = 0;
-uint64_t gl_pfreq = 0;
 struct marble_application gls_app = { NULL };
 
 
@@ -52,7 +50,8 @@ static void marble_application_internal_uninitlayerstack(void) {
 	 * for better flexibility in case we do want to destroy in a specific order
 	 * or we want to treat layers differently.
 	 */
-	for (size_t i = 0; i < gls_app.ms_layerstack.mps_vec->m_size; i++) {
+    size_t const len = marble_util_vec_count(gls_app.ms_layerstack.mps_vec);
+	for (size_t i = 0; i < len; i++) {
 		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 
 		/*
@@ -123,20 +122,20 @@ static void marble_application_internal_initlog(
 	marble_log_info(NULL, "init: log");
 }
 
-static void marble_application_internal_inithpc(
+static void marble_application_internal_initutils(
 	_Inout_ marble_ecode_t *p_ecode /* pointer to error code variable */
 ) {
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 		
-	marble_log_info(NULL, "init: high-precision clock");
+	marble_log_info(NULL, "init: utils (HPC, HASH, etc.)");
 
 	/*
 	 * Check whether an HPC is present in the system; should
 	 * not fail on computers that are still relevant nowadays.
 	 */
-    if (!marble_util_clock_init())
-        marble_application_raisefatalerror(*p_ecode = MARBLE_EC_INITHPC);
+    if (!marble_util_init())
+        marble_application_raisefatalerror(*p_ecode = MARBLE_EC_INITUTILS);
 }
 
 static void marble_application_internal_initcom(
@@ -285,7 +284,8 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 	D2DWr_SolidColorBrush_Release(p_brush);
 #endif
 
-	for (size_t i = 0; i < gls_app.ms_layerstack.mps_vec->m_size; i++) {
+    size_t const len = marble_util_vec_count(gls_app.ms_layerstack.mps_vec);
+	for (size_t i = 0; i < len; i++) {
 		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 
 		if (ps_layer->m_isenabled)
@@ -351,7 +351,6 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 	void (MB_CALLBACK *cb_usersubmitsettings)(char const *, struct marble_app_settings *),
 	marble_ecode_t (MB_CALLBACK *cb_userinit)(char const *)
 ) { MB_ERRNO
-	gl_hashseed         = (uint32_t)time(NULL);
 	gls_app.mp_mainthrd  = GetCurrentThread();
 	gls_app.m_hasmainwnd = false;
 
@@ -360,8 +359,8 @@ MB_API marble_ecode_t __cdecl marble_application_init(
 	cb_usersubmitsettings(pz_cmdline, &s_settings);
 
 	marble_application_internal_initlog(&ecode);
+    marble_application_internal_initutils(&ecode);
 	marble_application_internal_initstate(&ecode, p_inst);
-	marble_application_internal_inithpc(&ecode);
 	marble_application_internal_initcom(&ecode);
 	marble_application_internal_createwindow(&ecode, &s_settings);
 	marble_application_internal_initlayerstack(&ecode);
@@ -376,8 +375,10 @@ MB_API marble_ecode_t __cdecl marble_application_init(
      */
 	if (!ecode) {
 		UpdateWindow(gls_app.ps_wnd->mp_handle);
-
 		ShowWindow(gls_app.ps_wnd->mp_handle, SW_SHOWNORMAL);
+
+        /* Start frametime clock. */
+        marble_util_clock_start(&gls_app.ms_ftclock);
 	}
 
 	return MARBLE_EC_OK;
@@ -401,11 +402,10 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
  
 	while (true) {
 		MSG s_msg;
-		uint64_t time;
 
-		QueryPerformanceCounter((LARGE_INTEGER *)&time);
-		float frametime = (time - gls_app.m_perfcounter) / (float)gl_pfreq;
-		gls_app.m_perfcounter = time;
+        /* Calculate frametime/timestep. */
+		float frametime = (float)marble_util_clock_assec(&gls_app.ms_ftclock);
+        marble_util_clock_start(&gls_app.ms_ftclock);
 
 		while (PeekMessage(&s_msg, NULL, 0, 0, PM_REMOVE) > 0) {
 			if (s_msg.message == WM_QUIT || s_msg.message == MB_WM_FATAL)
