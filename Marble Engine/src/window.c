@@ -3,6 +3,8 @@
 
 static TCHAR const *const glpz_wndclassname = TEXT("marble_window");
 static DWORD const        gl_wndstyle       = WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME;
+static TCHAR const *const glpz_deftitle     = TEXT("Marble Engine Sandbox");
+static TCHAR const *const glpz_updtitle     = TEXT("Marble Engine Sandbox - %i FPS");
 
 /*
  * Calculate coordinates of drawing origin.
@@ -363,7 +365,7 @@ _Critical_ marble_ecode_t marble_window_create(
 	(*pps_wnd)->mp_handle = CreateWindowEx(
 		0, 
 		glpz_wndclassname, 
-		TEXT("(placeholder window title)"), 
+        glpz_deftitle, 
 		gl_wndstyle,
 		CW_USEDEFAULT, 
 		CW_USEDEFAULT, 
@@ -445,7 +447,7 @@ void marble_window_update(
 		_stprintf_s(
 			az_buffer,
 			255,
-			TEXT("Marble Engine Sandbox - %i FPS"),
+			glpz_updtitle,
 			(int)(1.0f / fFrameTime)
 		);
 
