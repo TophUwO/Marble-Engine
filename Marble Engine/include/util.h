@@ -422,8 +422,8 @@ struct marble_util_htable;
  * Returns 0 on success, non-zero on failure.
  */
 MB_API _Critical_ marble_ecode_t marble_util_htable_create(
-	_In_opt_           size_t nbuckets,          /* number of buckets */
-	_In_opt_           void (*fn_dest)(void **), /* object destructor */
+	_In_opt_           size_t nbuckets,       /* number of buckets */
+	_In_opt_           marble_dtor_t fn_dtor, /* object destructor */
 	/*
 	 * pointer to receive the pointer
 	 * to the hash table object

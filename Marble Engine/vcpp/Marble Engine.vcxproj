@@ -220,6 +220,7 @@
     <Text Include="..\..\Notes\app_rt.txt" />
     <Text Include="..\..\Notes\deps.txt" />
     <Text Include="..\..\Notes\measure_time.txt" />
+    <Text Include="..\..\Notes\planned_utils.txt" />
     <Text Include="..\..\Notes\TODO.txt" />
   </ItemGroup>
   <ItemGroup>

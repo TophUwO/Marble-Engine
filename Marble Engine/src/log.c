@@ -81,7 +81,7 @@ static struct {
  * Returns nothing.
  */
 static void marble_log_internal_setupconsole(void) {
-#if (defined _WIN32)
+#if (defined MB_PLATFORM_WINDOWS)
 	typedef NTSTATUS (*RtlGetVersion_t)(_Out_ PRTL_OSVERSIONINFOW);
 
 	/*
@@ -90,7 +90,7 @@ static void marble_log_internal_setupconsole(void) {
 	 * This allows us to use standard C I/O functions
 	 * such as printf() and friends.
 	 */
-#if (defined _WIN32) && ((defined _DEBUG) || (defined MB_DEVBUILD))
+#if (defined MB_PLATFORM_WINDOWS) && ((defined _DEBUG) || (defined MB_DEVBUILD))
 	if (AllocConsole()) {
 		FILE *p_tmp = NULL;
 
@@ -317,6 +317,7 @@ lbl_END:
 	 * terminal.
 	 */
 	marble_log_internal_setupconsole();
+
 	/* Print a "start-up banner" */
 #if (MB_LOG_NOLOGO == false)
 	marble_log_internal_welcomemessage();

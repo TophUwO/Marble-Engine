@@ -8,6 +8,18 @@ static int const gl_maxlevelheight = 0xFFFF;
 
 
 /*
+ * Requests a new chunk from the level manager.
+ * IMPL: asset.c
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+extern _Critical_ marble_ecode_t marble_assetman_internal_allocatechunk(
+    _In_              struct marble_assetman *ps_assetman,       /* asset manager */
+    _Init_(pps_chunk) struct marble_levelasset_chunk **pps_chunk /* address of chunk */
+);
+
+
+/*
  * Destroys a layer chunk of a given layer type.
  * 
  * Returns nothing.
@@ -54,7 +66,7 @@ static void marble_levelasset_internal_destroylayer(
  * Returns true if the layer type is valid, or
  * false if not.
  */
-_Check_return_ static bool marble_levelasset_internal_isvalidlayertype(
+static _Check_return_ bool marble_levelasset_internal_isvalidlayertype(
     _In_ enum marble_levelasset_layertype type /* type ID to check validity of */
 ) {
     return
@@ -71,7 +83,7 @@ _Check_return_ static bool marble_levelasset_internal_isvalidlayertype(
  * Returns true if the layer ID is valid, or
  * false if not.
  */
-_Check_return_ static bool marble_levelasset_internal_isvalidlayerid(
+static _Check_return_ bool marble_levelasset_internal_isvalidlayerid(
     _In_ union marble_levelasset *ps_lvlasset, /* level asset */
     uint32_t layerid                           /* layer ID to check validity of */
 ) {
@@ -86,7 +98,7 @@ _Check_return_ static bool marble_levelasset_internal_isvalidlayerid(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ static marble_ecode_t marble_levelasset_internal_createlayer(
+static _Success_ok_ marble_ecode_t marble_levelasset_internal_createlayer(
     _In_              enum marble_levelasset_layertype type,     /* layer type ID */
     _In_opt_          uint32_t flags,                            /* optional flags */
     _In_              uint16_t width,                            /* width, in chunks */
@@ -132,7 +144,7 @@ lbl_END:
     return ecode;
 }
 
-_Check_return_ _Success_ptr_ static struct marble_levelasset_chunk *marble_levelasset_internal_getchunk(
+static _Check_return_ _Success_ptr_ struct marble_levelasset_chunk *marble_levelasset_internal_getchunk(
     _In_ struct marble_levelasset_layer *ps_layer, /* layer to look in */
          struct marble_pointi2d s_pt               /* chunk coordinates */
 ) {

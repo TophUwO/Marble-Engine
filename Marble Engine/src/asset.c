@@ -92,7 +92,7 @@ static size_t marble_asset_internal_getsubtypesize(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ static marble_ecode_t marble_asset_internal_creategenericasset(
+static _Critical_ marble_ecode_t marble_asset_internal_creategenericasset(
     _In_              struct marble_assetman *ps_refassetman,     /* reference to parent */
     _In_              struct marble_resource_frame *ps_framehead, /* frame head */
     _Init_(pps_asset) struct marble_asset **pps_asset             /* pointer to receive asset pointer */
@@ -189,7 +189,7 @@ static bool marble_asset_internal_setflag(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ static marble_ecode_t marble_asset_internal_loaddeps(
+static _Critical_ marble_ecode_t marble_asset_internal_loaddeps(
     _In_ struct marble_util_file *ps_fdesc, /* file descriptor */
     _In_ struct marble_asset *ps_parent     /* parent asset */
 ) { MB_ERRNO
@@ -211,7 +211,7 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ static marble_ecode_t marble_container_internal_open(
+static _Critical_ marble_ecode_t marble_container_internal_open(
     _In_z_            char const *pz_fname,                 /* file name, NUL-terminated */
     _Init_(pps_fdesc) struct marble_util_file **pps_fdesc,  /* pointer to a file descriptor */
     _Out_             struct marble_resource_head *ps_rhead /* pointer to the resource head */
@@ -258,7 +258,7 @@ lbl_END:
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ static marble_ecode_t marble_container_internal_getnextframehead(
+static _Success_ok_ marble_ecode_t marble_container_internal_getnextframehead(
     _In_  struct marble_util_file *ps_fdesc,     /* file descriptor */
     _Out_ struct marble_resource_frame *ps_frame /* pointer to the frame head */
 ) {
@@ -277,7 +277,7 @@ _Success_ok_ static marble_ecode_t marble_container_internal_getnextframehead(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Success_ok_ static marble_ecode_t marble_container_internal_loadframe(
+static _Success_ok_ marble_ecode_t marble_container_internal_loadframe(
     _In_              struct marble_assetman *ps_assetman,    /* asset manager */
     _In_              struct marble_util_file *ps_fdesc,      /* file descriptor */
     _In_              struct marble_resource_frame *ps_frame, /* pointer to the frame head */
@@ -285,7 +285,10 @@ _Success_ok_ static marble_ecode_t marble_container_internal_loadframe(
 ) { MB_ERRNO
     if (ps_fdesc == NULL || ps_frame == NULL || pps_asset == NULL)
         return MARBLE_EC_INTERNALPARAM;
-
+    
+    // TODO: add code
+    
+    return MARBLE_EC_UNIMPLFEATURE;
 }
 #pragma endregion (CONTAINERFMT)
 
@@ -298,16 +301,234 @@ struct marble_assetman {
     bool m_isinit; /* Is the asset manager present? */
 
     /*
-     * Temporary storage for deleted assets; When an
-     * asset's ref-count hits zero, a reference to
-     * it is placed in this vector.
-     * When the engine
-     * returns to the main loop, this vector will
-     * be cleared.
+     * sub-component of the asset manager dedicated to
+     * managing the loading and organizing of level
+     * resources
      */
-    struct marble_util_vec    *mps_waste;
+    struct marble_assetman_levelman {
+        /* reference to the currently focused level */
+        union marble_levelasset *mpu_currlevel;
+        
+        /* memory pool for keeping the chunk resources */
+        struct marble_util_vec *mps_pools;
+    } ms_levelman;
+
     struct marble_util_htable *mps_table; /* asset storage */
 };
+
+/*
+ * memory pool for level manager
+ */
+struct marble_assetman_mempool {
+    size_t m_size;       /* size of entire memory pool, in bytes */
+    size_t m_firstempty; /* first empty element */
+    size_t m_nobjs;      /* number of objects currently allocated */
+    size_t m_objsize;    /* object size, in bytes */
+
+    void *mps_data;      /* pointer to the actual memory block */
+};
+
+
+#pragma region LEVELMAN
+#define MB_ASSETMAN_MEMPOOL_FREE  (0)
+#define MB_ASSETMAN_MEMPOOL_ALLOC (1)
+#define MB_ASSETMAN_MEMPOOL_COUNT (1024)
+
+/*
+ * Destroys a memory pool used by the level manager.
+ * 
+ * Returns nothing.
+ */
+static void marble_assetman_internal_destroymempool(
+    _Uninit_(pps_mempool) struct marble_assetman_mempool **pps_mempool /* memory pool to destroy */
+) {
+    if (pps_mempool == NULL || *pps_mempool == NULL)
+        return;
+
+    free((*pps_mempool)->mps_data);
+
+    free(*pps_mempool);
+    *pps_mempool = NULL;
+}
+
+/*
+ * Creates a new memory pool.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static _Critical_ marble_ecode_t marble_assetman_internal_createmempool(
+    _In_                size_t size,                                 /* size of pool, in objects */
+    _Init_(pps_mempool) struct marble_assetman_mempool **pps_mempool /* memory pool to create */
+) { MB_ERRNO
+    if (pps_mempool == NULL)
+        return MARBLE_EC_INTERNALPARAM;
+
+    /* Allocate memory for memory pool structure. */
+    ecode = marble_system_alloc(
+        MB_CALLER_INFO,
+        sizeof **pps_mempool,
+        true,
+        false,
+        pps_mempool
+    );
+    if (ecode != MARBLE_EC_OK)
+        return ecode;
+
+    /* Init object size. */
+    (*pps_mempool)->m_objsize = sizeof(struct marble_levelasset_chunk);
+
+    /* Allocate actual pool. */
+    ecode = marble_system_alloc(
+        MB_CALLER_INFO,
+        size * (*pps_mempool)->m_objsize,
+        true,
+        false,
+        &(*pps_mempool)->mps_data
+    );
+    if (ecode != MARBLE_EC_OK)
+        goto lbl_END;
+
+    /* Initialize state. */
+    (*pps_mempool)->m_size       = size * (*pps_mempool)->m_objsize;
+    (*pps_mempool)->m_firstempty = 0;
+    (*pps_mempool)->m_nobjs      = 0;
+
+lbl_END:
+    if (ecode != MARBLE_EC_OK)
+        marble_assetman_internal_destroymempool(pps_mempool);
+
+    return ecode;
+}
+
+/*
+ * Initializes the level manager sub-component of the
+ * asset manager.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+static _Critical_ marble_ecode_t marble_assetman_internal_initlevelman(
+    _Inout_ struct marble_assetman *ps_assetman /* assetman to init levelman of */
+) { MB_ERRNO
+    if (ps_assetman == NULL)
+        return MARBLE_EC_INTERNALPARAM;
+    
+    /* Allocate memory for the pool organizer. */
+    ecode = marble_util_vec_create(
+        8,
+        (marble_dtor_t)&marble_assetman_internal_destroymempool,
+        &ps_assetman->ms_levelman.mps_pools
+    );
+    if (ecode != MARBLE_EC_OK)
+        return ecode;
+
+    /* NULL signifies that no level is currently loaded. */
+    ps_assetman->ms_levelman.mpu_currlevel = NULL;
+
+    return MARBLE_EC_OK;
+}
+
+
+/*
+ * Requests a new chunk from the level manager.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+_Critical_ marble_ecode_t marble_assetman_internal_allocatechunk(
+    _In_              struct marble_assetman *ps_assetman,       /* asset manager */
+    _Init_(pps_chunk) struct marble_levelasset_chunk **pps_chunk /* address of chunk */
+) { MB_ERRNO
+    if (ps_assetman == NULL || !marble_assetman_isok(ps_assetman))
+        return MARBLE_EC_INTERNALPARAM;
+
+    /* Get current number of memory pools. */
+    size_t const len = marble_util_vec_count(ps_assetman->ms_levelman.mps_pools);
+
+    struct marble_assetman_mempool *ps_mempool = NULL;
+    /*
+     * Find first non-empty pool out of the available
+     * ones.
+     */
+    for (size_t i = 0; i < len; i++) {
+        MB_VOIDCAST(
+            ps_tmp,
+            marble_util_vec_get(ps_assetman->ms_levelman.mps_pools, i),
+            struct marble_assetman_mempool
+        );
+        if (ps_tmp == NULL)
+            continue;
+
+        /* Check if pool is empty. */
+        if (ps_tmp->m_nobjs < ps_tmp->m_size / ps_tmp->m_objsize) {
+            ps_mempool = ps_tmp;
+
+            break;
+        }
+    }
+
+    /*
+     * If
+     *  (1) all currently available pools are full or
+     *  (2) there are no pools available yet,
+     * create a new pool.
+     */
+    if (ps_mempool == NULL) {
+        /* Create pool. */
+        ecode = marble_assetman_internal_createmempool(
+            MB_ASSETMAN_MEMPOOL_COUNT,
+            &ps_mempool
+        );
+        if (ecode != MARBLE_EC_OK)
+            goto lbl_END;
+
+        /* Add memory pool to manager. */
+        ecode = marble_util_vec_pushback(
+            ps_assetman->ms_levelman.mps_pools,
+            ps_mempool
+        );
+        if (ecode != MARBLE_EC_OK) {
+            marble_assetman_internal_destroymempool(&ps_mempool);
+
+            goto lbl_END;
+        }
+
+        /* Output info message. */
+        marble_log_debug(
+            __func__,
+            "Created memory pool (%zu bytes) at 0x%p.",
+            ps_mempool->m_size,
+            ps_mempool
+        );
+    }
+
+    /* Calculate chunk offset. */
+    *pps_chunk = &((struct marble_levelasset_chunk *)ps_mempool->mps_data)[ps_mempool->m_firstempty];
+
+    /*
+     * Find next empty chunk in the pool.
+     * If the chunk is now full, we do not update the pool state
+     * as the next chunk allocation will automatically create
+     * a new pool.
+     */
+    for (size_t i = ps_mempool->m_firstempty + 1; i < (ps_mempool->m_size / ps_mempool->m_objsize); i++) {
+        struct marble_levelasset_chunk *ps_tmp = &((struct marble_levelasset_chunk *)ps_mempool)[i];
+
+        if (ps_tmp->m_nents == MB_ASSETMAN_MEMPOOL_FREE) {
+           ps_mempool->m_firstempty = i;
+
+           break;
+        }
+    }
+
+    /* Mark chunk as allocated. */
+    (*pps_chunk)->m_nents = MB_ASSETMAN_MEMPOOL_ALLOC;
+
+lbl_END:
+    if (ecode != MARBLE_EC_OK)
+        *pps_chunk = NULL;
+
+    return ecode;
+}
+#pragma endregion (LEVELMAN)
 
 
 /*
@@ -384,6 +605,11 @@ _Critical_ marble_ecode_t marble_assetman_create(
     if (ecode != MARBLE_EC_OK)
         goto lbl_END;
 
+    /* Create level manager. */
+    ecode = marble_assetman_internal_initlevelman(*pps_assetman);
+    if (ecode != MARBLE_EC_OK)
+        goto lbl_END;
+
     /* Update init-state. */
     (*pps_assetman)->m_isinit = true;
 
@@ -405,6 +631,9 @@ void marble_assetman_destroy(
      * All assets will be destroyed as well.
      */
     marble_util_htable_destroy(&(*pps_assetman)->mps_table);
+
+    /* Destroy level manager. */
+    marble_util_vec_destroy(&(*pps_assetman)->ms_levelman.mps_pools);
 
     /* Destroy asset manager structure. */
     free(*pps_assetman);
@@ -551,7 +780,7 @@ lbl_END:
     return ecode;
 }
 
-_Critical_ MB_API marble_ecode_t marble_asset_loadfromfile(
+_Critical_ marble_ecode_t marble_asset_loadfromfile(
     _In_z_ char const *pz_path,
     _In_   struct marble_assetman *ps_assetman
 ) { MB_ERRNO

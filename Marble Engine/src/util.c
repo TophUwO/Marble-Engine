@@ -602,7 +602,7 @@ struct marble_util_htable {
     size_t m_cbucket;                     /* number of buckets */
     struct marble_util_vec **pps_storage; /* bucket array */
 
-    void (*mfn_dest)(void **);            /* object destructor */
+    marble_dtor_t mfn_dtor;               /* object destructor */
 };
 
 
@@ -730,7 +730,7 @@ lbl_END:
 
 _Critical_ marble_ecode_t marble_util_htable_create(
     _In_opt_           size_t nbuckets,
-    _In_opt_           void (*fn_dest)(void **),
+    _In_opt_           marble_dtor_t fn_dtor,
     _Init_(pps_htable) struct marble_util_htable **pps_htable
 ) { MB_ERRNO
     if (pps_htable == NULL)
@@ -758,7 +758,7 @@ _Critical_ marble_ecode_t marble_util_htable_create(
     if (ecode != MARBLE_EC_OK)
         goto lbl_END;
     
-    (*pps_htable)->mfn_dest = fn_dest;
+    (*pps_htable)->mfn_dtor = fn_dtor;
     
 lbl_END:
     if (ecode != MARBLE_EC_OK)
@@ -805,7 +805,7 @@ _Success_ok_ marble_ecode_t marble_util_htable_insert(
     if (ps_htable->pps_storage[index] == NULL) {
         ecode = marble_util_vec_create(
             0,
-            ps_htable->mfn_dest,
+            ps_htable->mfn_dtor,
             &ps_htable->pps_storage[index]
         );
     

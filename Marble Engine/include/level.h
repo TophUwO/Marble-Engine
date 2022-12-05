@@ -37,13 +37,18 @@ struct marble_levelasset_crparams {
  */
 struct marble_levelasset_chunk {
     /*
+     * Number of entities currently populated (i.e. non-NULL);
+     * Note that a number of 0 indicates that the chunk is
+     * unused. A number of n=1 or higher indicates that the chunk
+     * is in use and has n-1 entities actually populated.
+     */
+    uint16_t m_nents;
+    /*
      * xpos and ypos of the chunk relative to the
      * upper-left corner (0, 0) of the map
      */
     uint16_t m_xpos;
     uint16_t m_ypos;
-    /* number of entities currently populated (i.e. non-NULL) */
-    uint8_t  m_nents;
 
     /*
      * chunk entity

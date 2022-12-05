@@ -130,6 +130,9 @@
     <Text Include="..\..\Notes\app_rt.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
+    <Text Include="..\..\Notes\planned_utils.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\Marble Tools\gen_colortable.py">
