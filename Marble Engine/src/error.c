@@ -59,7 +59,9 @@ static char const *const glapz_ecodestrs[] = {
     "MARBLE_EC_FILESIZE",
     "MARBLE_EC_CREATEPARAMS",
     "MARBLE_EC_REGTMPASSET",
-    "MARBLE_EC_LEVELSIZE"
+    "MARBLE_EC_LEVELSIZE",
+    "MARBLE_EC_OUTOFRANGE",
+    "MARBLE_EC_PCONTRADICTION"
 };
 
 /* Error code descriptions */
@@ -121,7 +123,9 @@ static char const *const glapz_ecodedescs[] = {
     "File size does not equal to the expected size",
     "Create-parameters are invalid.",
     "Failed to register temporary asset.",
-    "Invalid (<= 0) level dimensions."
+    "Invalid (<= 0) level dimensions.",
+    "Position/Offset out of range.",
+    "Parameter contradiction."
 };
 
 

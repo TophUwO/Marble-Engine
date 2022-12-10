@@ -80,6 +80,8 @@ typedef enum marble_ecode {
     MARBLE_EC_CREATEPARAMS,
     MARBLE_EC_REGTMPASSET,
     MARBLE_EC_LEVELSIZE,
+    MARBLE_EC_OUTOFRANGE,
+    MARBLE_EC_PCONTRADICTION,
 
 	__MARBLE_NUMERRORCODES__ /* for internal use */
 } marble_ecode_t;

@@ -20,7 +20,13 @@
 	 * "*_create()". This annotation is used with a
 	 * function parameter.
 	 */
-	#define _Init_(param)   _Post_satisfies_(*param != NULL) _On_failure_(_Post_satisfies_(param != NULL ? (*param == NULL) : 1))
+	#define _Init_(param)       _Post_satisfies_(*param != NULL) _On_failure_(_Post_satisfies_(param != NULL ? (*param == NULL) : 1))
+    /*
+     * Used for functions that may or may not reinitialize
+     * a data-structure pointed to by **param**. In this case
+     * the parameter has to be valid in pre-state as well.
+     */
+    #define _Reinit_opt_(param) _Pre_satisfies_(param != NULL && *param != NULL) _Post_satisfies_(param != NULL && *param != NULL)
 	/*
 	 * Used for functions that destroy an "object" and
 	 * release all of its resources it occupied. These
@@ -28,17 +34,19 @@
 	 * and are appropriately named "*_destroy()".
 	 * This annotation is used with a function parameter.
 	 */
-	#define _Uninit_(param) _Post_satisfies_(*param == NULL)
+	#define _Uninit_(param)     _Post_satisfies_(*param == NULL)
 	/*
 	 * Denotes functions that return a value of type "marble_ecode_t"
 	 * what exact value denotes a successful completion. This
 	 * annotation is used with a function.
 	 */
-	#define _Success_ok_    _Success_(return == MARBLE_EC_OK)
+	#define _Success_ok_        _Success_(return == MARBLE_EC_OK)
     /*
-     *  
+     * Annotation for functions directly returning pointers; note
+     * that NULL is a valid return value. An error is denoted by
+     * a return value beneath NULL, e.g. "MB_INVPTR".
      */
-    #define _Success_ptr_   _Success_(return != NULL)
+    #define _Success_ptr_       _Success_(return >= NULL)
 	/*
 	 * A combination of '_Success_ok_' and an annotation
 	 * throwing a warning if the caller does not inspect
@@ -46,23 +54,23 @@
 	 * functions, for instance. This annotation is used
 	 * with a function.
 	 */
-	#define _Critical_      _Check_return_ _Success_ok_
+	#define _Critical_          _Check_return_ _Success_ok_
 	/*
 	 * Denoting that a parameter has to be of **size** bytes
 	 * at the very least. This annotation is used with a
 	 * function parameter.
 	 */
-	#define _Size_(size)    _Out_writes_bytes_(size)
+	#define _Size_(size)        _Out_writes_bytes_(size)
 	/*
 	 * Just shortening a long annotation. his annotation is
 	 * used with a function parameter.
 	 */
-	#define _Maybe_valid_   _Outptr_result_maybenull_
+	#define _Maybe_valid_       _Outptr_result_maybenull_
 	/*
 	 * Writes data if function succeeds, leaves the buffer
      * unchanged on failure. 
 	 */
-	#define _Maybe_out_     _When_(return == MARBLE_EC_OK, _Out_)
+	#define _Maybe_out_         _When_(return == MARBLE_EC_OK, _Out_)
 #endif
 
 

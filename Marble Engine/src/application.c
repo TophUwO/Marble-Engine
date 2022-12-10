@@ -10,7 +10,7 @@ struct marble_application gls_app = { NULL };
  * 
  * Returns 0 on success, non-zero on error.
  */
-_Critical_ static marble_ecode_t marble_application_internal_initassetman(void) { MB_ERRNO
+static _Critical_ marble_ecode_t marble_application_internal_initassetman(void) { MB_ERRNO
     /* 
      * If asset manager is already initialized, block further
      * attempts to (re-)initialize. 
@@ -285,6 +285,7 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 #endif
 
     size_t const len = marble_util_vec_count(gls_app.ms_layerstack.mps_vec);
+
 	for (size_t i = 0; i < len; i++) {
 		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 

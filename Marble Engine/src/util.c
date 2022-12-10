@@ -595,6 +595,9 @@ _Success_ok_ marble_ecode_t marble_util_file_getinfo(
 #pragma endregion (UTIL-FILE)
 
 
+/*
+ * basic hash-table implementation 
+ */
 #pragma region UTIL-HASHTABLE
 #define MB_UTIL_HTABLE_DEFNBUCKETS (128)
 
@@ -725,7 +728,7 @@ lbl_END:
 
     return MARBLE_EC_NOTFOUND;
 }
-#pragma endregion
+#pragma endregion (UTIL-HASHTABLE-INTERNAL)
 
 
 _Critical_ marble_ecode_t marble_util_htable_create(
@@ -884,6 +887,243 @@ void *marble_util_htable_find(
 #pragma endregion (UTIL-HASHTABLE)
 
 
+/*
+ * implementation of a contiguous
+ * 2-dimensional array of pointers
+ */
+#pragma region UTIL-ARRAY2D
+// TODO: proper integer wrap detection
+
+/*
+ * Computes linear offset of the given 2D-coordinates,
+ * relative the first element in the array.
+ */
+#define MB_UTIL_A2D_LINOFF(x, y, width) ((size_t)(y * width + x))
+
+
+struct marble_util_array2d {
+    size_t m_width;  /* width */
+    size_t m_height; /* height */
+    size_t m_size;   /* cached **m_width** * **m_height** */
+
+    /*
+     * custom destructor, called for every
+     * pointer in **mpp_data**; may be NULL
+     */
+    marble_dtor_t mfn_dtor;
+
+#if (defined MB_COMPILER_MSVC)
+    /*
+     * MSVC complains about variable-sized arrays being non-
+     * standard despite /std:c11.
+     */
+    #pragma warning (push)
+    #pragma warning (disable: 4200)
+#endif
+    void *mpp_data[]; /* pointer array */
+#if (defined MB_COMPILER_MSVC)
+    #pragma warning (pop)
+#endif
+};
+
+
+_Critical_ marble_ecode_t marble_util_array2d_create(
+    _In_              size_t width,
+    _In_              size_t height,
+    _In_opt_          marble_dtor_t fn_dtor,
+    _Init_(pps_array) struct marble_util_array2d **pps_array
+) { MB_ERRNO
+    if (width == 0 || height == 0 || pps_array == NULL)
+        return MARBLE_EC_PARAM;
+
+    /* Allocate memory for structure and array. */
+    ecode = marble_system_alloc(
+        MB_CALLER_INFO,
+        sizeof **pps_array + width * height * sizeof(void *),
+        true,
+        false,
+        pps_array
+    );
+    if (ecode != MARBLE_EC_OK)
+        return ecode;
+
+    /* Init state. */
+    (*pps_array)->m_width  = width;
+    (*pps_array)->m_height = height;
+    (*pps_array)->m_size   = width * height;
+    (*pps_array)->mfn_dtor = fn_dtor;
+
+    return ecode;
+}
+
+void marble_util_array2d_destroy(
+    _Uninit_(pps_array) struct marble_util_array2d **pps_array
+) {
+    if (pps_array == NULL || *pps_array == NULL)
+        return;
+
+    /*
+     * Call known destructor; or none if
+     * **mfn_dtor** is NULL.
+     */
+    if ((*pps_array)->mfn_dtor != NULL)
+        for (size_t i = 0; i < (*pps_array)->m_width * (*pps_array)->m_height; i++)
+            (*(*pps_array)->mfn_dtor)(&(*pps_array)->mpp_data[i]);
+
+    free(*pps_array);
+    *pps_array = NULL;
+}
+
+_Critical_ marble_ecode_t marble_util_array2d_resize(
+    _Reinit_opt_(pps_array) struct marble_util_array2d **pps_array,
+    _In_                    size_t nwidth,
+    _In_                    size_t nheight
+) { MB_ERRNO
+    if (pps_array == NULL || *pps_array == NULL || nwidth == 0 || nheight == 0)
+        return MARBLE_EC_PARAM;
+
+    struct marble_util_array2d *ps_narray = NULL;
+
+    /*
+     * Check if new sizes differ from the old ones. If they don't,
+     * there is no point in resizing.
+     */
+    if ((*pps_array)->m_width == nwidth && (*pps_array)->m_height == nheight)
+        return MARBLE_EC_OK;
+
+    /*
+     * First, try to allocate a new array of the requested size.
+     * (We cannot attempt to realloc() the array directly, since
+     * we would first have to move all valid contents, which in
+     * itself is possible. However, if the reallocation fails,
+     * we would end up with an invalid array, and, as we have
+     * already touched the array's memory, invalid data).
+     * It's more reliable to first allocate a new array and then
+     * move all contents that lie within the bounds of the old
+     * array to the new one. If the creation of that new array
+     * fails, the function should also fail.
+     * 
+     * In the future, we may want to optimize for some embedded
+     * platforms where memory is sparce. In such a case, it may
+     * be preferable to resize the array first at the risk of
+     * invalidating it in the process.
+     */
+    ecode = marble_util_array2d_create(
+        nwidth,
+        nheight,
+        (*pps_array)->mfn_dtor,
+        &ps_narray
+    );
+    if (ecode != MARBLE_EC_OK)
+        return ecode;
+
+    /*
+     * Copy-over the part of the old array that is congruent with
+     * the new array. As of now, we always initiate copying relative
+     * to the "upper-left corner" of the array; arbitrary offsets
+     * are not supported.
+     */
+    for (size_t row = 0; row < min(nheight, (*pps_array)->m_height); row++)
+        marble_system_cpymem(
+            &ps_narray->mpp_data[0],
+            &(*pps_array)->mpp_data[(*pps_array)->m_width * row],
+            min(nwidth, (*pps_array)->m_width) * sizeof(void *)
+        );
+
+    /*
+     * Destroy old array and update given array pointer. We have to
+     * remove the destructor, though, since that would destroy the
+     * copied elements as well, which is not precisely what we want.
+     */
+    (*pps_array)->mfn_dtor = NULL;
+    marble_util_array2d_destroy(pps_array);
+
+    *pps_array = ps_narray;
+    return MARBLE_EC_OK;
+}
+
+_Success_ok_ marble_ecode_t marble_util_array2d_insert(
+    _In_         struct marble_util_array2d *ps_array,
+                 size_t posx,
+                 size_t posy,
+                 bool rundest,
+    _In_         void *p_element,
+    _Outptr_opt_ void **pp_oldobj
+) {
+    size_t const off = MB_UTIL_A2D_LINOFF(posx, posy, ps_array->m_width);
+
+    if (ps_array <= NULL
+        || p_element == NULL
+        || p_element == MB_INVPTR
+    ) return MARBLE_EC_PARAM;
+    if (off >= ps_array->m_size)
+        return MARBLE_EC_OUTOFRANGE;
+
+    /*
+     * Get pointer to the memory location of the object
+     * in question.
+     */
+    void **pp_obj = &ps_array->mpp_data[off];
+
+    /*
+     * Run destructor, but only if the caller explicitly
+     * instructed the function to do so and they did not
+     * pass a valid pointer for **pp_oldobj**. If **rundest**
+     * is true, and **pp_oldobj** is valid, the function
+     * fails.
+     */
+    if (rundest && pp_oldobj > NULL)
+        return MARBLE_EC_PCONTRADICTION;
+    else if (rundest) {
+        (*ps_array->mfn_dtor)(pp_obj);
+
+        return MARBLE_EC_OK;
+    } else if (pp_oldobj > NULL)
+        *pp_oldobj = pp_obj;
+
+    *pp_obj = p_element;
+    return MARBLE_EC_OK;
+}
+
+_Success_ptr_ void *marble_util_array2d_erase(
+    _In_ struct marble_util_array2d *ps_array,
+         size_t posx,
+         size_t posy,
+         bool rundest
+) {
+    size_t const off = MB_UTIL_A2D_LINOFF(posx, posy, ps_array->m_width);
+
+    if (ps_array == NULL || off >= ps_array->m_size)
+        return MB_INVPTR;
+
+    void **pp_obj = &ps_array->mpp_data[off];
+
+    /* Call destructor if there is one and return. */
+    if (rundest && ps_array->mfn_dtor != NULL && *pp_obj != NULL) {
+        (*ps_array->mfn_dtor)(pp_obj);
+        
+        return NULL;
+    }
+
+    /* Return pointer to existing object. */
+    return *pp_obj;
+}
+
+_Success_ptr_ void *marble_util_array2d_get(
+    _In_ struct marble_util_array2d *ps_array,
+         size_t posx,
+         size_t posy
+) {
+    size_t const off = MB_UTIL_A2D_LINOFF(posx, posy, ps_array->m_width);
+
+    if (ps_array == NULL || off >= ps_array->m_size)
+        return MB_INVPTR;
+
+    return ps_array->mpp_data[off];
+}
+#pragma endregion (UTIL-ARRAY2D)
+
+
 bool marble_util_init(void) {
     /*
      * Frequency of HPC; calling this multiple times is okay
@@ -909,10 +1149,13 @@ bool marble_util_init(void) {
 
         gl_hashseed = (uint32_t)(u_pc.QuadPart % UINT32_MAX);
 #else
-        /* Use time() for other platforms than Windows for now. */
+        /*
+         * Use time() (i.e. Fallback #1) for other platforms than
+         * Windows for now.
+         */
         gl_hashseed = 0;
 #endif
-        /* If seed is 0, use a different timer. */
+        /* Fallback #1: If seed is 0, use a different timer. */
         if (gl_hashseed == 0)
             gl_hashseed = ((uint32_t)_time32(NULL)) % UINT32_MAX;
 

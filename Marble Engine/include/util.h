@@ -506,6 +506,103 @@ MB_API void *marble_util_htable_find(
 
 
 /*
+ * Structure representing a fixed, contiguous
+ * 2-dimensional array (of pointers).
+ */
+#pragma region UTIL-ARRAY2D
+struct marble_util_array2d;
+
+
+/*
+ * Creates a new, empty 2-dimensional array of pointers.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Critical_ marble_ecode_t marble_util_array2d_create(
+    _In_              size_t width,                          /* initial width */
+    _In_              size_t height,                         /* initial height */
+    _In_opt_          marble_dtor_t fn_dtor,                 /* opt. destructor for inserted objects */
+    _Init_(pps_array) struct marble_util_array2d **pps_array /* pointer to array pointer */
+);
+
+/*
+ * Destroys 2D-array and frees all its resources. If the destructor
+ * function passed to "marble_util_array2d_create()" was not NULL,
+ * it is called on every object inside the array.
+ * 
+ * Returns nothing.
+ */
+MB_API void marble_util_array2d_destroy(
+    _Uninit_(pps_array) struct marble_util_array2d **pps_array /* array to destroy */
+);
+
+/*
+ * Resizes an array; due to the way the array is implemented,
+ * this is a very costly operation and may change its location
+ * in memory. The caller has to take care of updating all
+ * references to the array.
+ * If this function fails, the array will not be modified
+ * and will still be valid.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Critical_ marble_ecode_t marble_util_array2d_resize(
+    _Reinit_opt_(pps_array) struct marble_util_array2d **pps_array, /* array to resize */
+    _In_                    size_t nwidth,                          /* new width */
+    _In_                    size_t nheight                          /* new height */
+);
+
+/*
+ * Inserts an object into the array. The old object will be
+ * replaced. If **p_oldobj** is not NULL, it will receive the
+ * pointer to the old object before it is replaced.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_util_array2d_insert(
+    _In_         struct marble_util_array2d *ps_array, /* array to modify */
+                 size_t posx,                          /* x-position */
+                 size_t posy,                          /* y-position */
+                 bool rundest,                         /* run destructor on old object if **pp_oldobj** is NULL? */
+    _In_         void *p_element,                      /* element to insert */
+    _Outptr_opt_ void **pp_oldobj                      /* pointer to the old object */
+);
+
+/*
+ * Erases an object from the array, optionally running the
+ * destructor function if **rundest** is true.
+ * 
+ *         { NULL,      if **rundest** == true and there was no error
+ * Returns { MB_INVPTR, if there was an error
+ *         { > NULL,    if **rundest** == false and there was no error
+ * 
+ * Note: In the latter case (> NULL), the return value is the
+ * pointer of the erased object.
+ */
+MB_API _Success_ptr_ void *marble_util_array2d_erase(
+    _In_ struct marble_util_array2d *ps_array, /* array to erase element from */
+         size_t posx,                          /* x-position */
+         size_t posy,                          /* y-position */
+         bool rundest                          /* run destructor on erased object? */
+);
+
+/*
+ * Retrieves the object from the given array at the given
+ * xy-coordinates.
+ * 
+ * Returns MB_INVPTR if there was an error, NULL if no
+ * object is present at the given coordinates, or a
+ * pointer to the object.
+ */
+MB_API _Success_ptr_ void *marble_util_array2d_get(
+    _In_ struct marble_util_array2d *ps_array, /* array */
+         size_t posx,                          /* x-position */
+         size_t posy                           /* y-position */
+);
+#pragma endregion (UTIL-ARRAY2D)
+
+
+/*
  * Initializes data used by the tools library.
  * Has to be called once when the app starts
  * in order for various utilities like the HPC
