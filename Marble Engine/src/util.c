@@ -892,8 +892,6 @@ void *marble_util_htable_find(
  * 2-dimensional array of pointers
  */
 #pragma region UTIL-ARRAY2D
-// TODO: proper integer wrap detection
-
 /*
  * Computes linear offset of the given 2D-coordinates,
  * relative the first element in the array.
@@ -904,7 +902,6 @@ void *marble_util_htable_find(
 struct marble_util_array2d {
     size_t m_width;  /* width */
     size_t m_height; /* height */
-    size_t m_size;   /* cached **m_width** * **m_height** */
 
     /*
      * custom destructor, called for every
@@ -950,7 +947,6 @@ _Critical_ marble_ecode_t marble_util_array2d_create(
     /* Init state. */
     (*pps_array)->m_width  = width;
     (*pps_array)->m_height = height;
-    (*pps_array)->m_size   = width * height;
     (*pps_array)->mfn_dtor = fn_dtor;
 
     return ecode;
@@ -1056,7 +1052,7 @@ _Success_ok_ marble_ecode_t marble_util_array2d_insert(
         || p_element == NULL
         || p_element == MB_INVPTR
     ) return MARBLE_EC_PARAM;
-    if (off >= ps_array->m_size)
+    if (off >= ps_array->m_width * ps_array->m_height)
         return MARBLE_EC_OUTOFRANGE;
 
     /*
@@ -1093,7 +1089,7 @@ _Success_ptr_ void *marble_util_array2d_erase(
 ) {
     size_t const off = MB_UTIL_A2D_LINOFF(posx, posy, ps_array->m_width);
 
-    if (ps_array == NULL || off >= ps_array->m_size)
+    if (ps_array == NULL || off >= ps_array->m_width * ps_array->m_height)
         return MB_INVPTR;
 
     void **pp_obj = &ps_array->mpp_data[off];
@@ -1116,7 +1112,7 @@ _Success_ptr_ void *marble_util_array2d_get(
 ) {
     size_t const off = MB_UTIL_A2D_LINOFF(posx, posy, ps_array->m_width);
 
-    if (ps_array == NULL || off >= ps_array->m_size)
+    if (ps_array == NULL || off >= ps_array->m_width * ps_array->m_height)
         return MB_INVPTR;
 
     return ps_array->mpp_data[off];

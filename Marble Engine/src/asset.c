@@ -331,7 +331,7 @@ struct marble_assetman_mempool {
 
 #pragma region LEVELMAN
 #define MB_ASSETMAN_MEMPOOL_FREE  (0)
-#define MB_ASSETMAN_MEMPOOL_ALLOC (1)
+#define MB_ASSETMAN_MEMPOOL_ALLOC (-1)
 #define MB_ASSETMAN_MEMPOOL_COUNT (1024)
 
 /*
@@ -527,6 +527,60 @@ lbl_END:
         *pps_chunk = NULL;
 
     return ecode;
+}
+
+void marble_assetman_internal_freechunk(
+    _In_ struct marble_assetman *ps_assetman,
+    _In_ struct marble_levelasset_chunk *ps_chunk
+) {
+    if (ps_chunk == NULL)
+        return;
+
+    /* Find memory pool the chunk belongs to. */
+    ptrdiff_t addrdiff = 0;
+    struct marble_assetman_mempool *ps_mempool = NULL;
+
+    size_t const poolcount = marble_util_vec_count(ps_assetman->ms_levelman.mps_pools);
+
+    for (size_t i = 0; i < poolcount; i++) {
+        /* Get i-th memory pool object. */
+        MB_VOIDCAST(
+            ps_tmp,
+            marble_util_vec_get(ps_assetman->ms_levelman.mps_pools, i),
+            struct marble_assetman_mempool
+        );
+
+        addrdiff = (intptr_t)ps_chunk - (intptr_t)ps_tmp->mps_data;
+        if (addrdiff >= 0 && (size_t)addrdiff < ps_tmp->m_size) {
+            ps_mempool = ps_tmp;
+
+            break;
+        }
+    }
+
+    /*
+     * This should technically never happen as long
+     * as **ps_chunk** actually points to memory
+     * whose address was returned by a prior call
+     * to "marble_assetman_internal_allocatechunk()".
+     *
+     * Since the pointer will get dereferenced later,
+     * we have to verify its validity first.
+     */
+    if (ps_mempool == NULL)
+        return;
+
+    /*
+     * Update the chunk state and the pointer to the
+     * first free chunk in the pool, if necessary.
+     */
+    ps_chunk->m_nents = MB_ASSETMAN_MEMPOOL_FREE;
+
+    /* Calculate index of chunk in the pool. */
+    size_t const chindex = addrdiff / ps_mempool->m_objsize;
+
+    if (chindex < ps_mempool->m_firstempty)
+        ps_mempool->m_firstempty = chindex;
 }
 #pragma endregion (LEVELMAN)
 

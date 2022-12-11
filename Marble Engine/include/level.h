@@ -42,7 +42,7 @@ struct marble_levelasset_chunk {
      * unused. A number of n=1 or higher indicates that the chunk
      * is in use and has n-1 entities actually populated.
      */
-    uint16_t m_nents;
+    int16_t m_nents;
     /*
      * xpos and ypos of the chunk relative to the
      * upper-left corner (0, 0) of the map
@@ -77,19 +77,6 @@ struct marble_levelasset_chunk {
             uint8_t m_depy;
         } _stex;
     } muaa_data[MB_LA_CHUNKW][MB_LA_CHUNKH];
-};
-
-/*
- * layer structure
- * 
- * A layer is solely a container for
- * a list of chunks.
- */
-struct marble_levelasset_layer {
-    uint32_t                         m_flags; /* flags; currently unused */
-    enum marble_levelasset_layertype m_type;  /* layer type */
-
-    struct marble_util_htable *mps_chunks;    /* chunk map */
 };
 
 /*
@@ -246,9 +233,9 @@ MB_API uint32_t marble_levelasset_movelayer(
  * 
  * Returns nothing.
  */
-MB_API void marble_levelasset_setentity(
+MB_API marble_ecode_t marble_levelasset_setentity(
     _In_ union marble_levelasset *ps_lvlasset, /* level asset */
-         uint32_t index,                       /* layer index */
+         uint32_t lindex,                      /* layer index */
          uint32_t xpos,                        /* xpos, in tiles */
          uint32_t ypos,                        /* ypos, in tiles */
          /*
@@ -258,6 +245,20 @@ MB_API void marble_levelasset_setentity(
           * the given position, if there is any.
           */
          union marble_levelasset_chunkentity *ps_entity
+);
+
+/*
+ * Retrieves a specific tile entity from a given layer, using
+ * world coorinates.
+ * 
+ * Returns pointer to that object, NULL if the object is not
+ * set, or MB_INVPTR is there was an error.
+ */
+MB_API union marble_levelasset_chunkentity *marble_levelasset_getentity(
+    _In_ union marble_levelasset *ps_lvlasset, /* level asset */
+         uint32_t lindex,                      /* layer index */
+         uint32_t xpos,                        /* xpos, in tiles */
+         uint32_t ypos                         /* ypos, in tiles */
 );
 #endif
 
