@@ -3,6 +3,62 @@
 
 
 #pragma region ASSETSUBTYPE
+#pragma region ASSET-LEVEL-PROTOS
+/*
+ * Creates a new level-asset inside **ps_lvlasset**.
+ * The memory for the structure has to be allocated
+ * in advance.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+_Critical_ extern marble_ecode_t MB_CREATEFN(levelasset)(
+    _In_    void *p_crparams,                    /* create-params */
+    _Inout_ union marble_levelasset *ps_lvlasset /* pointer to an asset structure */
+    );
+
+/*
+ * Loads an asset from a resource file.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+_Critical_ extern marble_ecode_t MB_LOADFN(levelasset)(
+    _In_    struct marble_util_file *ps_fdesc,   /* file descriptor */
+    _Inout_ union marble_levelasset *ps_lvlasset /* asset pointer */
+);
+
+/*
+ * Destroys a level-asset structure. The structure
+ * memory is not released.
+ * 
+ * Returns nothing.
+ */
+extern void MB_DESTROYFN(levelasset)(
+    _Inout_ union marble_levelasset *ps_lvlasset /* pointer to the level-asset */
+);
+
+/*
+ * Validates create-parameters.
+ * 
+ * Returns true if the parameters are valid,
+ * false if not.
+ */
+extern bool MB_VALIDATECRPSFN(levelasset)(
+    _In_ void *p_crparams /* pointer to the create-params struct */
+);
+
+/*
+ * Queries the hard limits of the level asset and writes
+ * the result into **p_limits**.
+ * 
+ * Returns nothing.
+ */
+extern bool MB_QUERYHARDLIMITSFN(levelasset)(
+    _In_           size_t ssize,  /* size of **ps_limits**, in bytes */
+    _Outsz_(ssize) void *p_limits /* pointer to a structure to receive limits values */
+);
+#pragma endregion (ASSET-LEVEL-PROTOS)
+
+
 /*
  * static data-structure holding information about each
  * asset sub-type
@@ -15,6 +71,7 @@ static struct {
     void  *fn_destroy;     /* sub-type destructor */
     void  *fn_crpvalidate; /* create-params validator */
     void  *fn_load;        /* load-from-resource callback */
+    void  *fn_querylimits; /* query hard limits callback */
 } const glsa_assetsubtypeinfos[] = {
     { MARBLE_ASSETTYPE_UNKNOWN, 0 },
 
@@ -23,7 +80,8 @@ static struct {
         (void *)&MB_CREATEFN(levelasset),
         (void *)&MB_DESTROYFN(levelasset),
         (void *)&MB_VALIDATECRPSFN(levelasset),
-        (void *)&MB_LOADFN(levelasset)
+        (void *)&MB_LOADFN(levelasset),
+        (void *)&MB_QUERYHARDLIMITSFN(levelasset)
     }
 };
 #pragma endregion (ASSETSUBTYPE)
@@ -995,6 +1053,25 @@ void marble_asset_release(
             (marble_find_t)&marble_assetman_internal_cbfind,
             true
         );
+}
+
+_Success_ok_ marble_ecode_t marble_asset_queryhardlimits(
+    _In_           size_t ssize,
+    _Outsz_(ssize) struct marble_asset_limits *ps_limits
+) {
+    if (ps_limits == NULL || ssize != sizeof(struct marble_asset_limits))
+        return MARBLE_EC_PARAM;
+
+    /* Zero buffer. */
+    memset(ps_limits, 0, ssize);
+
+    /*
+     * Iterate over all implemented asset types, querying
+     * their per-type limits and properties.
+     */
+    MB_QUERYHARDLIMITSFN(levelasset)(sizeof(MB_ASSETTYPELIMITS(levelasset)), &ps_limits->ms_lvllimits);
+
+    return MARBLE_EC_OK;
 }
 #pragma endregion (ASSET)
 

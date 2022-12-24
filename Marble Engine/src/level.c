@@ -17,8 +17,19 @@ struct marble_levelasset_layer {
 };
 
 
-static int const gl_maxlevelwidth  = 0xFFFF;
-static int const gl_maxlevelheight = 0xFFFF;
+/*
+ * hard limits regarding the level asset 
+ */
+static MB_ASSETTYPELIMITS(levelasset) const gls_limits = {
+    .m_minwidth    = 1,
+    .m_minheight   = 1,
+    .m_maxwidth    = 0xFFFF,
+    .m_maxheight   = 0xFFFF,
+    .m_maxlayers   = 32,
+    .m_maxtilesets = 0xFF,
+    .m_chunkwidth  = 16,
+    .m_chunkheight = 16
+};
 
 
 /*
@@ -238,18 +249,19 @@ bool MB_VALIDATECRPSFN(levelasset)(
     MB_VOIDCAST(ps_params, p_crparams, struct marble_levelasset_crparams);
 
     return
-           MB_INRANGE_INCL(ps_params->m_width, 1, gl_maxlevelwidth)
-        && MB_INRANGE_INCL(ps_params->m_height, 1, gl_maxlevelheight);
+           MB_INRANGE_INCL(ps_params->m_width, 1, gls_limits.m_maxwidth)
+        && MB_INRANGE_INCL(ps_params->m_height, 1, gls_limits.m_maxheight);
 }
 
-void marble_levelasset_getmaxdims(
-    _Out_ struct marble_sizei2d *ps_size
+bool MB_QUERYHARDLIMITSFN(levelasset)(
+    _In_           size_t ssize,
+    _Outsz_(ssize) void *p_limits
 ) {
-    if (ps_size == NULL)
-        return;
+    if (p_limits == NULL || ssize != sizeof(struct marble_levelasset_limits))
+        return false;
 
-    ps_size->m_width  = gl_maxlevelwidth;
-    ps_size->m_height = gl_maxlevelheight;
+    marble_system_cpymem(p_limits, &gls_limits, ssize);
+    return true;
 }
 
 void marble_levelasset_getchunksize(
@@ -269,8 +281,8 @@ void marble_levelasset_tile2chunk(
 ) {
     if (ps_chcoords != NULL)
         *ps_chcoords = (struct marble_pointi2d){
-            .m_x = (s_tcoords.m_x / MB_LA_CHUNKW) % gl_maxlevelwidth,
-            .m_y = (s_tcoords.m_y / MB_LA_CHUNKH) % gl_maxlevelheight
+            .m_x = (s_tcoords.m_x / MB_LA_CHUNKW) % gls_limits.m_maxwidth,
+            .m_y = (s_tcoords.m_y / MB_LA_CHUNKH) % gls_limits.m_maxheight
         };
 
     if (ps_chloccoords != NULL)

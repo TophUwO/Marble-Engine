@@ -439,8 +439,11 @@ void marble_window_update(
 	_In_ struct marble_window *ps_wnd,
 	     float fFrameTime
 ) {
-	/* Set window text to show current FPS. */
-	if (marble_util_clock_asmsec(&ps_wnd->ms_data.ms_updt) > 1000.0) {
+	/*
+     * Set window text to show current FPS. Only update
+     * it when we are in windowed mode.
+     */
+	if (!ps_wnd->ms_data.m_isfscreen && marble_util_clock_asmsec(&ps_wnd->ms_data.ms_updt) > 1000.0) {
 		marble_util_clock_start(&ps_wnd->ms_data.ms_updt);
 
 		TCHAR az_buffer[256] = { 0 };

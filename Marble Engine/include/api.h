@@ -51,6 +51,9 @@
 #define MB_DESTROYFN(subtype)         __MB_SUBTYPEFN__(subtype, destroy)
 #define MB_VALIDATECRPSFN(subtype)    __MB_SUBTYPEFN__(subtype, validatecrps)
 #define MB_LOADFN(subtype)            __MB_SUBTYPEFN__(subtype, load)
+#define MB_QUERYHARDLIMITSFN(subtype) __MB_SUBTYPEFN__(subtype, queryhardlimits)
+
+#define MB_ASSETTYPELIMITS(subtype)   struct marble_##subtype##_limits
 
 /* Cast a void* to any pointer type. */
 #define MB_VOIDCAST(id, source, type)     type *id = (type *)source;

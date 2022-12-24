@@ -71,6 +71,10 @@
      * unchanged on failure. 
 	 */
 	#define _Maybe_out_         _When_(return == MARBLE_EC_OK, _Out_)
+    /*
+     * shortcut for "_Out_writes_bytes_(size)" 
+     */
+    #define _Outsz_(sz)        _Out_writes_bytes_(sz)
 #endif
 
 

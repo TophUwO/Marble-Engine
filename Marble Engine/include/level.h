@@ -97,62 +97,6 @@ static_assert(_Alignof(union marble_levelasset) == _Alignof(struct marble_asset)
 
 
 #if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
-#if (defined MB_DYNAMIC_LIBRARY)
-/*
- * API functions used internally by the
- * asset manager 
- */
-
-/*
- * Creates a new level-asset inside **ps_lvlasset**.
- * The memory for the structure has to be allocated
- * in advance.
- * 
- * Returns 0 on success, non-zero on failure.
- */
-_Critical_ extern marble_ecode_t MB_CREATEFN(levelasset)(
-    _In_    void *p_crparams,                    /* create-params */
-	_Inout_ union marble_levelasset *ps_lvlasset /* pointer to an asset structure */
-);
-
-/*
- * Loads an asset from a resource file.
- * 
- * Returns 0 on success, non-zero on failure.
- */
-_Critical_ extern marble_ecode_t MB_LOADFN(levelasset)(
-    _In_    struct marble_util_file *ps_fdesc,   /* file descriptor */
-    _Inout_ union marble_levelasset *ps_lvlasset /* asset pointer */
-);
-
-/*
- * Destroys a level-asset structure. The structure
- * memory is not released.
- * 
- * Returns nothing.
- */
-extern void MB_DESTROYFN(levelasset)(
-    _Inout_ union marble_levelasset *ps_lvlasset /* pointer to the level-asset */
-);
-
-/*
- * Validates create-parameters.
- * 
- * Returns true if the parameters are valid,
- * false if not.
- */
-extern bool MB_VALIDATECRPSFN(levelasset)(
-    _In_ void *p_crparams /*  pointer to the create-params struct */
-);
-#endif
-
-/*
- * Returns the maximum supported width and height, in chunks.
- */
-MB_API void marble_levelasset_getmaxdims(
-    _Out_ struct marble_sizei2d *ps_size /* structure to receive the size */
-);
-
 /*
  * Returns the width and the height of a layer chunk.
  */

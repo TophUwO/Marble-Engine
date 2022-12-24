@@ -41,6 +41,27 @@ struct marble_asset {
     struct marble_util_vec *mps_deps;      /* dependencies loaded by the asset */
 };
 
+/*
+ * structure representing hard limits regarding all
+ * currently implemented asset types
+ */
+struct marble_asset_limits {
+    /*
+     * structure describing the hard limits of the current
+     * version of Marble Engine regarding the level asset
+     */
+    MB_ASSETTYPELIMITS(levelasset) {
+        uint32_t m_minwidth;    /* minimum width, in chunks */
+        uint32_t m_minheight;   /* minimum height, in chunks */
+        uint32_t m_maxwidth;    /* maximum width, in chunks */
+        uint32_t m_maxheight;   /* maximum height, in chunks */
+        uint32_t m_maxlayers;   /* maximum number of layers per level */
+        uint32_t m_maxtilesets; /* maximum number of tilesets a level can use */
+        uint32_t m_chunkwidth;  /* chunk width, in tiles */
+        uint32_t m_chunkheight; /* chunk height, in tiles */
+    } ms_lvllimits;
+};
+
 
 /*
  * Creates an asset manager.
@@ -80,7 +101,7 @@ MB_API bool marble_assetman_isok(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ MB_API marble_ecode_t marble_asset_createnew(
+MB_API _Critical_ marble_ecode_t marble_asset_createnew(
     _In_              enum marble_asset_type type,         /* asset type */
     _In_opt_          int flags,                           /* opt. flags */
     _In_opt_          void *p_createparams,                /* create-params */
@@ -95,7 +116,7 @@ _Critical_ MB_API marble_ecode_t marble_asset_createnew(
  * 
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ MB_API marble_ecode_t marble_asset_loadfromfile(
+MB_API _Critical_ marble_ecode_t marble_asset_loadfromfile(
     _In_z_ char const *pz_path,                /* file path */
     _In_   struct marble_assetman *ps_assetman /* asset manager */
 );
@@ -108,7 +129,7 @@ _Critical_ MB_API marble_ecode_t marble_asset_loadfromfile(
  *
  * Returns the asset on success, NULL on failure.
  */
-_Success_ptr_ MB_API struct marble_asset *marble_asset_exists(
+MB_API _Success_ptr_ struct marble_asset *marble_asset_exists(
          bool addref,                         /* add ref to potentially found asset? */
     _In_ struct marble_assetman *ps_assetman, /* assetman to look in */
     _In_ marble_uuid_t *p_uuid                /* UUID to look for */
@@ -119,7 +140,7 @@ _Success_ptr_ MB_API struct marble_asset *marble_asset_exists(
  * 
  * Returns **ps_asset**.
  */
-_Success_ptr_ MB_API struct marble_asset *marble_asset_addref(
+MB_API _Success_ptr_ struct marble_asset *marble_asset_addref(
     _Inout_ struct marble_asset *ps_asset /* asset to increase ref-count of */
 );
 
@@ -134,6 +155,17 @@ _Success_ptr_ MB_API struct marble_asset *marble_asset_addref(
  */
 MB_API void marble_asset_release(
     _In_ struct marble_asset *ps_asset /* asset to decrease ref-count of */
+);
+
+/*
+ * Queries the hard limits for each asset type and stores
+ * them inside **ps_limits**.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_asset_queryhardlimits(
+    _In_           size_t ssize,                         /* size of **ps_limits**, in bytes */
+    _Outsz_(ssize) struct marble_asset_limits *ps_limits /* pointer to a structure to receive limits values */
 );
 
 
