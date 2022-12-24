@@ -49,9 +49,8 @@ namespace mbe {
             return true;
         }
 
-        QString mc_title;
-
     private:
+        QString  mc_title;
         QWidget *mw_refwidget;
     };
 

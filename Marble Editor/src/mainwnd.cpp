@@ -7,6 +7,12 @@ namespace mbe {
     mainwindow::mainwindow(QSize const &cr_dims, QWidget *cp_parent)
         : QMainWindow(cp_parent)
     {
+        /* Init appstate. */
+        mbe::base::gl_appstate = {
+            mbe::base::appstate::running,
+            0
+        };
+
         /* Set main window properties. */
         resize(cr_dims.width(), cr_dims.height());
         setWindowIcon(QIcon(":/icons/ico_appmain.ico"));
@@ -32,6 +38,12 @@ namespace mbe {
     }
     
     mainwindow::~mainwindow() {
+        /* Set app-state. */
+        mbe::base::gl_appstate = {
+            mbe::base::appstate::quit,
+            0
+        };
+
         marble_assetman_destroy(&mps_assetman);
     }
     

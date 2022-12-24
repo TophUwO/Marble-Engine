@@ -43,6 +43,19 @@ namespace mbe {
             layout       /* child layout */
         };
 
+        /* app states */
+        enum class appstate {
+            running    = 1, /* normal state */
+            quit       = 2, /* set on quit */
+            forcedquit = 3  /* set on forced quit */
+        };
+
+        /* structure holding current app-state */
+        static struct {
+            appstate m_state; /* state id */
+            int      m_param; /* opt. parameter */
+        } gl_appstate;
+
         /*
          * Transforms the state of a given checkbox into a boolean value. Tristate
          * is interpreted as "unchecked".

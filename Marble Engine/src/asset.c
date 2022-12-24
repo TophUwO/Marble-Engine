@@ -741,7 +741,23 @@ static void marble_asset_internal_destroy(
     if (pps_asset == NULL || *pps_asset == NULL)
         return;
 
-    /* Destroy dependency table */
+    /*
+     * Destroy dependency table and decrease the
+     * reference count of all dependencies.
+     */
+    size_t const depcount = marble_util_vec_count((*pps_asset)->mps_deps);
+
+    for (size_t i = 0; i < depcount; i++) {
+        MB_VOIDCAST(
+            ps_tmp,
+            marble_util_vec_get((*pps_asset)->mps_deps, i),
+            struct marble_asset
+        );
+        if (ps_tmp == NULL)
+            continue;
+
+        marble_asset_release(ps_tmp);
+    }
     marble_util_vec_destroy(&(*pps_asset)->mps_deps);
 
     /* Get type-specific destructor and run it. */
@@ -765,21 +781,6 @@ static void marble_asset_internal_destroy(
     /* Destroy asset structure. */
     free(*pps_asset);
     *pps_asset = NULL;
-}
-
-/*
- * Decreases the ref-count of every dependency inside the asset's
- * dependency table when the asset gets destroyed.
- * 
- * Returns nothing.
- */
-static void marble_asset_internal_cbdecrefcount(
-    struct marble_asset *ps_asset /* asset to decrease ref-count of */
-) {
-    if (ps_asset == NULL)
-        return;
-
-    marble_asset_release(ps_asset);
 }
 
 
@@ -986,9 +987,14 @@ void marble_asset_release(
      * If ref-count reaches zero, add it
      * to the assetman's waste-bin.
      */
-    if (--ps_asset->m_refcount == 0) {
-        // delete asset
-    }
+    if (--ps_asset->m_refcount == 0)
+        marble_util_htable_erase(
+            ps_asset->mps_refparent->mps_table,
+            &ps_asset->mu_uuid,
+            sizeof ps_asset->mu_uuid,
+            (marble_find_t)&marble_assetman_internal_cbfind,
+            true
+        );
 }
 #pragma endregion (ASSET)
 

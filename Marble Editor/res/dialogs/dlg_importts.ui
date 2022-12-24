@@ -37,6 +37,9 @@
    </property>
    <item row="2" column="0">
     <widget class="QDialogButtonBox" name="w_btnbox">
+     <property name="focusPolicy">
+      <enum>Qt::TabFocus</enum>
+     </property>
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
@@ -569,6 +572,9 @@
               <height>0</height>
              </size>
             </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
             <property name="text">
              <string>Dialog &gt;&gt;</string>
             </property>
@@ -624,7 +630,12 @@
   <tabstop>spn_top</tabstop>
   <tabstop>spn_right</tabstop>
   <tabstop>spn_bottom</tabstop>
-  <tabstop>tbtn_browse</tabstop>
+  <tabstop>cb_usemask</tabstop>
+  <tabstop>spn_red</tabstop>
+  <tabstop>spn_green</tabstop>
+  <tabstop>spn_blue</tabstop>
+  <tabstop>spn_alpha</tabstop>
+  <tabstop>tbtn_dialog</tabstop>
  </tabstops>
  <resources>
   <include location="../resource.qrc"/>

@@ -83,8 +83,8 @@ struct marble_levelasset_chunk {
  * Asset-subtype representing a level
  */
 MB_DEFSUBTYPE(marble_levelasset, struct marble_asset, {
-    uint16_t m_width;   /* width of each layer, in tiles */
-    uint16_t m_height;  /* height of each layer, in tiles */
+    uint16_t m_width;   /* width of each layer, in chunks */
+    uint16_t m_height;  /* height of each layer, in chunks */
     uint32_t m_nlayers; /* number of layers */
 
     /*

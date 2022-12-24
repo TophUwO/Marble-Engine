@@ -16,12 +16,18 @@ namespace mbe {
         }
 
         ~editorlevel() {
-            /* Decrease ref-count. */
-            marble_asset_release(mps_asset);
+            /*
+             * Decrease ref-count, only if we are
+             * not exiting currently.
+             */
+            if (mbe::base::gl_appstate.m_state == mbe::base::appstate::running)
+                marble_asset_release(reinterpret_cast<marble_asset *>(mps_asset));
         }
 
         /*
-         *  
+         * Instructs the assetman to create a new level asset.
+         * 
+         * Returns true if the creation succeeded, false if not.
          */
         bool create(uint16_t width, uint16_t height, QString const &cr_loc, QString const &cr_ident, editoraman *ps_aman) {
             if (ps_aman == nullptr)
@@ -33,6 +39,10 @@ namespace mbe {
                 height
             };
 
+            /* Calculate pixel dimensions of the level. */
+            m_width  = width * 16 * 32;
+            m_height = height * 16 * 32;
+
             /* Create asset. */
             return 
                 marble_asset_createnew(
@@ -40,13 +50,15 @@ namespace mbe {
                     0,
                     &s_crparams,
                     ps_aman,
-                    &mps_asset
+                    reinterpret_cast<marble_asset **>(&mps_asset)
                 ) == MARBLE_EC_OK;
         }
 
-        QString       mc_ident;
-        QString       mc_location;
-        marble_asset *mps_asset;
+        QString            mc_ident;
+        QString            mc_location;
+        marble_levelasset *mps_asset;
+        int                m_width;
+        int                m_height;
     };
 
     /*
@@ -109,8 +121,8 @@ namespace mbe {
          */
         bool int_iscontentssmaller();
 
-        editorlevel ms_level;
-        editoraman *mps_refaman;
+        editorlevel *mps_level;   /* level instance */
+        editoraman  *mps_refaman; /* asset manager */
     };
 } /* namespace mbe */
 
