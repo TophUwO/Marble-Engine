@@ -4,6 +4,9 @@
 
 #pragma region ASSETSUBTYPE
 #pragma region ASSET-LEVEL-PROTOS
+extern size_t const gl_lvlassetsize;
+extern size_t const gl_lvlassetchunksize;
+
 /*
  * Creates a new level-asset inside **ps_lvlasset**.
  * The memory for the structure has to be allocated
@@ -66,7 +69,7 @@ extern bool MB_QUERYHARDLIMITSFN(levelasset)(
 static struct {
     enum marble_asset_type type; /* asset type */
     
-    size_t size;           /* size of complete sub-type, in bytes */
+    size_t const *size;    /* size of complete sub-type, in bytes */
     void  *fn_create;      /* sub-type constructor */
     void  *fn_destroy;     /* sub-type destructor */
     void  *fn_crpvalidate; /* create-params validator */
@@ -76,7 +79,7 @@ static struct {
     { MARBLE_ASSETTYPE_UNKNOWN, 0 },
 
     { MARBLE_ASSETTYPE_LEVEL,
-        sizeof(union marble_levelasset),
+        &gl_lvlassetsize,
         (void *)&MB_CREATEFN(levelasset),
         (void *)&MB_DESTROYFN(levelasset),
         (void *)&MB_VALIDATECRPSFN(levelasset),
@@ -141,7 +144,7 @@ static size_t marble_asset_internal_getsubtypesize(
     if (!marble_asset_internal_isvalidtype(type))
         return 0;
 
-    return glsa_assetsubtypeinfos[type].size;
+    return *glsa_assetsubtypeinfos[type].size;
 }
 
 /*
@@ -258,6 +261,45 @@ static _Critical_ marble_ecode_t marble_asset_internal_loaddeps(
 
 lbl_END:
     return ecode;
+}
+
+/*
+ * Seeks for a given dependency in the first layer of a given
+ * asset's dependency graph.
+ * For detailed documentation, consult document 2-1 of the
+ * Marble Engine Documentation.
+ * 
+ * Returns index of the dependency. If the dependency is not
+ * registered, or in case of an error, the function returns
+ * SIZE_MAX.
+ */
+static size_t marble_asset_internal_getdirectdependencyindex(
+    _In_ struct marble_asset *ps_asset, /* asset to traverse dep-chain of */
+    _In_ struct marble_asset *ps_dep    /* dependency to look for */
+) {
+    if (ps_asset == NULL || ps_dep == NULL)
+        return SIZE_MAX;
+
+    size_t const ndeps = marble_util_vec_count(ps_asset->mps_deps);
+    for (size_t i = 0; i < ndeps; i++) {
+        MB_VOIDCAST(
+            ps_tmp,
+            marble_util_vec_get(ps_asset->mps_deps, i),
+            struct marble_asset
+        );
+        if (ps_tmp == NULL)
+            continue;
+
+        /*
+         * Check whether UUIDs of both **ps_dep** and the direct
+         * dependency match. If they match, the assets already
+         * exists as a direct dependency.
+         */
+        if (marble_uuid_compare(&ps_tmp->mu_uuid, &ps_dep->mu_uuid))
+            return i;
+    }
+
+    return SIZE_MAX;
 }
 #pragma endregion (GENERICASSET)
 
@@ -392,6 +434,17 @@ struct marble_assetman_mempool {
 #define MB_ASSETMAN_MEMPOOL_ALLOC (-1)
 #define MB_ASSETMAN_MEMPOOL_COUNT (1024)
 
+
+extern int16_t marble_levelasset_internal_getchunkflag(
+    _In_ struct marble_levelasset_chunk *ps_chunk /* address of the chunk */
+);
+
+extern void marble_levelasset_internal_setchunkflag(
+    _In_ struct marble_levelasset_chunk *ps_chunk, /* address of the chunk */
+         int16_t flag                              /* flag to set */
+);
+
+
 /*
  * Destroys a memory pool used by the level manager.
  * 
@@ -433,7 +486,7 @@ static _Critical_ marble_ecode_t marble_assetman_internal_createmempool(
         return ecode;
 
     /* Init object size. */
-    (*pps_mempool)->m_objsize = sizeof(struct marble_levelasset_chunk);
+    (*pps_mempool)->m_objsize = gl_lvlassetchunksize;
 
     /* Allocate actual pool. */
     ecode = marble_system_alloc(
@@ -559,7 +612,7 @@ _Critical_ marble_ecode_t marble_assetman_internal_allocatechunk(
     }
 
     /* Calculate chunk offset. */
-    *pps_chunk = &((struct marble_levelasset_chunk *)ps_mempool->mps_data)[ps_mempool->m_firstempty];
+    *pps_chunk = (struct marble_levelasset_chunk *)((char *)ps_mempool->mps_data + ps_mempool->m_firstempty * gl_lvlassetchunksize);
 
     /*
      * Find next empty chunk in the pool.
@@ -568,9 +621,9 @@ _Critical_ marble_ecode_t marble_assetman_internal_allocatechunk(
      * a new pool.
      */
     for (size_t i = ps_mempool->m_firstempty + 1; i < (ps_mempool->m_size / ps_mempool->m_objsize); i++) {
-        struct marble_levelasset_chunk *ps_tmp = &((struct marble_levelasset_chunk *)ps_mempool)[i];
+        struct marble_levelasset_chunk *ps_tmp = (struct marble_levelasset_chunk *)((char *)ps_mempool + i * gl_lvlassetchunksize);
 
-        if (ps_tmp->m_nents == MB_ASSETMAN_MEMPOOL_FREE) {
+        if (marble_levelasset_internal_getchunkflag(ps_tmp) == MB_ASSETMAN_MEMPOOL_FREE) {
            ps_mempool->m_firstempty = i;
 
            break;
@@ -578,7 +631,7 @@ _Critical_ marble_ecode_t marble_assetman_internal_allocatechunk(
     }
 
     /* Mark chunk as allocated. */
-    (*pps_chunk)->m_nents = MB_ASSETMAN_MEMPOOL_ALLOC;
+    marble_levelasset_internal_setchunkflag(*pps_chunk, MB_ASSETMAN_MEMPOOL_ALLOC);
 
 lbl_END:
     if (ecode != MARBLE_EC_OK)
@@ -608,6 +661,13 @@ void marble_assetman_internal_freechunk(
             struct marble_assetman_mempool
         );
 
+        /*
+         * Calculate difference between starting address of
+         * memory pool block and the chunk we are looking for.
+         * If the difference is positive and smaller than the
+         * size of the pool, we know the chunk lies within that
+         * pool.
+         */
         addrdiff = (intptr_t)ps_chunk - (intptr_t)ps_tmp->mps_data;
         if (addrdiff >= 0 && (size_t)addrdiff < ps_tmp->m_size) {
             ps_mempool = ps_tmp;
@@ -632,7 +692,7 @@ void marble_assetman_internal_freechunk(
      * Update the chunk state and the pointer to the
      * first free chunk in the pool, if necessary.
      */
-    ps_chunk->m_nents = MB_ASSETMAN_MEMPOOL_FREE;
+    marble_levelasset_internal_setchunkflag(ps_chunk, MB_ASSETMAN_MEMPOOL_FREE);
 
     /* Calculate index of chunk in the pool. */
     size_t const chindex = addrdiff / ps_mempool->m_objsize;
@@ -1005,7 +1065,7 @@ _Success_ptr_ struct marble_asset *marble_asset_exists(
     _In_ marble_uuid_t *p_uuid
 ) {
     if (p_uuid == NULL || !marble_assetman_isok(ps_assetman))
-        return NULL;
+        return MB_INVPTR;
 
     /* Locate the asset inside the given hashtable. */
     struct marble_asset *ps_asset = marble_util_htable_find(
@@ -1015,7 +1075,7 @@ _Success_ptr_ struct marble_asset *marble_asset_exists(
         (bool (*)(void *, void *))&marble_assetman_internal_cbfind
     );
     if (ps_asset == NULL)
-        return NULL;
+        return MB_INVPTR;
 
     /* Add a reference if the **addref** parameter is true. */
     if (addref == true)
@@ -1028,7 +1088,7 @@ _Success_ptr_ struct marble_asset *marble_asset_addref(
     _Inout_ struct marble_asset *ps_asset
 ) {
     if (ps_asset == NULL)
-        return NULL;
+        return MB_INVPTR;
 
     ++ps_asset->m_refcount;
 
@@ -1042,8 +1102,8 @@ void marble_asset_release(
         return;
 
     /*
-     * If ref-count reaches zero, add it
-     * to the assetman's waste-bin.
+     * If ref-count reaches zero, actually
+     * delete it.
      */
     if (--ps_asset->m_refcount == 0)
         marble_util_htable_erase(
@@ -1070,6 +1130,50 @@ _Success_ok_ marble_ecode_t marble_asset_queryhardlimits(
      * their per-type limits and properties.
      */
     MB_QUERYHARDLIMITSFN(levelasset)(sizeof(MB_ASSETTYPELIMITS(levelasset)), &ps_limits->ms_lvllimits);
+
+    return MARBLE_EC_OK;
+}
+
+_Success_ok_ marble_ecode_t marble_asset_adddependency(
+    _In_ struct marble_asset *ps_asset,
+    _In_ struct marble_asset *ps_dep
+) {
+    if (ps_asset == NULL || ps_dep == NULL)
+        return MARBLE_EC_PARAM;
+
+    /*
+     * Check whether the dependency is already
+     * registered.
+     */
+    if (marble_asset_internal_getdirectdependencyindex(ps_asset, ps_dep) == SIZE_MAX)
+        return MARBLE_EC_ALREADYDEP;
+
+    /*
+     * Add the dependency to the dependency table of
+     * the asset.
+     */
+    return
+        marble_util_vec_pushback(
+            ps_asset->mps_deps,
+            marble_asset_addref(ps_dep)
+        );
+}
+
+_Success_ok_ marble_ecode_t marble_asset_remdependency(
+    _In_ struct marble_asset *ps_asset,
+    _In_ struct marble_asset *ps_dep
+) {
+    if (ps_asset == NULL || ps_dep == NULL)
+        return MARBLE_EC_PARAM;
+
+    /* Get dep-index. */
+    size_t depindex = marble_asset_internal_getdirectdependencyindex(ps_asset, ps_dep);
+    if (depindex == SIZE_MAX)
+        return MARBLE_EC_NOTDEP;
+
+    /* Remove the dependency from the graph. */
+    marble_util_vec_erase(ps_asset->mps_deps, depindex, false);
+    marble_asset_release(ps_dep);
 
     return MARBLE_EC_OK;
 }

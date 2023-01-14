@@ -2,9 +2,6 @@
 
 #include <asset.h>
 
-#define MB_LA_CHUNKW (16)
-#define MB_LA_CHUNKH (16)
-
 
 MB_BEGIN_HEADER
 
@@ -32,78 +29,13 @@ struct marble_levelasset_crparams {
     uint16_t m_height; /* height, in chunks */
 };
 
-/*
- * chunk structure 
- */
-struct marble_levelasset_chunk {
-    /*
-     * Number of entities currently populated (i.e. non-NULL);
-     * Note that a number of 0 indicates that the chunk is
-     * unused. A number of n=1 or higher indicates that the chunk
-     * is in use and has n-1 entities actually populated.
-     */
-    int16_t m_nents;
-    /*
-     * xpos and ypos of the chunk relative to the
-     * upper-left corner (0, 0) of the map
-     */
-    uint16_t m_xpos;
-    uint16_t m_ypos;
 
-    /*
-     * chunk entity
-     * 
-     * represents a single entity on a map, i.e.
-     *  (1) a static texture (tile)
-     */
-    union marble_levelasset_chunkentity {
-        /* static texture */
-        struct {
-            /*
-             * Index into the dependency table.
-             * 
-             * NOTE: A value of 0 is reserved for the state
-             * of no set dependency index. So the index of
-             * the first dep is not 0 but 1.
-             */
-            uint16_t m_depindex;
-
-            /*
-             * xpos and ypos of the tile in the tileset,
-             * relative to the upper-left corner of the
-             * tileset
-             */
-            uint8_t m_depx;
-            uint8_t m_depy;
-        } _stex;
-    } muaa_data[MB_LA_CHUNKW][MB_LA_CHUNKH];
-};
-
-/*
- * Asset-subtype representing a level
- */
-MB_DEFSUBTYPE(marble_levelasset, struct marble_asset, {
-    uint16_t m_width;   /* width of each layer, in chunks */
-    uint16_t m_height;  /* height of each layer, in chunks */
-    uint32_t m_nlayers; /* number of layers */
-
-    /*
-     * List of layers. The topmost layer is the
-     * first element in this list. 
-     */
-    struct marble_util_vec *mps_layers;
-});
-static_assert(_Alignof(union marble_levelasset) == _Alignof(struct marble_asset), "");
+/* main type declarations */
+union marble_levelasset;
+struct marble_levelasset_chunk;
 
 
 #if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
-/*
- * Returns the width and the height of a layer chunk.
- */
-MB_API void marble_levelasset_getchunksize(
-    _Out_ struct marble_sizei2d *ps_size /* structure to receive the size */
-);
-
 /*
  * Converts tile coordinates to chunk (and, optionally, chunk-
  * local) coordinates.
@@ -134,7 +66,7 @@ MB_API void marble_levelasset_chunk2tile(
  *
  * Returns 0 on success, non-zero on failure.
  */
-_Critical_ MB_API marble_ecode_t marble_levelasset_addlayer(
+MB_API _Critical_ marble_ecode_t marble_levelasset_addlayer(
     _In_ union marble_levelasset *ps_lvlasset,  /* level asset */
     _In_ enum marble_levelasset_layertype type, /* layer type */
          uint32_t index                         /* insert index */
@@ -167,42 +99,42 @@ MB_API uint32_t marble_levelasset_movelayer(
 );
 
 /*
- * Inserts an entity (tile, etc.) into a given position on the
- * level. If an entity already exists on that given position,
- * it will be replaced.
- * Pass NULL for **ps_entity** to remove the entity at the given
- * position.
- * This function expects **xpos** and **ypos** to be in tile
- * coordinates.
+ * Retrieves a specific tile entity from a given layer, using
+ * world coordinates.
  * 
- * Returns nothing.
+ * Returns 0 on success, non-zero on failure. If the function
+ * fails, all parameters marked by "_Out_" will be initialized
+ * to 0. This signifies an error since 0 is not a valid
+ * dependency index.
  */
-MB_API marble_ecode_t marble_levelasset_setentity(
+MB_API _Success_ok_ marble_ecode_t marble_levelasset_getstatictexture(
+    _In_  union marble_levelasset *ps_lvlasset, /* level asset */
+          uint32_t lindex,                      /* layer index */
+          uint32_t xpos,                        /* xpos, in tiles */
+          uint32_t ypos,                        /* ypos, in tiles */
+    _Out_ uint16_t *p_depindex,                 /* dependency index */
+    _Out_ uint8_t *p_depx,                      /* x-pos of the tile in the dependency */
+    _Out_ uint8_t *p_depy                       /* y-pos of the tile in the dependency */
+);
+
+/*
+ * Inserts a static texture into the given layer. If the layer
+ * is not a texture layer, the function will not do anything.
+ * If an entity already exists on that given position,
+ * it will be replaced.
+ * If **depindex**, **depx**, or **depy** are invalid, the
+ * function will do nothing.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_levelasset_setstatictexture(
     _In_ union marble_levelasset *ps_lvlasset, /* level asset */
          uint32_t lindex,                      /* layer index */
          uint32_t xpos,                        /* xpos, in tiles */
          uint32_t ypos,                        /* ypos, in tiles */
-         /*
-          * entity; the function will automatically choose the right part of
-          * the union depending on the type of **ps_layer**. Passing NULL for
-          * this parameter will cause the function to remove the entity at
-          * the given position, if there is any.
-          */
-         union marble_levelasset_chunkentity *ps_entity
-);
-
-/*
- * Retrieves a specific tile entity from a given layer, using
- * world coorinates.
- * 
- * Returns pointer to that object, NULL if the object is not
- * set, or MB_INVPTR is there was an error.
- */
-MB_API union marble_levelasset_chunkentity *marble_levelasset_getentity(
-    _In_ union marble_levelasset *ps_lvlasset, /* level asset */
-         uint32_t lindex,                      /* layer index */
-         uint32_t xpos,                        /* xpos, in tiles */
-         uint32_t ypos                         /* ypos, in tiles */
+    _In_ uint16_t depindex,                    /* index of the dependency in the dependency table */
+         uint8_t depx,                         /* xpos of the tile in the dependency, in tile coordinates */
+         uint8_t depy                          /* ypos of the tile in the dependency, in tile coordinates */
 );
 #endif
 

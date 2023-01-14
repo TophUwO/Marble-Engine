@@ -168,6 +168,29 @@ MB_API _Success_ok_ marble_ecode_t marble_asset_queryhardlimits(
     _Outsz_(ssize) struct marble_asset_limits *ps_limits /* pointer to a structure to receive limits values */
 );
 
+/*
+ * Adds a dependency to an asset.
+ *
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_asset_adddependency(
+    _In_ struct marble_asset *ps_asset, /* asset to add dependency to */
+    _In_ struct marble_asset *ps_dep    /* dependency to add */ 
+);
+
+/*
+ * Removes a dependency from the dep-chain
+ * of a given asset.
+ * If the dep is not part of the dep-chain, the
+ * function does nothing.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_asset_remdependency(
+    _In_ struct marble_asset *ps_asset, /* asset to remove dependency from */
+    _In_ struct marble_asset *ps_dep    /* dependency to remove */ 
+);
+
 
 MB_END_HEADER
 

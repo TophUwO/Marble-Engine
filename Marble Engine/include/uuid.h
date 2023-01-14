@@ -48,6 +48,17 @@ MB_API void marble_uuid_copy(
     _In_  marble_uuid_t const *pu_src /* source buffer */
 );
 
+/*
+ * Compares two UUIDs for equality.
+ * 
+ * Returns true if the UUIDs are equal, false
+ * if not.
+ */
+MB_API bool marble_uuid_compare(
+    _In_ marble_uuid_t const *pu_uuid1, /* left */
+    _In_ marble_uuid_t const *pu_uuid2  /* right */
+);
+
 
 MB_END_HEADER
 

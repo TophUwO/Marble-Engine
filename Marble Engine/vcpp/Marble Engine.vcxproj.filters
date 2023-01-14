@@ -16,9 +16,6 @@
     <Filter Include="Resource Files\Notes">
       <UniqueIdentifier>{184f5db2-e268-4463-833e-24b8ff68c2af}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files\Tools">
-      <UniqueIdentifier>{bfebc9d8-c995-4875-b795-e6cbe6a5f0a4}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\external">
       <UniqueIdentifier>{782eae2f-5cdc-4b95-b312-27c06760d333}</UniqueIdentifier>
     </Filter>
@@ -133,16 +130,8 @@
     <Text Include="..\..\Notes\planned_utils.txt">
       <Filter>Resource Files\Notes</Filter>
     </Text>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\Marble Tools\gen_colortable.py">
-      <Filter>Resource Files\Tools</Filter>
-    </None>
-    <None Include="..\..\Marble Tools\baselib.py">
-      <Filter>Resource Files\Tools</Filter>
-    </None>
-    <None Include="..\..\Marble Tools\gen_map.py">
-      <Filter>Resource Files\Tools</Filter>
-    </None>
+    <Text Include="..\..\Notes\old_code.txt">
+      <Filter>Resource Files\Notes</Filter>
+    </Text>
   </ItemGroup>
 </Project>

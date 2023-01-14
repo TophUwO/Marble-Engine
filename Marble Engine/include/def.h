@@ -1,5 +1,15 @@
 #pragma once
 
+#include <platform.h>
+
+#if (defined MB_COMPILER_MSVC)
+    #include <sal.h>
+
+    #if (_SAL_VERSION < 20)
+        #pragma message ("Warning: Marble Engine requires SAL v2 or newer.")
+    #endif
+#endif
+
 
 #ifdef MB_DYNAMIC_LIBRARY
 	#define MB_API extern __declspec(dllexport)
@@ -13,7 +23,7 @@
  * readability. Also used for combining annotations in a more
  * readable and shorter form.
  */
-#if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
+#if (_SAL_VERSION >= 20 && ((defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)))
 	/*
 	 * Used for functions that allocate and initialize
 	 * an "object"; these functions are usually named
@@ -75,6 +85,17 @@
      * shortcut for "_Out_writes_bytes_(size)" 
      */
     #define _Outsz_(sz)        _Out_writes_bytes_(sz)
+#else
+    #define _Init_(param)
+    #define _Reinit_opt_(param)
+    #define _Uninit_(param)
+    #define _Success_ok_
+    #define _Success_ptr_
+    #define _Critical_
+    #define _Size_(size)
+    #define _Maybe_valid_
+    #define _Maybe_out_
+    #define _Outsz_(sz)
 #endif
 
 

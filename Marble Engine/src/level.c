@@ -4,6 +4,74 @@
 
 
 /*
+ * chunk structure 
+ */
+struct marble_levelasset_chunk {
+    /*
+     * Number of entities currently populated (i.e. non-NULL);
+     * Note that a number of 0 indicates that the chunk is
+     * unused. A number of n=1 or higher indicates that the chunk
+     * is in use and has n-1 entities actually populated.
+     */
+    int16_t m_nents;
+    /*
+     * xpos and ypos of the chunk relative to the
+     * upper-left corner (0, 0) of the map
+     */
+    uint16_t m_xpos;
+    uint16_t m_ypos;
+
+    /*
+     * chunk entity
+     * 
+     * represents a single entity on a map, i.e.
+     *  (1) a static texture (tile)
+     */
+    union marble_levelasset_chunkentity {
+        /* static texture */
+        struct {
+            /*
+             * Index into the dependency table.
+             * 
+             * NOTE: A value of 0 is reserved for the state
+             * of no set dependency index. So the index of
+             * the first dep is not 0 but 1.
+             */
+            uint16_t m_depindex;
+
+            /*
+             * xpos and ypos of the tile in the tileset,
+             * relative to the upper-left corner of the
+             * tileset
+             */
+            uint8_t m_depx;
+            uint8_t m_depy;
+        } _stex;
+    } muaa_data[16][16];
+};
+
+/*
+ * Asset-subtype representing a level
+ */
+MB_DEFSUBTYPE(marble_levelasset, struct marble_asset, {
+    uint16_t m_width;   /* width of each layer, in chunks */
+    uint16_t m_height;  /* height of each layer, in chunks */
+    uint32_t m_nlayers; /* number of layers */
+
+    /*
+     * List of layers. The topmost layer is the
+     * first element in this list. 
+     */
+    struct marble_util_vec *mps_layers;
+});
+static_assert(_Alignof(union marble_levelasset) == _Alignof(struct marble_asset), "");
+
+/* size fields, in bytes -- for the asset manager */
+size_t const gl_lvlassetsize      = sizeof(union marble_levelasset);
+size_t const gl_lvlassetchunksize = sizeof(struct marble_levelasset_chunk);
+
+
+/*
  * layer structure
  * 
  * A layer is solely a container for
@@ -55,6 +123,27 @@ extern void marble_assetman_internal_freechunk(
     _In_ struct marble_levelasset_chunk *ps_chunk /* address of the chunk */
 );
 
+
+#pragma region UTILFN
+int16_t marble_levelasset_internal_getchunkflag(
+    _In_ struct marble_levelasset_chunk *ps_chunk /* address of the chunk */
+) {
+    if (ps_chunk == NULL)
+        return SHORT_MIN;
+
+    return ps_chunk->m_nents;
+}
+
+void marble_levelasset_internal_setchunkflag(
+    _In_ struct marble_levelasset_chunk *ps_chunk, /* address of the chunk */
+         int16_t flag                              /* flag to set */
+) {
+    if (ps_chunk == NULL)
+        return;
+
+    ps_chunk->m_nents = flag;
+}
+#pragma endregion (UTILFN)
 
 /*
  * Destroys a layer chunk of a given layer type.
@@ -182,6 +271,12 @@ lbl_END:
     return ecode;
 }
 
+/*
+ * Retrieves a pointer to a chunk object in a given layer.
+ * 
+ * Returns the pointer to the chunk. On failure, the return value
+ * is MB_INVPTR.
+ */
 static _Check_return_ _Success_ptr_ struct marble_levelasset_chunk *marble_levelasset_internal_getchunk(
     _In_ struct marble_levelasset_layer *ps_layer, /* layer to look in */
          struct marble_pointi2d s_pt               /* chunk coordinates */
@@ -194,6 +289,95 @@ static _Check_return_ _Success_ptr_ struct marble_levelasset_chunk *marble_level
         (size_t)s_pt.m_x,
         (size_t)s_pt.m_y
     );
+}
+
+/*
+ * Retrieves the address of a specific chunk entity in a given
+ * level asset.
+ * 
+ * Returns the pointer to the chunk entity. On failure, the return value
+ * is MB_INVPTR.
+ */
+static _Check_return_ _Success_ptr_ union marble_levelasset_chunkentity *marble_levelasset_internal_getchunkentaddr(
+    _In_         union marble_levelasset *ps_lvlasset,       /* level asset */
+                 uint32_t lindex,                            /* layer index */
+                 uint32_t xpos,                              /* xpos, in tiles */
+                 uint32_t ypos,                              /* ypos, in tiles */
+    _Outptr_opt_ struct marble_levelasset_chunk **pps_chunk, /* chunk pointer */
+    _Out_        marble_ecode_t *p_ecode,                    /* error code */
+                 bool createchunk                            /* create chunk if it does not exist? */
+) {
+    if (ps_lvlasset == NULL || !marble_levelasset_internal_isvalidlayerid(ps_lvlasset, lindex) || p_ecode == NULL) {
+        if (p_ecode != NULL)
+            *p_ecode = MARBLE_EC_PARAM;
+
+        return MB_INVPTR;
+    }
+
+    /* Get reference to layer. */
+    struct marble_levelasset_layer *ps_layer = marble_util_vec_get(ps_lvlasset->mps_layers, lindex);
+    if (ps_layer == NULL) {
+        *p_ecode = MARBLE_EC_LAYERADDR;
+
+        return MB_INVPTR;
+    }
+
+    /* Calculate chunk (and chunk-local) coordinates. */
+    struct marble_pointi2d s_cpt = { 0 }, s_clpt = { 0 };
+    marble_levelasset_tile2chunk(
+        (struct marble_pointi2d){ xpos, ypos },
+        &s_cpt,
+        &s_clpt
+    );
+
+    /* Get reference to chunk. */
+    struct marble_levelasset_chunk *ps_chunk = marble_levelasset_internal_getchunk(
+        ps_layer,
+        s_cpt
+    );
+    if (ps_chunk == NULL || ps_chunk == MB_INVPTR) {
+        if (!createchunk) {
+            *p_ecode = MARBLE_EC_CHUNKADDR;
+
+            return MB_INVPTR;
+        }
+
+        /*
+         * If no chunk with the given coordinates could
+         * be found, create a new one.
+         */
+        *p_ecode = marble_assetman_internal_allocatechunk(
+            ps_lvlasset->_base.mps_refparent,
+            &ps_chunk
+        );
+        if (*p_ecode != MARBLE_EC_OK)
+            return MB_INVPTR;
+
+        /* Add the chunk to the array. */
+        *p_ecode = marble_util_array2d_insert(
+            ps_layer->mps_chunks,
+            (size_t)xpos,
+            (size_t)ypos,
+            false,
+            ps_chunk,
+            NULL
+        );
+        if (*p_ecode != MARBLE_EC_OK) {
+            marble_assetman_internal_freechunk(
+                ps_lvlasset->_base.mps_refparent,
+                ps_chunk
+            );
+
+            return MB_INVPTR;
+        }
+    }
+    if (pps_chunk != NULL)
+        *pps_chunk = ps_chunk;
+
+    /* Get pointer to chunk entity. */
+    *p_ecode = MARBLE_EC_OK;
+
+    return &ps_chunk->muaa_data[s_clpt.m_x][s_clpt.m_y];
 }
 
 
@@ -264,16 +448,6 @@ bool MB_QUERYHARDLIMITSFN(levelasset)(
     return true;
 }
 
-void marble_levelasset_getchunksize(
-    _Out_ struct marble_sizei2d *ps_size
-) {
-    if (ps_size == NULL)
-        return;
-
-    ps_size->m_width  = MB_LA_CHUNKW;
-    ps_size->m_height = MB_LA_CHUNKH;
-}
-
 void marble_levelasset_tile2chunk(
               struct marble_pointi2d s_tcoords,
     _Out_opt_ struct marble_pointi2d *ps_chcoords,
@@ -281,14 +455,14 @@ void marble_levelasset_tile2chunk(
 ) {
     if (ps_chcoords != NULL)
         *ps_chcoords = (struct marble_pointi2d){
-            .m_x = (s_tcoords.m_x / MB_LA_CHUNKW) % gls_limits.m_maxwidth,
-            .m_y = (s_tcoords.m_y / MB_LA_CHUNKH) % gls_limits.m_maxheight
+            .m_x = (s_tcoords.m_x / gls_limits.m_chunkwidth) % gls_limits.m_maxwidth,
+            .m_y = (s_tcoords.m_y / gls_limits.m_chunkheight) % gls_limits.m_maxheight
         };
 
     if (ps_chloccoords != NULL)
         *ps_chloccoords = (struct marble_pointi2d){
-            .m_x = s_tcoords.m_x % MB_LA_CHUNKW,
-            .m_y = s_tcoords.m_y % MB_LA_CHUNKH
+            .m_x = s_tcoords.m_x % gls_limits.m_chunkwidth,
+            .m_y = s_tcoords.m_y % gls_limits.m_chunkheight
         };
 }
 
@@ -299,8 +473,8 @@ void marble_levelasset_chunk2tile(
 ) {
     if (ps_tcoords != NULL)
         *ps_tcoords = (struct marble_pointi2d){
-            .m_x = s_chcoords.m_x * 16 + s_chloccoords.m_x % MB_LA_CHUNKW,
-            .m_y = s_chcoords.m_y * 16 + s_chloccoords.m_y % MB_LA_CHUNKH
+            .m_x = s_chcoords.m_x * gls_limits.m_chunkwidth + s_chloccoords.m_x % gls_limits.m_chunkwidth,
+            .m_y = s_chcoords.m_y * gls_limits.m_chunkheight + s_chloccoords.m_y % gls_limits.m_chunkheight
         };
 }
 
@@ -369,143 +543,85 @@ uint32_t marble_levelasset_movelayer(
     return 0;
 }
 
-marble_ecode_t marble_levelasset_setentity(
+_Success_ok_ marble_ecode_t marble_levelasset_getstatictexture(
+    _In_  union marble_levelasset *ps_lvlasset,
+          uint32_t lindex,
+          uint32_t xpos,
+          uint32_t ypos,
+    _Out_ uint16_t *p_depindex,
+    _Out_ uint8_t *p_depx,
+    _Out_ uint8_t *p_depy
+) { MB_ERRNO
+    if (p_depindex == NULL || p_depx == NULL || p_depy == NULL)
+        return MARBLE_EC_PARAM;
+
+    /* Get pointer to desired chunk entity. */
+    union marble_levelasset_chunkentity *ps_ent = marble_levelasset_internal_getchunkentaddr(
+        ps_lvlasset,
+        lindex,
+        xpos,
+        ypos,
+        NULL,
+        &ecode,
+        false
+    );
+    if (ps_ent == MB_INVPTR || ecode != MARBLE_EC_OK) {
+        *p_depindex = 0;
+        *p_depx     = 0;
+        *p_depy     = 0;
+
+        return ecode;
+    }
+
+    /* Write data. */
+    *p_depindex = ps_ent->_stex.m_depindex;
+    *p_depx     = ps_ent->_stex.m_depx;
+    *p_depy     = ps_ent->_stex.m_depy;
+
+    return MARBLE_EC_OK;
+}
+
+_Success_ok_ marble_ecode_t marble_levelasset_setstatictexture(
     _In_ union marble_levelasset *ps_lvlasset,
          uint32_t lindex,
          uint32_t xpos,
          uint32_t ypos,
-         union marble_levelasset_chunkentity *ps_entity
+    _In_ uint16_t depindex,
+         uint8_t depx,
+         uint8_t depy
 ) { MB_ERRNO
-    if (ps_lvlasset == NULL || !marble_levelasset_internal_isvalidlayerid(ps_lvlasset, lindex))
-        return MARBLE_EC_PARAM;
+    /* Get pointer to desired chunk entity. */
+    struct marble_levelasset_chunk *ps_chunk = NULL;
 
-    /* Get reference to layer. */
-    struct marble_levelasset_layer *ps_layer = marble_util_vec_get(ps_lvlasset->mps_layers, lindex);
-    if (ps_layer == NULL)
-        return MARBLE_EC_OUTOFRANGE;
-
-    /* Calculate chunk (and chunk-local) coordinates. */
-    struct marble_pointi2d s_cpt = { 0 }, s_clpt = { 0 };
-    marble_levelasset_tile2chunk(
-        (struct marble_pointi2d){ xpos, ypos },
-        &s_cpt,
-        &s_clpt
+    union marble_levelasset_chunkentity *ps_ent = marble_levelasset_internal_getchunkentaddr(
+        ps_lvlasset,
+        lindex,
+        xpos,
+        ypos,
+        &ps_chunk,
+        &ecode,
+        true
     );
+    if (ps_ent == MB_INVPTR || ecode != MARBLE_EC_OK)
+        return ecode;
 
-    /* Get reference to chunk. */
-    struct marble_levelasset_chunk *ps_chunk = marble_levelasset_internal_getchunk(
-        ps_layer,
-        s_cpt
-    );
-    if (ps_chunk == MB_INVPTR) {
-        ecode = MARBLE_EC_INTERNALPARAM;
-
-        goto lbl_END;
-    } else if (ps_chunk == NULL) {
-        /*
-         * If no chunk with the given coordinates could
-         * be found, create a new one.
-         */
-        ecode = marble_assetman_internal_allocatechunk(
-            ps_lvlasset->_base.mps_refparent,
-            &ps_chunk
-        );
-        if (ecode != MARBLE_EC_OK)
-            goto lbl_END;
-
-        /* Add the chunk to the array. */
-        ecode = marble_util_array2d_insert(
-            ps_layer->mps_chunks,
-            (size_t)xpos,
-            (size_t)ypos,
-            false,
-            ps_chunk,
-            NULL
-        );
-        if (ecode != MARBLE_EC_OK)
-            goto lbl_END;
-    }
-
-    /* Get reference to target entity. */
-    union marble_levelasset_chunkentity *ps_ent = &ps_chunk->muaa_data[s_clpt.m_x][s_clpt.m_y];
+    /* Update chunk entity. */
+    ps_ent->_stex.m_depindex = depindex;
+    ps_ent->_stex.m_depx     = depx;
+    ps_ent->_stex.m_depy     = depy;
 
     /*
-     * If the source entity is NULL, remove the existing
-     * entity from the position.
+     * If the chunk entity was deleted, check if
+     * the chunk itself can be freed.
      */
-    if (ps_entity == NULL) {
-        if (ps_ent->_stex.m_depindex == MB_LA_DEPINDEX_NOTSET)
-            goto lbl_END;
-
-        ps_ent->_stex.m_depindex = MB_LA_DEPINDEX_NOTSET;
-
-        /*
-         * If entity count reaches zero or below, free the
-         * chunk so the level manager can reuse it.
-         */
+    if (depindex == 0)
         if (--ps_chunk->m_nents <= 0)
             marble_assetman_internal_freechunk(
                 ps_lvlasset->_base.mps_refparent,
                 ps_chunk
             );
 
-        goto lbl_END;
-    }
-
-    /*
-     * If no entity is currently set at the given
-     * coordinates, increase the entity count.
-     */
-    if (ps_ent->_stex.m_depindex == MB_LA_DEPINDEX_NOTSET)
-        ++ps_chunk->m_nents;
-    
-    /* Copy entity. */
-    switch (ps_layer->m_type) {
-        case MARBLE_LA_LTYPE_TEXTURE:
-            marble_system_cpymem(
-                ps_ent,
-                &ps_entity->_stex,
-                sizeof ps_entity->_stex
-            );
-
-            break;
-    }
-
-lbl_END:
-    return ecode;
-}
-
-union marble_levelasset_chunkentity *marble_levelasset_getentity(
-    _In_ union marble_levelasset *ps_lvlasset,
-         uint32_t lindex,
-         uint32_t xpos,
-         uint32_t ypos
-) {
-    if (ps_lvlasset == NULL || !marble_levelasset_internal_isvalidlayerid(ps_lvlasset, lindex))
-        return MB_INVPTR;
-
-    /* Get reference to layer. */
-    struct marble_levelasset_layer *ps_layer = marble_util_vec_get(ps_lvlasset->mps_layers, lindex);
-    if (ps_layer == NULL)
-        return MB_INVPTR;
-
-    /* Calculate chunk (and chunk-local) coordinates. */
-    struct marble_pointi2d s_cpt = { 0 }, s_clpt = { 0 };
-    marble_levelasset_tile2chunk(
-        (struct marble_pointi2d){ xpos, ypos },
-        &s_cpt,
-        &s_clpt
-    );
-
-    /* Get reference to chunk. */
-    struct marble_levelasset_chunk *ps_chunk = marble_levelasset_internal_getchunk(
-        ps_layer,
-        s_cpt
-    );
-    if (ps_chunk == NULL || ps_chunk == MB_INVPTR)
-        return ps_chunk == NULL ? NULL : MB_INVPTR;
-
-    return &ps_chunk->muaa_data[s_clpt.m_x][s_clpt.m_y];
+    return MARBLE_EC_OK;
 }
 
 

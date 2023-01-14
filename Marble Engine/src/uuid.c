@@ -83,4 +83,11 @@ void marble_uuid_copy(
     marble_system_cpymem(pu_dst, pu_src, sizeof *pu_dst);
 }
 
+bool marble_uuid_compare(
+    _In_ marble_uuid_t const *pu_uuid1,
+    _In_ marble_uuid_t const *pu_uuid2
+) {
+    return !memcmp(pu_uuid1, pu_uuid2, sizeof *pu_uuid1);
+}
+
 

@@ -17,12 +17,6 @@
 MB_BEGIN_HEADER
 
 
-/*
- * Macro used to initialize COM error code variable.
- * Will always be put on the line as the function head.
- */
-#define MB_COMERRNO HRESULT hres = S_OK;
-
 /* User-defined custom window messages */
 #define MB_WM_START (WM_USER)
 #define MB_WM_FATAL (MB_WM_START + 1)

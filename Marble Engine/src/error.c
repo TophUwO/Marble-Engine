@@ -61,7 +61,11 @@ static char const *const glapz_ecodestrs[] = {
     "MARBLE_EC_REGTMPASSET",
     "MARBLE_EC_LEVELSIZE",
     "MARBLE_EC_OUTOFRANGE",
-    "MARBLE_EC_PCONTRADICTION"
+    "MARBLE_EC_PCONTRADICTION",
+    "MARBLE_EC_LAYERADDR",
+    "MARBLE_EC_CHUNKADDR",
+    "MARBLE_EC_ALREADYDEP",
+    "MARBLE_EC_NOTDEP"
 };
 
 /* Error code descriptions */
@@ -125,7 +129,11 @@ static char const *const glapz_ecodedescs[] = {
     "Failed to register temporary asset.",
     "Invalid (<= 0) level dimensions.",
     "Position/Offset out of range.",
-    "Parameter contradiction."
+    "Parameter contradiction.",
+    "Malformed layer address",
+    "Malformed chunk address",
+    "Dependency is already part of the dependency chain.",
+    "Dependency is not a direct dependency of the asset."
 };
 
 

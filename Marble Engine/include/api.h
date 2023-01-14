@@ -4,7 +4,6 @@
 
 
 #include <def.h>
-#include <platform.h>
 
 #include <windows.h>
 #include <windowsx.h>
@@ -37,6 +36,11 @@
  */
 #if (defined MB_DYNAMIC_LIBRARY) || (defined MB_ECOSYSTEM)
 	#define MB_ERRNO marble_ecode_t ecode = MARBLE_EC_OK;
+    /*
+     * Macro used to initialize COM error code variable.
+     * Will always be put on the line as the function head.
+     */
+    #define MB_COMERRNO HRESULT hres = S_OK;
 #endif
 
 /* Implement virtual inheritance using unions. */
@@ -61,14 +65,14 @@
 
 
 /*
- * Structure representing an integer point
- * in 2D-space.
+ * structure representing an integer point
+ * in 2D-space
  */
 struct marble_pointi2d { int32_t m_x, m_y; };
 
 /*
- * Structure representing integer extends in
- * 2D-space.
+ * structure representing integer extends in
+ * 2D-space
  */
 struct marble_sizei2d { int32_t m_width, m_height; };
 

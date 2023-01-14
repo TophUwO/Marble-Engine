@@ -82,6 +82,10 @@ typedef enum marble_ecode {
     MARBLE_EC_LEVELSIZE,
     MARBLE_EC_OUTOFRANGE,
     MARBLE_EC_PCONTRADICTION,
+    MARBLE_EC_LAYERADDR,
+    MARBLE_EC_CHUNKADDR,
+    MARBLE_EC_ALREADYDEP,
+    MARBLE_EC_NOTDEP,
 
 	__MARBLE_NUMERRORCODES__ /* for internal use */
 } marble_ecode_t;
