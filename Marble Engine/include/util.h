@@ -620,6 +620,16 @@ MB_API _Success_ptr_ void *marble_util_array2d_get(
  */
 MB_API bool marble_util_init(void);
 
+/*
+ * Retrieves an (integer) random number from
+ * **min** to **max**, bounds inclusive.
+ * 
+ * Returns random number.
+ */
+MB_API uint64_t marble_util_rand(
+    _In_range_(0, UINT64_MAX - 2) uint64_t nmin /* lower limit of random number */,
+    _In_range_(0, UINT64_MAX - 1) uint64_t nmax /* upper limit of random number */
+);
 
 MB_END_HEADER
 

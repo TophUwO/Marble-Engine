@@ -1166,7 +1166,7 @@ bool marble_util_init(void) {
         if (gl_hashseed == 0)
             gl_hashseed = ((uint32_t)_time32(NULL)) % UINT32_MAX;
 
-        marble_log_debug(__func__, "seed=%u", gl_hashseed);
+        MB_LOG_DEBUG("seed=%u", gl_hashseed);
 
         /*
          * If we still cannot get a valid hash, just call it
@@ -1177,6 +1177,40 @@ bool marble_util_init(void) {
     }
 
     return true;
+}
+
+uint64_t marble_util_rand(
+    _In_range_(0, UINT64_MAX - 2) uint64_t nmin, 
+    _In_range_(0, UINT64_MAX - 1) uint64_t nmax
+) {
+    /* Initialize state. */
+    static uint64_t gl_randstate = 0;
+    if (gl_randstate == 0)
+        if ((gl_randstate = (uint64_t)gl_hashseed) == 0)
+            return UINT64_MAX;
+
+    /* Reset boundaries if invalid. */
+    nmin = min(nmin, UINT64_MAX - 2);
+    nmax = min(nmax, UINT64_MAX - 1);
+    if (nmin >= nmax) {
+        /* Default period is 0 ... 2^64 - 2. */
+        nmin = 0;
+        nmax = UINT64_MAX - 1;
+    }
+
+    /*
+     * Use Xorshift64* to generate a random number 
+     * based on the current internal state.
+     * 
+     * https://de.wikipedia.org/wiki/Xorshift.
+     */
+    uint64_t st = gl_randstate;
+    st ^= st >> 12;
+    st ^= st << 25;
+    st ^= st >> 27;
+    gl_randstate = st;
+
+    return nmin + (st * 2685821657736338717ULL) % (nmax - nmin + 1);
 }
 
 

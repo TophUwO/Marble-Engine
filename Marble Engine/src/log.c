@@ -288,7 +288,7 @@ _Critical_ marble_ecode_t marble_log_init(
 		errno_t ret = fopen_s(
 			&gls_logctxt.p_handle,
 			pz_logfile,
-#if (MB_LOG_APPEND != false)
+#if (MB_LOG_APPEND)
 			glpz_mappend
 #else
 			glpz_mcreate
