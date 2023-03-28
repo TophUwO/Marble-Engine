@@ -32,7 +32,7 @@ static struct {
 #endif
 } gls_logctxt = { 0 };
 
-#if (MB_LOG_LARGEBUF != false)
+#if (MB_LOG_LARGEBUF)
 static size_t const      gl_bufsize   = 512 * 4;       /* large buffer size, in bytes */
 #else
 static size_t const      gl_bufsize   = 512;           /* normal buffer size, in bytes */
@@ -104,7 +104,7 @@ static void marble_log_internal_setupconsole(void) {
 	SetConsoleOutputCP(CP_UTF8);
 
 	gls_logctxt.isansicol = false;
-#if (MB_LOG_COLORS != false)
+#if (MB_LOG_COLORS)
 	/* Get manifest-independent OS version. */
 	HMODULE p_ntdll = LoadLibrary(TEXT("ntdll.dll"));
 	if (p_ntdll == NULL)
@@ -130,12 +130,12 @@ static void marble_log_internal_setupconsole(void) {
 
 		/* Get current console mode. */
 		DWORD mode = 0;
-		if (GetConsoleMode(gls_logctxt.mp_hdout, &mode) == false)
+		if (!GetConsoleMode(gls_logctxt.mp_hdout, &mode))
 			goto lbl_END;
 
 		/* Add VT100 flag. */
 		mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-		if (SetConsoleMode(gls_logctxt.mp_hdout, mode) == false)
+		if (!SetConsoleMode(gls_logctxt.mp_hdout, mode))
 			goto lbl_END;
 
 		gls_logctxt.isansicol = true;
@@ -159,8 +159,8 @@ lbl_END:
 static void marble_log_internal_setcolor(
 	enum marble_log_level lvl /* log level */
 ) {
-#if (MB_LOG_COLORS != false)
-	if (gls_logctxt.isansicol == false) {
+#if (MB_LOG_COLORS)
+	if (!gls_logctxt.isansicol) {
 #if (defined _WIN32)
 		SetConsoleTextAttribute(
 			gls_logctxt.mp_hdout,
@@ -187,7 +187,7 @@ static bool marble_log_internal_formatmessage(
 	_In_opt_   va_list p_args
 ) {
 	size_t written = 0;
-	if (isplain == true)
+	if (isplain)
 		goto lbl_FMTMSG;
 
 	written = tfmt_strftime(
@@ -226,14 +226,13 @@ static void marble_log_internal_outputmessage(
 	_In_z_     char const *pz_fmt,
 	_In_opt_   va_list p_args
 ) {
-	if (marble_log_internal_formatmessage(
+	if (!marble_log_internal_formatmessage(
 		isplain,
 		lvl,
 		pz_function,
 		pz_fmt,
 		p_args
-	) == false)
-		return;
+	)) return;
 
 	marble_log_internal_setcolor(lvl);
 	puts(gls_logctxt.pz_buffer);
@@ -264,7 +263,7 @@ static void marble_log_internal_welcomemessage(void) {
 _Critical_ marble_ecode_t marble_log_init(
 	_In_opt_z_ char const *pz_logfile
 ) { MB_ERRNO
-	if (gls_logctxt.isinit == true)
+	if (gls_logctxt.isinit)
 		return MARBLE_EC_COMPSTATE;
 
 	/*
@@ -319,14 +318,14 @@ lbl_END:
 	marble_log_internal_setupconsole();
 
 	/* Print a "start-up banner" */
-#if (MB_LOG_NOLOGO == false)
+#if (!MB_LOG_NOLOGO)
 	marble_log_internal_welcomemessage();
 #endif
 	return ecode;
 }
 
 void marble_log_uninit(void) {
-	if (gls_logctxt.isinit == false)
+	if (!gls_logctxt.isinit)
 		return;
 
 	if (gls_logctxt.p_handle != NULL) {
@@ -355,7 +354,7 @@ void __cdecl marble_log_plain(
 	_In_z_ char const *pz_fmt,
 	...
 ) {
-	if (gls_logctxt.isinit == false || pz_fmt == NULL || *pz_fmt == '\0')
+	if (!gls_logctxt.isinit || pz_fmt == NULL || *pz_fmt == '\0')
 		return;
 
 	va_list p_args;
@@ -377,7 +376,7 @@ void __cdecl marble_log_debug(
 	_In_z_     char const *pz_fmt,
 	...
 ) {
-	if (gls_logctxt.isinit == false || pz_fmt == NULL || *pz_fmt == '\0')
+	if (!gls_logctxt.isinit || pz_fmt == NULL || *pz_fmt == '\0')
 		return;
 
 	va_list p_args;
@@ -399,7 +398,7 @@ void __cdecl marble_log_info(
 	_In_z_     char const *pz_fmt,
 	...
 ) {
-	if (gls_logctxt.isinit == false || pz_fmt == NULL || *pz_fmt == '\0')
+	if (!gls_logctxt.isinit || pz_fmt == NULL || *pz_fmt == '\0')
 		return;
 
 	va_list p_args;
@@ -421,7 +420,7 @@ void __cdecl marble_log_warn(
 	_In_z_     char const *pz_fmt,
 	...
 ) {
-	if (gls_logctxt.isinit == false || pz_fmt == NULL || *pz_fmt == '\0')
+	if (!gls_logctxt.isinit || pz_fmt == NULL || *pz_fmt == '\0')
 		return;
 
 	va_list p_args;
@@ -443,7 +442,7 @@ void __cdecl marble_log_error(
 	_In_z_     char const *pz_fmt,
 	...
 ) {
-	if (gls_logctxt.isinit == false || pz_fmt == NULL || *pz_fmt == '\0')
+	if (!gls_logctxt.isinit || pz_fmt == NULL || *pz_fmt == '\0')
 		return;
 
 	va_list p_args;
@@ -465,7 +464,7 @@ void __cdecl marble_log_fatal(
 	_In_z_     char const *pz_fmt,
 	...
 ) {
-	if (gls_logctxt.isinit == false || pz_fmt == NULL || *pz_fmt == '\0')
+	if (!gls_logctxt.isinit || pz_fmt == NULL || *pz_fmt == '\0')
 		return;
 
 	va_list p_args;

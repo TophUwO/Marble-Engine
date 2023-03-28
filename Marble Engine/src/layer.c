@@ -154,8 +154,8 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_push(
 	_In_ struct marble_layer *ps_layer, /* layer to push */
 	     bool istopmost                 /* push as topmost? */
 ) { MB_ERRNO
-	if (ps_layer == NULL)             return MARBLE_EC_INTERNALPARAM;
-	if (ps_layer->m_ispushed == true) return MARBLE_EC_LAYERALREADYPUSHED;
+	if (ps_layer == NULL)     return MARBLE_EC_INTERNALPARAM;
+	if (ps_layer->m_ispushed) return MARBLE_EC_LAYERALREADYPUSHED;
 
 	if (istopmost)
 		ecode = marble_util_vec_pushback(gls_app.ms_layerstack.mps_vec, ps_layer);
@@ -184,8 +184,8 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_push(
 _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 	_In_ struct marble_layer *ps_layer /* layer to pop */
 ) {
-	if (ps_layer == NULL)                        return MARBLE_EC_INTERNALPARAM;
-	if (gls_app.ms_layerstack.m_isinit == false) return MARBLE_EC_COMPSTATE;
+	if (ps_layer == NULL)                return MARBLE_EC_INTERNALPARAM;
+	if (!gls_app.ms_layerstack.m_isinit) return MARBLE_EC_COMPSTATE;
 
 	/* Scan the entire layer stack. */
 	size_t index = marble_util_vec_find(
@@ -209,7 +209,7 @@ _Success_ok_ static marble_ecode_t marble_layer_internal_pop(
 			false
 		);
 
-		if (ps_layer->m_istopmost == false)
+		if (!ps_layer->m_istopmost)
 			--gls_app.ms_layerstack.m_lastlayer;
 	}
 
@@ -235,7 +235,7 @@ void marble_layer_destroy(
 	 * Pop the layer from the layerstack
 	 * if it is still pushed. 
 	 */
-	if ((*pps_layer)->m_ispushed == true)
+	if ((*pps_layer)->m_ispushed)
 		marble_layer_internal_pop(*pps_layer);
 
 	/*
@@ -269,7 +269,7 @@ marble_ecode_t marble_application_createlayer(
 ) { MB_ERRNO
 	if (p_layerid == NULL)
 		return MARBLE_EC_PARAM;
-	if (gls_app.ms_layerstack.m_isinit == false) {
+	if (!gls_app.ms_layerstack.m_isinit) {
 		*p_layerid = -1;
 
 		return MARBLE_EC_COMPSTATE;

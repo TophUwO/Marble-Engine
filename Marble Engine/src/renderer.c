@@ -605,7 +605,7 @@ void marble_renderer_destroy(
 void marble_renderer_begindraw(
 	_In_ struct marble_renderer *ps_renderer
 ) {
-	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
+	if (ps_renderer == NULL || !ps_renderer->m_isinit)
 		return;
 
 	/* Call implementations for specific render APIs. */
@@ -620,7 +620,7 @@ void marble_renderer_begindraw(
 void marble_renderer_enddraw(
 	_In_ struct marble_renderer *ps_renderer
 ) {
-	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
+	if (ps_renderer == NULL || !ps_renderer->m_isinit)
 		return;
 
 	/* Call implementations for specific render APIs. */
@@ -636,7 +636,7 @@ _Critical_ marble_ecode_t marble_renderer_present(
 	_In_ struct marble_renderer **pps_renderer
 ) { MB_ERRNO
 	if (pps_renderer == NULL || *pps_renderer == NULL) return MARBLE_EC_INTERNALPARAM;
-	if ((*pps_renderer)->m_isinit == false)            return MARBLE_EC_COMPSTATE;
+	if (!(*pps_renderer)->m_isinit)                    return MARBLE_EC_COMPSTATE;
 
 	/* Call implementations for specific render APIs. */
 	switch ((*pps_renderer)->m_api) {
@@ -671,8 +671,8 @@ _Success_ok_ marble_ecode_t marble_renderer_resize(
 	     uint32_t newwidth,
 	     uint32_t newheight
 ) {
-	if (ps_renderer == NULL)            return MARBLE_EC_INTERNALPARAM;
-	if (ps_renderer->m_isinit == false) return MARBLE_EC_COMPSTATE;
+	if (ps_renderer == NULL)    return MARBLE_EC_INTERNALPARAM;
+	if (!ps_renderer->m_isinit) return MARBLE_EC_COMPSTATE;
 
 	/* Call implementations for specific render APIs. */
 	switch (ps_renderer->m_api) {
@@ -695,7 +695,7 @@ void marble_renderer_clear(
 	     float blue,
 	     float alpha
 ) {
-	if (ps_renderer == NULL || ps_renderer->m_isinit == false)
+	if (ps_renderer == NULL || !ps_renderer->m_isinit)
 		return;
 
 	/* Call implementations for specific render APIs. */

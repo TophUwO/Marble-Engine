@@ -101,9 +101,8 @@ typedef enum marble_ecode {
  * Returns error code string.
  */
 MB_API char const *const marble_error_getstr(
-	/* error code to get string representation for */
-	_In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
-	marble_ecode_t ecode
+    _In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
+    marble_ecode_t ecode /* error code to get string representation for */
 );
 
 /*
@@ -119,9 +118,8 @@ MB_API char const *const marble_error_getstr(
  * Returns error code description string.
  */
 MB_API char const *const marble_error_getdesc(
-	/* error code to get description string for */
-	_In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
-	marble_ecode_t ecode
+    _In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
+	marble_ecode_t ecode /* error code to get description string for */
 );
 
 

@@ -93,7 +93,7 @@ _Success_ok_ static marble_ecode_t marble_window_internal_calcdimensions(
 	;
 	/* (2) Get monitor info. */
 	MONITORINFO s_moninfo = { .cbSize = sizeof s_moninfo };
-	if (GetMonitorInfo(p_hmon, &s_moninfo) == false)
+	if (!GetMonitorInfo(p_hmon, &s_moninfo))
 		return MARBLE_EC_GETMONITORINFO;
 
 	/* 
@@ -101,7 +101,7 @@ _Success_ok_ static marble_ecode_t marble_window_internal_calcdimensions(
 	 *     given dimensions.
 	 */
 	RECT s_clrect = { 0, 0, width * tsize, height * tsize };
-	if (AdjustWindowRect(&s_clrect, style, false) == false)
+	if (!AdjustWindowRect(&s_clrect, style, false))
 		return MARBLE_EC_CALCWNDSIZE;
 
 	/*
@@ -118,7 +118,7 @@ _Success_ok_ static marble_ecode_t marble_window_internal_calcdimensions(
 
 		/* (6) Request the new window size. */
 		s_clrect = (RECT) { 0, 0, (LONG)(width * scale) * tsize, (LONG)(height * scale) * tsize };
-		if (AdjustWindowRect(&s_clrect, style, false) == false)
+		if (!AdjustWindowRect(&s_clrect, style, false))
 			return MARBLE_EC_CALCWNDSIZE;
 	}
 
@@ -144,7 +144,7 @@ _Success_ok_ static marble_ecode_t marble_window_internal_querydimensions(
 		return MARBLE_EC_INTERNALPARAM;
 
 	RECT s_client, s_window;
-	if (GetClientRect(p_hwnd, &s_client) == false || GetWindowRect(p_hwnd, &s_window) == false)
+	if (!GetClientRect(p_hwnd, &s_client) || !GetWindowRect(p_hwnd, &s_window))
 		return MARBLE_EC_QUERYWINDOWRECT;
 
 	*ps_client = (struct marble_sizei2d){ s_client.right - s_client.left, s_client.bottom - s_client.top };
@@ -347,7 +347,7 @@ void marble_window_destroy(
 	if (pps_wnd == NULL)
 		return;
 
-	if (gls_app.ms_state.m_isfatal == true)
+	if (gls_app.ms_state.m_isfatal)
 		SendMessage((*pps_wnd)->mp_handle, WM_CLOSE, 0, 0);
 
 	marble_renderer_destroy(&(*pps_wnd)->mps_renderer);
@@ -540,7 +540,7 @@ _Critical_ marble_ecode_t marble_windowsys_init(void) {
 		.hIconSm       = LoadIcon(NULL, IDI_APPLICATION),
 		.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1)
 	};
-	if (RegisterClassEx(&s_wndclassdesc) == false)
+	if (!RegisterClassEx(&s_wndclassdesc))
 		return MARBLE_EC_REGWNDCLASS;
 
 	return MARBLE_EC_OK;

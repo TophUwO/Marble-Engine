@@ -194,7 +194,7 @@ void *marble_util_vec_erase(
         return NULL;
 
     /* Call object destructor if necessary. */
-    if (rundest != false && ps_vector->mfn_dtor != NULL)
+    if (rundest && ps_vector->mfn_dtor != NULL)
         (*ps_vector->mfn_dtor)(&ps_vector->mpp_data[index]);
 
     /* Save pointer value; if it has been destructed, it is NULL. */

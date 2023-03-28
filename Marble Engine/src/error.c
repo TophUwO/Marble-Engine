@@ -141,7 +141,7 @@ char const *const marble_error_getstr(
 	_In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
 	marble_ecode_t ecode
 ) {
-	if (MB_INRANGE_EXCL(ecode, MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1) == false)
+	if (!MB_INRANGE_EXCL(ecode, MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1))
 		return marble_error_getstr(MARBLE_EC_UNKNOWN);
 
 	return glapz_ecodestrs[ecode];
@@ -151,7 +151,7 @@ char const *const marble_error_getdesc(
 	_In_range_(MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1)
 	marble_ecode_t ecode
 ) {
-	if (MB_INRANGE_EXCL(ecode, MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1) == false)
+	if (!MB_INRANGE_EXCL(ecode, MARBLE_EC_OK, __MARBLE_NUMERRORCODES__ - 1))
 		return marble_error_getdesc(MARBLE_EC_UNKNOWN);
 
 	return glapz_ecodedescs[ecode];

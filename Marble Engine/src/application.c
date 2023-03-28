@@ -9,7 +9,7 @@
  * to the engine.
  */
 struct marble_application gls_app = { 0 };
-#pragma endregion 
+#pragma endregion
 
 
 #pragma region ASSETMAN
@@ -23,7 +23,7 @@ static _Critical_ marble_ecode_t marble_application_internal_initassetman(void) 
      * If asset manager is already initialized, block further
      * attempts to (re-)initialize. 
      */
-    if (marble_assetman_isok(gls_app.mps_assets) == true)
+    if (marble_assetman_isok(gls_app.mps_assets))
         return MARBLE_EC_COMPSTATE;
 
 	/* Create asset registry. */
@@ -50,7 +50,7 @@ extern void marble_layer_destroy(
  * Returns nothing.
  */
 static void marble_application_internal_uninitlayerstack(void) {
-	if (gls_app.ms_layerstack.m_isinit == false)
+	if (!gls_app.ms_layerstack.m_isinit)
 		return;
 
 	/*
@@ -86,7 +86,7 @@ static void marble_application_internal_uninitlayerstack(void) {
  * Returns 0 on success, non-zero on failure.
  */
 _Critical_ static marble_ecode_t marble_application_internal_initlayerstack_impl(void) { MB_ERRNO
-	if (gls_app.ms_layerstack.m_isinit == true)
+	if (gls_app.ms_layerstack.m_isinit)
 		return MARBLE_EC_COMPSTATE;
 	
 	ecode = marble_util_vec_create(
@@ -418,7 +418,7 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 	 * If a fatal error occurred during initialization,
 	 * do not even start the main loop.
 	 */
-	if (gls_app.ms_state.m_isfatal == true)
+	if (gls_app.ms_state.m_isfatal)
 		goto lbl_CLEANUP;
 
 	marble_application_setstate(
@@ -463,7 +463,7 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 lbl_CLEANUP:
 	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
 
-	if (gls_app.ms_state.m_isfatal == true) {
+	if (gls_app.ms_state.m_isfatal) {
 		TCHAR a_buf[1024] = { 0 };
 
 		_stprintf_s(
