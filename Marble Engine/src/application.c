@@ -444,8 +444,20 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 			DispatchMessage(&s_msg);
 		}
 
-		if (gls_app.ps_wnd->ms_data.m_isminimized == false)
-			marble_application_internal_updateandrender(gls_app.ps_wnd, frametime);
+        /*
+         * If the main window is minimized, sleep for a small amount of time to
+         * prevent maxing-out the CPU.
+         * TODO: Later, this will probably modified so that the game still updates
+         * while being minimized, and only the renderer is actually inactive.
+         */
+		if (gls_app.ps_wnd->ms_data.m_isminimized) {
+            Sleep(1);
+
+            continue;
+        }
+
+        /* Update and render the scene. */
+		marble_application_internal_updateandrender(gls_app.ps_wnd, frametime);
 	}
 	
 lbl_CLEANUP:
