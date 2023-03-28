@@ -1,7 +1,15 @@
 #include <application.h>
 
 
-struct marble_application gls_app = { NULL };
+#pragma region APPINST
+/*
+ * Marble's application instance; acts as a 
+ * singleton and holds the ownership to all
+ * objects and components created by or submitted
+ * to the engine.
+ */
+struct marble_application gls_app = { 0 };
+#pragma endregion 
 
 
 #pragma region ASSETMAN
@@ -337,6 +345,26 @@ void marble_application_setstate(
 		.m_id      = newid,
 		.m_param   = param
 	};
+}
+
+void marble_application_raisefatalerror(
+    marble_ecode_t ecode /* error code that will be returned to host environment */
+) {
+    marble_log_fatal(
+        NULL,
+        "Fatal error occurred: (%i)\n    %s\n    %s",
+        (int)ecode,
+        marble_error_getstr(ecode),
+        marble_error_getdesc(ecode)
+    );
+
+    marble_application_setstate(
+        true,
+        ecode,
+        MARBLE_APPSTATE_FORCEDSHUTDOWN
+    );
+
+    PostThreadMessage(GetThreadId(gls_app.mp_mainthrd), MB_WM_FATAL, 0, 0);
 }
 
 

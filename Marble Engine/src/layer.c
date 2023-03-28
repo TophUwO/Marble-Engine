@@ -4,6 +4,9 @@
 /* Global layer ID; gets incremented whenever a layer gets created. */
 static int volatile gl_layerid = 0;
 
+/* Marble Application instance */
+extern struct marble_application gls_app;
+
 
 /*
  * Layer dummy functions

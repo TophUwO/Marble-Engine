@@ -6,6 +6,9 @@ static DWORD const        gl_wndstyle       = WS_OVERLAPPEDWINDOW & ~WS_THICKFRA
 static TCHAR const *const glpz_deftitle     = TEXT("Marble Engine Sandbox");
 static TCHAR const *const glpz_updtitle     = TEXT("Marble Engine Sandbox - %i FPS");
 
+/* Marble Application instance */
+extern struct marble_application gls_app;
+
 /*
  * Calculate coordinates of drawing origin.
  * 
@@ -504,7 +507,7 @@ _Critical_ marble_ecode_t marble_windowsys_init(void) {
 	/* Register window class. */
 	WNDCLASSEX s_wndclassdesc = {
 		.cbSize        = sizeof s_wndclassdesc,
-		.hInstance     = gls_app.mp_inst,
+		.hInstance     = GetModuleHandle(NULL),
 		.lpszClassName = glpz_wndclassname,
 		.lpfnWndProc   = (WNDPROC)&marble_window_internal_windowproc,
 		.hCursor       = LoadCursor(NULL, IDC_ARROW),
@@ -519,7 +522,7 @@ _Critical_ marble_ecode_t marble_windowsys_init(void) {
 }
 
 void marble_windowsys_uninit(void) {
-	UnregisterClass(glpz_wndclassname, gls_app.mp_inst);
+	UnregisterClass(glpz_wndclassname, GetModuleHandle(NULL));
 }
 #pragma endregion
 

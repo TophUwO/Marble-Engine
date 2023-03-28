@@ -66,7 +66,7 @@ struct marble_layer {
  * objects and components created by or submitted
  * to the engine.
  */
-extern struct marble_application {
+struct marble_application {
 	HINSTANCE mp_inst;      /* instance to the application */
 	HANDLE    mp_mainthrd;  /* handle to main thread */
 	bool      m_hasmainwnd; /* Do we already have a main window? */
@@ -107,7 +107,7 @@ extern struct marble_application {
 
     /* HPC -- used for frametime, etc. */
     struct marble_util_clock ms_ftclock;
-} gls_app;
+};
 
 
 /*
@@ -133,27 +133,9 @@ extern void marble_application_setstate(
  * 
  * Returns nothing.
  */
-void inline marble_application_raisefatalerror(
+extern void marble_application_raisefatalerror(
 	marble_ecode_t ecode /* error code that will be returned to host environment */
-) {
-#if (defined MB_DYNAMIC_LIBRARY)
-	marble_log_fatal(
-		NULL,
-		"Fatal error occurred: (%i)\n    %s\n    %s",
-		(int)ecode,
-		marble_error_getstr(ecode),
-		marble_error_getdesc(ecode)
-	);
-
-	marble_application_setstate(
-		true,
-		ecode,
-		MARBLE_APPSTATE_FORCEDSHUTDOWN
-	);
-
-	PostThreadMessage(GetThreadId(gls_app.mp_mainthrd), MB_WM_FATAL, 0, 0);
-#endif
-}
+);
 
 
 MB_END_HEADER

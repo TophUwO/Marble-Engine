@@ -53,7 +53,8 @@ INT APIENTRY WinMain(
 		&marble_callback_userinit        /* initialization AFTER Marble */
 	);
 
-	return marble_application_run(); /* Start the application. */
+    /* Start the application. */
+	return marble_application_run();
 }
 
 
