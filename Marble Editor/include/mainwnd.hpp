@@ -50,6 +50,15 @@ namespace mbe {
         editwindow   *mw_editwnd;
         editoraman   *mps_assetman;
         
+        /* Provides srcids for all widgets */
+        std::atomic_int32_t m_srcidprovider;
+
+        int32_t int_getnextsrcid() {
+            int32_t ret = m_srcidprovider.load();
+
+            ++m_srcidprovider;
+            return ret;
+        }
 
     private slots:
         void int_onfilenewlvl();

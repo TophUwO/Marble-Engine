@@ -15,8 +15,8 @@ namespace mbe {
      */
     class tabpage {
     public:
-        explicit tabpage(QWidget *cp_widget, QString const &cr_title = QString())
-            : mc_title(cr_title), mw_refwidget(cp_widget)
+        explicit tabpage(QWidget *cp_widget, int32_t srcid, QString const &cr_title = QString())
+            : mc_title(cr_title), m_srcid(srcid), mw_refwidget(cp_widget)
         { }
         virtual ~tabpage() { }
 
@@ -52,6 +52,9 @@ namespace mbe {
     private:
         QString  mc_title;
         QWidget *mw_refwidget;
+
+    protected:
+        int32_t m_srcid;
     };
 
 

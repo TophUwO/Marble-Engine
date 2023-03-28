@@ -2,8 +2,8 @@
 
 
 namespace mbe {
-    levelview::levelview(editoraman *ps_aman, QWidget *cp_parent)
-        : QAbstractScrollArea(cp_parent), tabpage(this, ""), mps_refaman(ps_aman)
+    levelview::levelview(int32_t srcid, editoraman *ps_aman, QWidget *cp_parent)
+        : QAbstractScrollArea(cp_parent), tabpage(this, srcid, ""), mps_refaman(ps_aman)
     {
         mps_level =  NULL;
     }

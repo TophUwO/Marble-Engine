@@ -1,4 +1,5 @@
 #include <tsview.hpp>
+#include <sourcewnd.hpp>
 
 
 namespace mbe {
@@ -8,8 +9,8 @@ namespace mbe {
      */
     static constexpr int gl_viewtsize = 32;
 
-    tilesetview::tilesetview(QWidget *cp_parent)
-        : QAbstractScrollArea(cp_parent), tabpage(this, ""),
+    tilesetview::tilesetview(int32_t srcid, QWidget *cp_parent)
+        : QAbstractScrollArea(cp_parent), tabpage(this, srcid, ""),
           mcp_image(nullptr), mc_path("")
     {
         m_tsize = m_usablewidth = m_usableheight = 0;
@@ -60,7 +61,7 @@ namespace mbe {
                 0,
                 viewport()->width(),
                 viewport()->height(),
-                QColor(33, 33, 33)
+                QColor(255, 255, 255)
             );
 
         /* Clear the background of the contents area. */
@@ -105,20 +106,38 @@ namespace mbe {
         for (int x = orix + gl_viewtsize; x < xdim; x += gl_viewtsize)
             c_painter.drawLine(
                 QPoint(x, 0),
-                QPoint(x, ydim)
+                QPoint(x, ydim - 1)
             );
 
         /* Draw horizontal grid-lines. */
         for (int y = oriy + gl_viewtsize; y < ydim; y += gl_viewtsize)
             c_painter.drawLine(
                 QPoint(0, y),
-                QPoint(xdim, y)
+                QPoint(xdim - 1, y)
             );
 #pragma endregion (PAINT-RENDER)
     }
 
     void tilesetview::mousePressEvent(QMouseEvent *cp_event) {
+        switch (cp_event->button()) {
+            case Qt::MouseButton::LeftButton:
+                mc_selstart = cp_event->position().toPoint();
 
+                m_issel = true;
+                break;
+        }
+    }
+
+    void tilesetview::mouseReleaseEvent(QMouseEvent *cp_event) {
+        switch (cp_event->button()) {
+            case Qt::MouseButton::LeftButton:
+                mc_selend = cp_event->position().toPoint();
+                
+                m_issel = false;
+                break;
+        }
+
+        int_calcselarea();
     }
 
     void tilesetview::resizeEvent(QResizeEvent *cp_event) {
@@ -322,6 +341,19 @@ namespace mbe {
                int(m_usablewidth * scale) < viewport()->width()
             || int(m_usableheight * scale) < viewport()->height()
         ;
+    }
+
+    void tilesetview::int_calcselarea() {
+        mbe::sourcewndsel sel(m_srcid);
+
+        /* Calculate selection area. */
+
+        /* Add the selection to the buffer. */
+        mbe::sourcewindow *cp_refparent = dynamic_cast<mbe::sourcewindow *>(parentWidget());
+        if (cp_refparent == NULL)
+            return;
+
+        cp_refparent->addsel(sel);
     }
 } /* namespace mbe */
 

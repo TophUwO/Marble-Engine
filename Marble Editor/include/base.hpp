@@ -20,6 +20,8 @@
 #include <QScrollBar>
 #include <QPainter>
 #include <QMessageBox>
+#include <QActionGroup>
+#include <QMouseEvent>
 
 /* Marble Engine includes */
 #include <error.h>
@@ -55,6 +57,8 @@ namespace mbe {
             appstate m_state; /* state id */
             int      m_param; /* opt. parameter */
         } gl_appstate;
+
+        constexpr size_t gl_defurbufsize = 128;
 
         /*
          * Transforms the state of a given checkbox into a boolean value. Tristate
@@ -159,6 +163,122 @@ namespace mbe {
                 QMessageBox::StandardButton::Ok
             );
         }
+
+
+        /*
+         * Class for handling an undo-redo buffer.
+         * Will be used to save selections and other
+         * states as well. 
+         */
+        template <class T>
+        class undoredobuf {
+        public:
+            undoredobuf()
+                : m_maxsize(gl_defurbufsize), m_currindex(0)
+            { }
+            undoredobuf(size_t maxsize)
+                : m_maxsize(maxsize), m_currindex(0)
+            { }
+            ~undoredobuf() { }
+
+            /*
+             * Adds a snapshot to the buffer. If the current
+             * number of snapshots equals the maximum capacity,
+             * the oldest snapshot will be removed.
+             * 
+             * Returns nothing.
+             */
+            void addsnapshot(T const &cr_snap) {
+                /*
+                 * If the buffer is full, remove the
+                 * oldest snapshot.
+                 */
+                if (mc_buffer.size() >= m_maxsize) {
+                    mc_buffer.erase(mc_buffer.begin());
+
+                    if (!isbegin())
+                        --m_currindex;
+                }
+
+                /*
+                 * Add the snapshot to the back of
+                 * the list.
+                 */
+                mc_buffer.push_back(cr_snap);
+                forward();
+            }
+            /*
+             * Retrieves the currently-selected snapshot. 
+             */
+            T &getcurrsnapshot() { return mc_buffer[m_currindex]; }
+
+            /*
+             * Moves the selection pointer to the right
+             * by one unit.
+             * 
+             * Returns nothing.
+             */
+            void forward() {
+                if (isend())
+                    return;
+
+                ++m_currindex;
+            }
+            /*
+             * Moves the selection pointer to the left
+             * by one unit.
+             * 
+             * Returns nothing.
+             */
+            void backward() { 
+                if (isbegin())
+                    return;
+
+                --m_currindex;
+            }
+
+            /*
+             * Returns whether the current selection pointer
+             * is pointing to the oldest snapshot in the
+             * buffer.
+             */
+            bool isbegin() { return m_currindex == 0; }
+            /*
+             * Returns whether the current selection pointer
+             * is pointing to the latest snapshot in the
+             * buffer.
+             */
+            bool isend()   { return m_currindex == mc_buffer.size() - 1; }
+            /*
+             * Updates the maximum size to the new, provided value.
+             * 
+             * Returns the old size.
+             */
+            size_t setmaxsize(size_t newsize) {
+                size_t oldsize = m_maxsize;
+                m_maxsize = newsize;
+
+                /*
+                 * If the new size is smaller than the old
+                 * size, remove all entries that are no
+                 * longer in the buffer. Entries are removed
+                 * from the beginning.
+                 */
+                if (oldsize > m_maxsize) {
+                    size_t const diff = oldsize - newsize;
+
+                    mc_buffer.erase(0, diff - 1);
+                }
+                
+                return oldsize;
+            }
+
+        private:
+            size_t m_currindex;       /* index of the current position */
+            size_t m_maxsize;         /* maximum number of stored snapshots */
+
+            std::vector<T> mc_buffer; /* actual selection buffer */
+        };
     } /* namespace base */
 } /* namespace mbe */
 

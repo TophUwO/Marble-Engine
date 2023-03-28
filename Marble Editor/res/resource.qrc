@@ -1,5 +1,18 @@
 <RCC>
     <qresource prefix="/">
         <file>icons/ico_appmain.ico</file>
+        <file>icons/gui/ico_forward.svg</file>
+        <file>icons/gui/ico_backward.svg</file>
+        <file>icons/gui/ico_rect.svg</file>
+        <file>icons/gui/ico_folder.svg</file>
+        <file>icons/gui/ico_floppy.svg</file>
+        <file>icons/gui/ico_doc.svg</file>
+        <file>icons/gui/ico_path.svg</file>
+        <file>icons/gui/ico_rectpath.svg</file>
+        <file>icons/gui/ico_ellipse.svg</file>
+        <file>icons/gui/ico_multisel.svg</file>
+        <file>icons/gui/ico_pointer.svg</file>
+        <file>icons/gui/ico_multifloppy.svg</file>
+        <file>icons/gui/ico_rectborder.svg</file>
     </qresource>
 </RCC>

@@ -128,7 +128,7 @@ static void marble_application_internal_initutils(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 		
-	marble_log_info(NULL, "init: utils (HPC, HASH, etc.)");
+	marble_log_info(NULL, "init: utils (HPC, hash seed, etc.)");
 
 	/*
 	 * Check whether an HPC is present in the system; should

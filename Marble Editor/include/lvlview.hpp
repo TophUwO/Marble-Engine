@@ -7,7 +7,7 @@
 
 namespace mbe {
     struct editorlevel {
-        editorlevel() : mc_location(""), mps_asset(nullptr) { }
+        editorlevel() : mc_location(""), mps_asset(nullptr), m_width(0), m_height(0) { }
         explicit editorlevel(int width, int height, QString const &cr_loc, QString const &cr_ident, editoraman *ps_aman)
             : mc_location(cr_loc)
         {
@@ -70,7 +70,7 @@ namespace mbe {
         Q_OBJECT
 
     public:
-        levelview(editoraman *ps_aman, QWidget *cp_parent = nullptr);
+        levelview(int32_t srcid, editoraman *ps_aman, QWidget *cp_parent = nullptr);
         ~levelview();
 
         /*

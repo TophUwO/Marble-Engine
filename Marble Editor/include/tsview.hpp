@@ -14,7 +14,7 @@ namespace mbe {
         Q_OBJECT
 
     public:
-        tilesetview(QWidget *cp_parent = nullptr);
+        tilesetview(int32_t srcid, QWidget *cp_parent = nullptr);
         ~tilesetview();
 
         /*
@@ -41,6 +41,7 @@ namespace mbe {
     protected:
         virtual void paintEvent(QPaintEvent *cp_event) override;
         virtual void mousePressEvent(QMouseEvent *cp_event) override;
+        virtual void mouseReleaseEvent(QMouseEvent *cp_event) override;
         virtual void resizeEvent(QResizeEvent *cp_event) override;
 
     private:
@@ -59,13 +60,23 @@ namespace mbe {
          * false if not.
          */
         bool int_iscontentssmaller();
+        /*
+         * Calculates the area of the latest selection, and adds it
+         * to the selection buffer.
+         * 
+         * Returns nothing.
+         */
+        void int_calcselarea();
 
         QPixmap *mcp_image;
         QString  mc_path;
 
-        int m_usablewidth;
-        int m_usableheight;
-        int m_tsize;
+        int    m_usablewidth;
+        int    m_usableheight;
+        int    m_tsize;
+        QPoint mc_selstart;
+        QPoint mc_selend;
+        bool   m_issel;
     };
 } /* namespace mbe */
 

@@ -27,6 +27,7 @@ namespace mbe {
         Qt::DockWidgetArea getdefarea() const { return m_defarea; }
 
     protected:
+        /* Handle to the main window of the application. */
         QMainWindow *mw_refmainwnd;
         /*
          * Having a QMainWindow as the child of the
@@ -37,11 +38,6 @@ namespace mbe {
          * infrastructure for this to work.
          */
         QMainWindow *mw_main;
-        /*
-         * Handle to the toolbar; this member is nullptr
-         * if there is no toolbar.
-         */
-        QToolBar *mw_tbar;
 
     private:
         /*

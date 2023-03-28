@@ -7,6 +7,9 @@ namespace mbe {
     mainwindow::mainwindow(QSize const &cr_dims, QWidget *cp_parent)
         : QMainWindow(cp_parent)
     {
+        /* Init srcid-provider. */
+        m_srcidprovider.store(0);
+
         /* Init appstate. */
         mbe::base::gl_appstate = {
             mbe::base::appstate::running,
@@ -117,7 +120,7 @@ namespace mbe {
         dialog::importts c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
-            tilesetview *cp_tsview = new tilesetview(this);
+            tilesetview *cp_tsview = new tilesetview(int_getnextsrcid(), this);
 
             /*
              * If the image fails to load, delete the view and
@@ -150,7 +153,7 @@ namespace mbe {
         dialog::newlevel c_dlg(this);
 
         if (c_dlg.exec() == QDialog::Accepted) {
-            levelview *cp_lvlview = new levelview(mps_assetman, mw_editwnd);
+            levelview *cp_lvlview = new levelview(int_getnextsrcid(), mps_assetman, mw_editwnd);
 
             /*
              * Attempt to create a new level from scratch; if this
