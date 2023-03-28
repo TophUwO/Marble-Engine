@@ -26,6 +26,8 @@ static void marble_window_internal_computedrawingorigin(
 
 	ps_window->mps_renderer->m_orix = s_clientrect.right  / 2.0f - ps_window->ms_data.ms_ext.ms_client.m_width  / 2.0f;
 	ps_window->mps_renderer->m_oriy = s_clientrect.bottom / 2.0f - ps_window->ms_data.ms_ext.ms_client.m_height / 2.0f;
+
+    marble_log_debug(NULL, "wndsys: Recalculated drawing origin.");
 }
 
 /*
@@ -152,6 +154,23 @@ _Success_ok_ static marble_ecode_t marble_window_internal_querydimensions(
 }
 
 /*
+ * Retrieves the resize message reason for a given wparam of WM_SIZE.
+ * 
+ * Returns a string constant verbally describing the reason.
+ */
+static char const *const marble_window_internal_getsizereason(
+    WPARAM wparam /* wparam to stringify */
+) {
+    switch (wparam) {
+        case SIZE_MAXIMIZED: return "maximized";
+        case SIZE_MINIMIZED: return "minimized";
+        case SIZE_RESTORED:  return "restored";
+    }
+
+    return "<unknown_action>";
+}
+
+/*
  * Window procedure. A windows-specific mechanism to handle
  * messages and keep the application running.
  * 
@@ -182,13 +201,18 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 			ps_wnddata->ms_data.m_isminimized = wparam == SIZE_MINIMIZED;
 
 			/* Ignore message if window initialization is not complete yet. */
-			if (ps_wnddata != NULL && ps_wnddata->mp_handle != NULL && ps_wnddata->mps_renderer != NULL)
+			if (ps_wnddata != NULL && ps_wnddata->mp_handle != NULL && ps_wnddata->mps_renderer != NULL) {
 				marble_renderer_resize(
 					ps_wnddata->mps_renderer,
 					(UINT)LOWORD(lparam),
 					(UINT)HIWORD(lparam)
 				);
+
+                /* Recompute drawing area coordinates. */
+                marble_window_internal_computedrawingorigin(ps_wnddata);
+            }
 			
+            marble_log_debug(NULL, "wndsys: Window %s.", marble_window_internal_getsizereason(wparam));
 			return 0;
 		}
 		case WM_KEYDOWN:
@@ -213,7 +237,8 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 		case WM_SYSKEYUP: {
 			if (wparam == VK_F11) {
 				ps_wnddata->ms_data.m_isfscreen = !ps_wnddata->ms_data.m_isfscreen;
-				if (ps_wnddata->ms_data.m_isfscreen == true) {
+
+				if (ps_wnddata->ms_data.m_isfscreen) {
 					/* Make window borderless. */
 					SetWindowLong(p_window, GWL_STYLE, 0);
 
@@ -225,26 +250,26 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 						SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED
 					);
 
+                    /* Show the window. */
 					ShowWindow(p_window, SW_SHOWMAXIMIZED);
-				} else {
-					/* Restore window styles. */
-					SetWindowLong(p_window, GWL_STYLE, ps_wnddata->ms_data.m_style);
-
-					/* Restore old size. */
-					SetWindowPos(
-						p_window, 
-						HWND_TOP,
-						0, 0,
-						ps_wnddata->ms_data.ms_ext.ms_window.m_width,
-						ps_wnddata->ms_data.ms_ext.ms_window.m_height,
-						SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
-					);
-
-					ShowWindow(p_window, SW_SHOW);
+                    return 0;
 				}
+					
+                /* Restore window styles. */
+				SetWindowLong(p_window, GWL_STYLE, ps_wnddata->ms_data.m_style);
 
-				/* Recompute drawing area coordinates. */
-				marble_window_internal_computedrawingorigin(ps_wnddata);
+				/* Restore old size. */
+				SetWindowPos(
+					p_window, 
+					HWND_TOP,
+					0, 0,
+					ps_wnddata->ms_data.ms_ext.ms_window.m_width,
+					ps_wnddata->ms_data.ms_ext.ms_window.m_height,
+					SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
+				);
+
+                /* Show the window. */
+				ShowWindow(p_window, SW_SHOW);
 				return 0;
 			}
 
