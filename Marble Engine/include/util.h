@@ -280,6 +280,14 @@ MB_API double marble_util_clock_asmcsec(
 MB_API double marble_util_clock_asnsec(
     _Inout_ struct marble_util_clock const *ps_clock /* clock */
 );
+
+/*
+ * Retrieves a raw platform-specific time-stamp value.
+ * 
+ * Returns time-stamp or 0 if the raw timer is not
+ * available.
+ */
+MB_API uint64_t marble_util_clock_raw(void);
 #pragma endregion (UTIL-CLOCK)
 
 

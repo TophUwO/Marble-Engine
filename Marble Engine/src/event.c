@@ -1,5 +1,6 @@
 #include <event.h>
 #include <error.h>
+#include <util.h>
 
 
 /* Table representing additional event data; mainly used for filtering. */
@@ -93,12 +94,13 @@ void marble_event_construct(
 			break;
 	}
 
+    /* Construct common event-header. */
 	*(struct marble_event *)p_evptr = (struct marble_event){
 		.m_type      = type,
 		.m_cat       = glsa_evinfotable[type].m_cat,
-		.m_ishandled = false
+		.m_ishandled = false,
+        .m_timestamp = marble_util_clock_raw()
 	};
-	QueryPerformanceCounter((LARGE_INTEGER *)&((struct marble_event *)p_evptr)->m_timestamp);
 }
 
 enum marble_evtype marble_event_getmouseevent(uint32_t msgid) {

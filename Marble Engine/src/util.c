@@ -332,7 +332,6 @@ static bool marble_util_clock_internal_init(void) {
         sizeof(((LARGE_INTEGER *)0)->QuadPart) == sizeof(int64_t),
         "Size of high-resolution timestamp must be 64 bits."
     );
-
     /*
      * Check alignment requirement of int64_t and
      * LARGE_INTEGER. 
@@ -433,6 +432,18 @@ double marble_util_clock_asnsec(
 #endif
 
     return (ps_clock->m_tend - ps_clock->m_tstart) / (gl_pfreq / 1e+9);
+}
+
+uint64_t marble_util_clock_raw(void) {
+#if (defined MB_PLATFORM_WINDOWS)
+    LARGE_INTEGER u_time;
+    if (!QueryPerformanceCounter(&u_time))
+        return 0;
+
+    return (uint64_t)u_time.QuadPart;
+#else
+    return 0;
+#endif
 }
 #pragma endregion (UTIL-CLOCK)
 
