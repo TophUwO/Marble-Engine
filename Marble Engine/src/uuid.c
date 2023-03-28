@@ -68,9 +68,6 @@ void marble_uuid_tostr(
         *pz_dest++ = glpz_hexdigits[p_uuid->m_i8[i] >> 4];
         *pz_dest++ = glpz_hexdigits[p_uuid->m_i8[i] & 0x0F];
     }
-
-    /* Append NUL-terminator. */
-    pz_dest[36] = '\0';
 }
 
 void marble_uuid_copy(
