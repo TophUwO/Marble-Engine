@@ -48,7 +48,8 @@ static char const *const glapz_ecodestrs[] = {
     "MARBLE_EC_LAYERADDR",
     "MARBLE_EC_CHUNKADDR",
     "MARBLE_EC_ALREADYDEP",
-    "MARBLE_EC_NOTDEP"
+    "MARBLE_EC_NOTDEP",
+    "MARBLE_EC_INITLOCK"
 };
 
 /* Error code descriptions */
@@ -98,7 +99,8 @@ static char const *const glapz_ecodedescs[] = {
     "Malformed layer address",
     "Malformed chunk address",
     "Dependency is already part of the dependency chain.",
-    "Dependency is not a direct dependency of the asset."
+    "Dependency is not a direct dependency of the asset.",
+    "Failed to initialize synchronization lock."
 };
 
 

@@ -611,6 +611,59 @@ MB_API _Success_ptr_ void *marble_util_array2d_get(
 
 
 /*
+ * Wraps platform-dependent synchronization objects
+ * in a relatively platform-independent container.
+ */
+#pragma region UTIL-LOCK
+struct marble_util_lock;
+
+
+/*
+ * Initializes a lock. When the lock is initialized,
+ * it is free, that is, not automatically locked by the
+ * thread that initialized the lock.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Critical_ marble_ecode_t marble_util_lock_init(
+    _Init_(pps_lock) struct marble_util_lock **pps_lock /* lock to init */
+);
+
+/*
+ * Releases a lock and frees up all resources occupied
+ * by it.
+ * Note that if the lock is occupied, it cannot be
+ * uninitialized.
+ * 
+ * Returns nothing.
+ */
+MB_API void marble_util_lock_uninit(
+    _Uninit_(pps_lock) struct marble_util_lock **pps_lock /* lock to uninit */
+);
+
+/*
+ * Acquires a lock. Only one thread can own the lock
+ * at a given time.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_util_lock_acquire(
+    _Inout_ struct marble_util_lock *ps_lock /* lock to acquire */
+);
+
+/*
+ * Releases a lock. Note that only the thread owning the lock can
+ * release it.
+ * 
+ * Returns 0 on success, non-zero on failure.
+ */
+MB_API _Success_ok_ marble_ecode_t marble_util_lock_release(
+    _Inout_ struct marble_util_lock *ps_lock /* lock to release */
+);
+#pragma endregion (UTIL-LOCK)
+
+
+/*
  * Initializes data used by the tools library.
  * Has to be called once when the app starts
  * in order for various utilities like the HPC

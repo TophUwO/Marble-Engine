@@ -44,6 +44,11 @@ MB_BEGIN_HEADER
 #if (!defined MB_LOG_NOLOGO)
 	#define MB_LOG_NOLOGO (false)
 #endif
+
+/* Thread-safe logging? */
+#if (!defined MB_LOG_THREADSAFE)
+    #define MB_LOG_THREADSAFE (false)
+#endif
 #pragma endregion
 
 

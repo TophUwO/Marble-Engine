@@ -1,5 +1,6 @@
 ﻿#include <log.h>
 #include <system.h>
+#include <util.h>
 
 #include <external/tfmt.h>
 
@@ -27,8 +28,13 @@ static struct {
 	char *pz_buffer; /* format buffer */
 
 	/* Windows-only. */
-#if (defined _WIN32)
+#if (defined MB_PLATFORM_WINDOWS)
 	HANDLE mp_hdout; /* Windows console handle */
+#endif
+
+#if (MB_LOG_THREADSAFE)
+    /* Lock object */
+    struct marble_util_lock *mps_lock;
 #endif
 } gls_logctxt = { 0 };
 
@@ -226,6 +232,11 @@ static void marble_log_internal_outputmessage(
 	_In_z_     char const *pz_fmt,
 	_In_opt_   va_list p_args
 ) {
+#if (MB_LOG_THREADSAFE)
+    /* Acquire lock. */
+    marble_util_lock_acquire(gls_logctxt.mps_lock);
+#endif
+
 	if (!marble_log_internal_formatmessage(
 		isplain,
 		lvl,
@@ -248,6 +259,11 @@ static void marble_log_internal_outputmessage(
 		 */
 		fputc('\n', gls_logctxt.p_handle);
 	}
+
+#if (MB_LOG_THREADSAFE)
+    /* Release lock. */
+    marble_util_lock_release(gls_logctxt.mps_lock);
+#endif
 }
 
 static void marble_log_internal_welcomemessage(void) {
@@ -282,6 +298,13 @@ _Critical_ marble_ecode_t marble_log_init(
 	);
 	if (ecode != MARBLE_EC_OK)
 		goto lbl_END;
+
+#if (MB_LOG_THREADSAFE)
+    /* Initialize lock. */
+    ecode = marble_util_lock_init(&gls_logctxt.mps_lock);
+    if (ecode != MARBLE_EC_OK)
+        goto lbl_END;
+#endif
 
 	/* If **pz_logfile** is not NULL and not empty, attempt to open the file. */
 	if (pz_logfile != NULL && *pz_logfile != '\0') {
@@ -329,12 +352,17 @@ void marble_log_uninit(void) {
 		return;
 
 	if (gls_logctxt.p_handle != NULL) {
+#if (MB_LOG_THREADSAFE)
+        /* Destroy lock. */
+        marble_util_lock_uninit(&gls_logctxt.mps_lock);
+#endif
+
 		/*
-		* Print some newlines so that we can distinguish "log sessions"
-		* if we are appending logfiles instead of creating them every
-		* time a session starts.
-		*/
-		fputs("\n\n\n\n\n\n\n\n", gls_logctxt.p_handle);
+		 * Print some newlines so that we can distinguish "log sessions"
+		 * if we are appending logfiles instead of creating them every
+		 * time a session starts.
+		 */
+		fputs("\n\n\n\n\n\n\n\n\n\n\n\n\n", gls_logctxt.p_handle);
 
 		fflush(gls_logctxt.p_handle);
 		fclose(gls_logctxt.p_handle);

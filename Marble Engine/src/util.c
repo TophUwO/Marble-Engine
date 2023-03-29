@@ -1131,6 +1131,110 @@ _Success_ptr_ void *marble_util_array2d_get(
 #pragma endregion (UTIL-ARRAY2D)
 
 
+#pragma region UTIL-LOCK
+/*
+ * Struct definition of the lock type.
+ * 
+ * TODO: add ability to specify a type of lock
+ */
+struct marble_util_lock {
+#if (defined MB_PLATFORM_WINDOWS)
+    /*
+     * critical section is preferred on Windows
+     * for performance reasons
+     */
+    CRITICAL_SECTION m_scsec;
+#else
+    int m_dummy;
+#endif
+    char volatile m_isinit;
+};
+
+
+_Critical_ marble_ecode_t marble_util_lock_init(
+    _Init_(pps_lock) struct marble_util_lock **pps_lock
+) { MB_ERRNO
+    if (pps_lock <= NULL)
+        return MARBLE_EC_PARAM;
+
+#if (defined MB_PLATFORM_WINDOWS)
+    /* Allocate memory for structure. */
+    ecode = marble_system_alloc(
+        MB_CALLER_INFO,
+        sizeof **pps_lock,
+        true,
+        false,
+        pps_lock
+    );
+    if (ecode != MARBLE_EC_OK)
+        return ecode;
+
+    /* Initialize critical section object. */
+    BOOL res = InitializeCriticalSectionAndSpinCount(&(*pps_lock)->m_scsec, 0x0400);
+    if (!res) {
+        marble_util_lock_uninit(pps_lock);
+
+        return MARBLE_EC_INITLOCK;
+    }
+
+    InterlockedExchange8(&(*pps_lock)->m_isinit, true);
+    return MARBLE_EC_OK;
+#else
+    *pps_lock = NULL;
+
+    return MARBLE_EC_UNIMPLFEATURE;
+#endif
+}
+
+void marble_util_lock_uninit(
+    _Uninit_(pps_lock) struct marble_util_lock **pps_lock
+) {
+    if (pps_lock <= NULL || *pps_lock == NULL)
+        return;
+
+#if (defined MB_PLATFORM_WINDOWS)
+    InterlockedExchange8(&(*pps_lock)->m_isinit, false);
+
+    /* Delete the critical section object. */
+    DeleteCriticalSection(&(*pps_lock)->m_scsec);
+#endif
+
+    free(*pps_lock);
+    *pps_lock = NULL;
+}
+
+_Success_ok_ marble_ecode_t marble_util_lock_acquire(
+    _Inout_ struct marble_util_lock *ps_lock
+) {
+    if (ps_lock <= NULL)                            return MARBLE_EC_PARAM;
+    if (!InterlockedOr8(&ps_lock->m_isinit, false)) return MARBLE_EC_COMPSTATE;
+
+#if (defined MB_PLATFORM_WINDOWS)
+    EnterCriticalSection(&ps_lock->m_scsec);
+
+    return MARBLE_EC_OK;
+#else
+    return MARBLE_EC_UNIMPLFEATURE;
+#endif
+}
+
+_Success_ok_ marble_ecode_t marble_util_lock_release(
+    _Inout_ struct marble_util_lock *ps_lock
+) {
+    if (ps_lock <= NULL)                            return MARBLE_EC_PARAM;
+    if (!InterlockedOr8(&ps_lock->m_isinit, false)) return MARBLE_EC_COMPSTATE;
+
+#if (defined MB_PLATFORM_WINDOWS)
+    LeaveCriticalSection(&ps_lock->m_scsec);
+
+    return MARBLE_EC_OK;
+#else
+    return MARBLE_EC_UNIMPLFEATURE;
+#endif
+}
+#pragma endregion (UTIL-LOCK)
+
+
 bool marble_util_init(void) {
     /*
      * Frequency of HPC; calling this multiple times is okay
