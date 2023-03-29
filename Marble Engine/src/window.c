@@ -47,7 +47,7 @@ static void marble_window_internal_onevent(
 	*/
     size_t const len = marble_util_vec_count(gls_app.ms_layerstack.mps_vec);
 
-	for (size_t i = len - 1; i && i != (size_t)(-1) && ps_event->m_ishandled == false; i--) {
+	for (size_t i = len - 1; i && i != (size_t)(-1) && !ps_event->m_ishandled; i--) {
 		struct marble_layer *ps_layer = marble_util_vec_get(gls_app.ms_layerstack.mps_vec, i);
 
 		if (ps_layer->m_isenabled)
@@ -275,7 +275,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 
 			struct marble_keyboardevent s_keyreleasedev;
 			struct marble_keyboardevent_data s_data = {
-				.m_keycode  = (DWORD)wparam,
+				.m_keycode  = (uint32_t)wparam,
 				.m_issyskey = msgid == WM_SYSKEYUP
 			};
 			marble_event_construct(
@@ -296,7 +296,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 		case WM_MOUSEMOVE: {
 			struct marble_mouseevent s_mouseev;
 			struct marble_mouseevent_data s_data = {
-				.m_buttoncode = (DWORD)wparam,
+				.m_buttoncode = (uint32_t)wparam,
 				.ms_pos = { 
 					.m_x = GET_X_LPARAM(lparam), 
 					.m_y = GET_Y_LPARAM(lparam)
@@ -504,13 +504,15 @@ void marble_window_resize(
 		ps_wnd->ms_data.m_style,
 		&nwidth,
 		&nheight
-	)) return;
+	) != MARBLE_EC_OK)
+        return;
 
-	marble_window_internal_querydimensions(
+	if (marble_window_internal_querydimensions(
 		ps_wnd->mp_handle,
 		&ps_wnd->ms_data.ms_ext.ms_client,
 		&ps_wnd->ms_data.ms_ext.ms_window
-	);
+	) != MARBLE_EC_OK)
+        return;
 
 	/*
 	 * Resize window and renderer according
