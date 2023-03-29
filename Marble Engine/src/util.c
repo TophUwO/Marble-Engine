@@ -1147,6 +1147,7 @@ struct marble_util_lock {
 #else
     int m_dummy;
 #endif
+
     char volatile m_isinit;
 };
 

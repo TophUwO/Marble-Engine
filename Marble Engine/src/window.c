@@ -219,7 +219,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 		case WM_SYSKEYDOWN: {
 			struct marble_keyboardevent s_keydownev;
 			struct marble_keyboardevent_data s_data = {
-				.m_keycode  = (DWORD)wparam,
+				.m_keycode  = (uint32_t)wparam,
 				.m_issyskey = msgid == WM_SYSKEYDOWN
 			};
 			marble_event_construct(
@@ -237,6 +237,13 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
 		case WM_SYSKEYUP: {
 			if (wparam == VK_F11) {
 				ps_wnddata->ms_data.m_isfscreen = !ps_wnddata->ms_data.m_isfscreen;
+
+                MB_LOG_PLAINDEBUG(
+                    "wndsys: %s full-screen.",
+                    ps_wnddata->ms_data.m_isfscreen
+                        ? "Entering"
+                        : "Leaving"
+                );
 
 				if (ps_wnddata->ms_data.m_isfscreen) {
 					/* Make window borderless. */
