@@ -251,7 +251,7 @@ static void marble_log_internal_outputmessage(
 }
 
 static void marble_log_internal_welcomemessage(void) {
-	marble_log_plain(
+    MB_LOG_PLAIN(
 		u8"*******************************************************************************\n"
 		u8"Marble Engine (" MB_VERSIONSTR ", " MB_ARCHSTR ")\n"
 		u8"(C) 2022-2023 TophUwO <tophuwo01@gmail.com> All rights reserved.\n"

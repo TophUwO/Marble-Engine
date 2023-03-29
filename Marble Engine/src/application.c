@@ -127,7 +127,7 @@ static void marble_application_internal_initlog(
 	if (*p_ecode != MARBLE_EC_OK)
 		marble_application_raisefatalerror(*p_ecode);
 
-	marble_log_info(NULL, "init: log");
+    MB_LOG_PLAININFO("init: log");
 }
 
 static void marble_application_internal_initutils(
@@ -136,7 +136,7 @@ static void marble_application_internal_initutils(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 		
-	marble_log_info(NULL, "init: utils (HPC, hash seed, etc.)");
+    MB_LOG_PLAININFO("init: utils (HPC, hash seed, etc.)");
 
 	/*
 	 * Check whether an HPC is present in the system; should
@@ -152,7 +152,7 @@ static void marble_application_internal_initcom(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	marble_log_info(NULL, "init: component object model (COM)");
+MB_LOG_PLAININFO("init: component object model (COM)");
 
 	/*
 	 * Initialize COM. If "CoInitializeEx()" returns non-zero,
@@ -174,7 +174,7 @@ static void marble_application_internal_initstate(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	marble_log_info(NULL, "init: application state");
+    MB_LOG_PLAININFO("init: application state");
 
 	marble_application_setstate(
 		false,
@@ -192,14 +192,14 @@ static void marble_application_internal_createwindow(
 		return;
 
 	/* Initialize window system. */
-	marble_log_info(NULL, "init: window system");
+    MB_LOG_PLAININFO("init: window system");
 
 	*p_ecode = marble_windowsys_init();
 	if (*p_ecode != MARBLE_EC_OK)
 		goto lbl_END;
 
 	/* Initialize window. */
-	marble_log_info(NULL, "init: window");
+    MB_LOG_PLAININFO("init: window");
 
 	*p_ecode = marble_window_create(
 		ps_settings,
@@ -218,7 +218,7 @@ static void marble_application_internal_initlayerstack(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	marble_log_info(NULL, "init: layer stack");
+    MB_LOG_PLAININFO("init: layer stack");
 
 	*p_ecode = marble_application_internal_initlayerstack_impl();
 	if (*p_ecode != MARBLE_EC_OK)
@@ -231,7 +231,7 @@ static void marble_application_internal_initassetmanager(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	marble_log_info(NULL, "init: asset manager");
+    MB_LOG_PLAININFO("init: asset manager");
 
 	*p_ecode = marble_application_internal_initassetman();
 	if (*p_ecode != MARBLE_EC_OK)
@@ -246,7 +246,7 @@ static void marble_application_internal_douserinit(
 	if (*p_ecode != MARBLE_EC_OK)
 		return;
 
-	marble_log_info(NULL, "init: user application");
+    MB_LOG_PLAININFO("init: user application");
 
 	/*
 	 * When user initialization fails, this is also considered
@@ -317,7 +317,7 @@ _Success_ok_ static marble_ecode_t marble_application_internal_updateandrender(
 _Success_ok_ static marble_ecode_t marble_application_internal_cleanup(
 	marble_ecode_t ecode /* error code to return to system */
 ) {
-	marble_log_info(NULL, "System shutdown ...");
+    MB_LOG_PLAININFO("System shutdown ...");
 
 	marble_window_destroy(&gls_app.ps_wnd);
 
@@ -350,8 +350,7 @@ void marble_application_setstate(
 void marble_application_raisefatalerror(
     marble_ecode_t ecode /* error code that will be returned to host environment */
 ) {
-    marble_log_fatal(
-        NULL,
+    MB_LOG_PLAINFATAL(
         "Fatal error occurred: (%i)\n    %s\n    %s",
         (int)ecode,
         marble_error_getstr(ecode),
@@ -427,7 +426,7 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 		MARBLE_APPSTATE_RUNNING
 	);
 
-	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
+	MB_LOG_PLAIN("-------------------------------------------------------------------------------");
  
 	while (true) {
 		MSG s_msg;
@@ -461,7 +460,7 @@ MB_API marble_ecode_t __cdecl marble_application_run(void) {
 	}
 	
 lbl_CLEANUP:
-	MB_LOG_PLAIN("-------------------------------------------------------------------------------", 0);
+	MB_LOG_PLAIN("-------------------------------------------------------------------------------");
 
 	if (gls_app.ms_state.m_isfatal) {
 		TCHAR a_buf[1024] = { 0 };

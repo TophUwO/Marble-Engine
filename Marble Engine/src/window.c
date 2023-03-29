@@ -27,7 +27,7 @@ static void marble_window_internal_computedrawingorigin(
 	ps_window->mps_renderer->m_orix = s_clientrect.right  / 2.0f - ps_window->ms_data.ms_ext.ms_client.m_width  / 2.0f;
 	ps_window->mps_renderer->m_oriy = s_clientrect.bottom / 2.0f - ps_window->ms_data.ms_ext.ms_client.m_height / 2.0f;
 
-    marble_log_debug(NULL, "wndsys: Recalculated drawing origin.");
+    MB_LOG_PLAINDEBUG("wndsys: Recalculated drawing origin.");
 }
 
 /*
@@ -212,7 +212,7 @@ static LRESULT CALLBACK marble_window_internal_windowproc(
                 marble_window_internal_computedrawingorigin(ps_wnddata);
             }
 			
-            marble_log_debug(NULL, "wndsys: Window %s.", marble_window_internal_getsizereason(wparam));
+            MB_LOG_PLAINDEBUG("wndsys: Window %s.", marble_window_internal_getsizereason(wparam));
 			return 0;
 		}
 		case WM_KEYDOWN:

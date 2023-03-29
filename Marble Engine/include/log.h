@@ -155,12 +155,23 @@ MB_API void __cdecl marble_log_fatal(
  * Macros to wrap the compulsory __func__ into a macro
  * passing the parameter automatically.
  */
-#define MB_LOG_PLAIN(fmt, ...) marble_log_plain(fmt, __VA_ARGS__)
-#define MB_LOG_DEBUG(fmt, ...) marble_log_debug(__func__, fmt, __VA_ARGS__)
-#define MB_LOG_INFO(fmt, ...)  marble_log_info(__func__, fmt, __VA_ARGS__)
-#define MB_LOG_WARN(fmt, ...)  marble_log_warn(__func__, fmt, __VA_ARGS__)
-#define MB_LOG_ERROR(fmt, ...) marble_log_error(__func__, fmt, __VA_ARGS__)
-#define MB_LOG_FATAL(fmt, ...) marble_log_fatal(__func__, fmt, __VA_ARGS__)
+#define MB_LOG_PLAIN(fmt, ...) marble_log_plain(fmt, ##__VA_ARGS__)
+#define MB_LOG_DEBUG(fmt, ...) marble_log_debug(__func__, fmt, ##__VA_ARGS__)
+#define MB_LOG_INFO(fmt, ...)  marble_log_info(__func__, fmt, ##__VA_ARGS__)
+#define MB_LOG_WARN(fmt, ...)  marble_log_warn(__func__, fmt, ##__VA_ARGS__)
+#define MB_LOG_ERROR(fmt, ...) marble_log_error(__func__, fmt, ##__VA_ARGS__)
+#define MB_LOG_FATAL(fmt, ...) marble_log_fatal(__func__, fmt, ##__VA_ARGS__)
+
+/*
+ * Additional macros for general messages of a given log-level,
+ * plain, that is, without a function designation. Other than
+ * that, these are identical to their MB_LOG_* counterparts.
+ */
+#define MB_LOG_PLAINDEBUG(fmt, ...) marble_log_debug(NULL, fmt, ##__VA_ARGS__)
+#define MB_LOG_PLAININFO(fmt, ...)  marble_log_info(NULL, fmt, ##__VA_ARGS__)
+#define MB_LOG_PLAINWARN(fmt, ...)  marble_log_warn(NULL, fmt, ##__VA_ARGS__)
+#define MB_LOG_PLAINERROR(fmt, ...) marble_log_error(NULL, fmt, ##__VA_ARGS__)
+#define MB_LOG_PLAINFATAL(fmt, ...) marble_log_fatal(NULL, fmt, ##__VA_ARGS__)
 
 
 MB_END_HEADER

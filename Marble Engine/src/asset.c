@@ -603,8 +603,7 @@ _Critical_ marble_ecode_t marble_assetman_internal_allocatechunk(
         }
 
         /* Output info message. */
-        marble_log_debug(
-            __func__,
+        MB_LOG_DEBUG(
             "Created memory pool (%zu bytes) at 0x%p.",
             ps_mempool->m_size,
             ps_mempool
